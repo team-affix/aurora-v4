@@ -273,26 +273,6 @@ namespace aurora
 
 	};
 
-	template<typename X_TYPE, typename Y_TYPE>
-	struct layer
-	{
-	public:
-		std::vector<Y_TYPE> m_y;
-
-	public:
-		layer(
-			std::vector<X_TYPE> a_x,
-			std::function<Y_TYPE(X_TYPE)> a_generate_output
-		)
-		{
-			for (int i = 0; i < a_x.size(); i++)
-			{
-				m_y.push_back(a_generate_output(a_x[i]));
-			}
-		}
-
-	};
-
 	struct tnn
 	{
 	public:
@@ -329,8 +309,12 @@ namespace aurora
 			for (int i = 0; i < a_layer_infos.size(); i++)
 			{
 				weight_junction l_w(a_elements, a_parameters, l_y, a_layer_infos[i].m_size);
-				layer<state_gradient_pair*, state_gradient_pair*> l_layer(l_w.m_y, a_layer_infos[i].m_generate_neurons);
-				l_y = l_layer.m_y;
+				
+				l_y.resize(l_w.m_y.size());
+
+				for (int j = 0; j < l_w.m_y.size(); j++)
+					l_y[j] = a_layer_infos[i].m_generate_neurons(l_w.m_y[j]);
+
 			}
 
 			m_y = l_y;
@@ -339,4 +323,3 @@ namespace aurora
 	};
 
 }
-

@@ -1,5 +1,6 @@
 #include "aurora-v4/aurora.h"
 #include <iostream>
+#include "affix-base/stopwatch.h"
 
 using namespace aurora;
 
@@ -283,7 +284,8 @@ void tnn_test(
 		{
 			tnn::layer_info(5, neuron_tanh(l_elements, l_parameters)),
 			tnn::layer_info(1, neuron_sigmoid(l_elements, l_parameters))
-		});
+		}
+	);
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(25);
@@ -318,26 +320,43 @@ void tnn_test(
 
 	const int CHECKPOINT = 100000;
 
-	for (int epoch = 0; epoch < 10000000; epoch++)
+	std::vector<std::vector<double>> l_ts_x = {
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
+
+	std::vector<std::vector<double>> l_ts_y = {
+		{0},
+		{1},
+		{1},
+		{0}
+	};
+
+	affix_base::timing::stopwatch l_stopwatch;
+	l_stopwatch.start();
+
+	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
 		double l_cost = 0;
 
-		l_cost += l_cycle({ 0, 0 }, { 0 });
+		l_cost += l_cycle(l_ts_x[0], l_ts_y[0]);
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_tnn.m_y[0]->m_state << std::endl;
 
-		l_cost += l_cycle({ 0, 1 }, { 1 });
+		l_cost += l_cycle(l_ts_x[1], l_ts_y[1]);
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_tnn.m_y[0]->m_state << std::endl;
 
-		l_cost += l_cycle({ 1, 0 }, { 1 });
+		l_cost += l_cycle(l_ts_x[2], l_ts_y[2]);
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_tnn.m_y[0]->m_state << std::endl;
 
-		l_cost += l_cycle({ 1, 1 }, { 0 });
+		l_cost += l_cycle(l_ts_x[3], l_ts_y[3]);
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_tnn.m_y[0]->m_state << std::endl;
@@ -350,12 +369,13 @@ void tnn_test(
 
 		if (epoch % CHECKPOINT == 0)
 		{
-			//std::cout << l_cost << std::endl;
 			std::cout << std::endl;
+			std::cout << l_cost << std::endl << std::endl;
 		}
 
 	}
 
+	std::cout << std::endl << l_stopwatch.duration_milliseconds() << std::endl;
 
 }
 
@@ -455,7 +475,7 @@ int main(
 {
 	srand(time(0));
 
-	parabola_test();
+	tnn_test();
 
 	return 0;
 }

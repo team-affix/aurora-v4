@@ -156,9 +156,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="aurora.h" />
     <ClInclude Include="compounds.h" />
     <ClInclude Include="elements.h" />
