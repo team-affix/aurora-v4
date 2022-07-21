@@ -1,0 +1,3 @@
+[submodule "affix-base"]
+	path = affix-base
+	url = git@github.com:team-affix/affix-base.git
