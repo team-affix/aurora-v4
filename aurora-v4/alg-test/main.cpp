@@ -361,21 +361,18 @@ void tnn_test(
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_tnn.m_y[0]->m_state << std::endl;
 
+		if (epoch % CHECKPOINT == 0)
+			std::cout << std::endl;
+
 		for (int i = 0; i < l_parameters.size(); i++)
 		{
 			l_parameters[i]->m_y.m_state -= 0.002 * l_parameters[i]->m_y.m_gradient;
 			l_parameters[i]->m_y.m_gradient = 0;
 		}
 
-		if (epoch % CHECKPOINT == 0)
-		{
-			std::cout << std::endl;
-			std::cout << l_cost << std::endl << std::endl;
-		}
-
 	}
 
-	std::cout << std::endl << l_stopwatch.duration_milliseconds() << std::endl;
+	std::cout << std::endl << "PERIOD OF TRAINING (ms): " << l_stopwatch.duration_milliseconds() << std::endl;
 
 }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "affix-base/pch.h"
 #include <vector>
 #include <functional>
 #include "maths.h"
