@@ -47,7 +47,7 @@ namespace aurora
 
 		bias(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			state_gradient_pair* a_x
 		)
 		{
@@ -73,7 +73,7 @@ namespace aurora
 
 		weight(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			state_gradient_pair* a_x
 		)
 		{
@@ -99,7 +99,7 @@ namespace aurora
 
 		weights(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
@@ -127,7 +127,7 @@ namespace aurora
 	public:
 		weight_junction(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x,
 			const size_t& a_y_size
 		)
@@ -194,7 +194,7 @@ namespace aurora
 	public:
 		parameterized_normalize(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			const size_t& a_parameter_count
 		)
 		{
@@ -260,7 +260,7 @@ namespace aurora
 	public:
 		parameterized_interpolate(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
@@ -300,7 +300,7 @@ namespace aurora
 	public:
 		tnn(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x,
 			std::vector<tnn::layer_info> a_layer_infos
 		)
@@ -319,6 +319,86 @@ namespace aurora
 			}
 
 			m_y = l_y;
+		}
+
+	};
+
+	struct lstm
+	{
+	private:
+		struct timestep
+		{
+		public:
+			std::vector<state_gradient_pair*> m_cy;
+			std::vector<state_gradient_pair*> m_y;
+
+		public:
+			timestep(
+				std::vector<affix_base::data::ptr<element>>& a_elements,
+				std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
+				std::vector<state_gradient_pair*> a_x,
+				std::vector<state_gradient_pair*> a_cx,
+				std::vector<state_gradient_pair*> a_hx
+			);
+
+		};
+
+	private:
+		std::vector<affix_base::data::ptr<branch>> m_timesteps;
+
+	public:
+		std::vector<std::vector<state_gradient_pair*>> m_y;
+
+	public:
+		lstm(
+			std::vector<affix_base::data::ptr<element>>& a_elements,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
+			std::vector<std::vector<state_gradient_pair*>> a_x,
+			const size_t& a_y_size
+		)
+		{
+			std::vector<state_gradient_pair*> l_cy;
+			std::vector<state_gradient_pair*> l_hy;
+
+			// Initialize the cell state (make it learnable using parameters)
+			for (int i = 0; i < a_y_size; i++)
+			{
+				affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
+				l_cy.push_back(&l_parameter->m_y);
+			}
+
+			// Initialize the hidden state
+			for (int i = 0; i < a_y_size; i++)
+			{
+				affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
+				l_hy.push_back(&l_parameter->m_y);
+			}
+
+			std::vector<affix_base::data::ptr<state_gradient_pair>> l_initial_timestep_params;
+
+			for (int i = 0; i < a_x.size(); i++)
+			{
+				std::vector<affix_base::data::ptr<state_gradient_pair>> l_timestep_params;
+				lstm::timestep l_timestep(a_elements, l_timestep_params, a_x[i], l_cy, l_hy);
+				l_cy = l_timestep.m_cy;
+				l_hy = l_timestep.m_y;
+				m_y[i] = l_timestep.m_y;
+
+				if (l_initial_timestep_params.size() == 0)
+				{
+					l_initial_timestep_params = l_timestep_params;
+				}
+				else
+				{
+					for (int i = 0; i < l_timestep_params.size(); i++)
+					{
+						l_timestep_params[i].group_link(l_initial_timestep_params[i]);
+					}
+				}
+
+			}
+
+
 		}
 
 	};

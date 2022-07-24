@@ -10,7 +10,6 @@ namespace aurora
 		double m_gradient = 0;
 	};
 
-
 	std::vector<state_gradient_pair*> pointers_to_each_element(
 		std::vector<state_gradient_pair>& a_vec
 	)

@@ -161,6 +161,10 @@
     <ClInclude Include="elements.h" />
     <ClInclude Include="generators.h" />
     <ClInclude Include="maths.h" />
+    <ClInclude Include="optimizers.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lstm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

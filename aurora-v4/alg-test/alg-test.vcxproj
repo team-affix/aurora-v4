@@ -154,8 +154,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\affix-base\affix-base\affix-base.vcxproj">
-      <Project>{7b4bfee2-ac81-40ce-a365-529cfc1111b3}</Project>
+    <ProjectReference Include="..\aurora-v4\aurora-v4.vcxproj">
+      <Project>{6ebfbcd7-4571-4705-bd6f-3914b7223cb3}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

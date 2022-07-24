@@ -30,5 +30,13 @@
     <ClInclude Include="compounds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="optimizers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lstm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

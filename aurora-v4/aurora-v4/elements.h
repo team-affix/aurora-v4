@@ -3,6 +3,7 @@
 #include <vector>
 #include "affix-base/ptr.h"
 #include "maths.h"
+#include "optimizers.h"
 
 namespace aurora
 {
@@ -49,6 +50,9 @@ namespace aurora
 
 	class parameter : public element
 	{
+	private:
+		affix_base::data::ptr<state_gradient_pair> m_linkable_value = new state_gradient_pair();
+
 	public:
 		state_gradient_pair m_y;
 
@@ -62,11 +66,27 @@ namespace aurora
 
 		parameter(
 			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<parameter*>& a_parameters
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
 		) :
-			element(a_elements)
+			element(a_elements),
+			m_linkable_value(new state_gradient_pair())
 		{
-			a_parameters.push_back(this);
+			a_parameters.push_back(m_linkable_value);
+		}
+
+		virtual void fwd(
+
+		)
+		{
+			m_y.m_state = m_linkable_value->m_state;
+		}
+
+		virtual void bwd(
+
+		)
+		{
+			m_linkable_value->m_gradient += m_y.m_gradient;
+			m_y.m_gradient = 0;
 		}
 
 	};
@@ -396,21 +416,85 @@ namespace aurora
 
 		)
 		{
-			if (m_x->m_state > 0)
-				m_y.m_state = m_x->m_state;
-			else
-				m_y.m_state = m_m * m_x->m_state;
+			m_y.m_state =
+				(m_x->m_state > 0) * m_x->m_state +
+				(m_x->m_state <= 0) * m_m * m_x->m_state;
 		}
 
 		virtual void bwd(
 
 		)
 		{
-			if (m_x->m_state > 0)
-				m_x->m_gradient += m_y.m_gradient;
-			else
-				m_x->m_gradient += m_y.m_gradient * m_m;
+			m_x->m_gradient +=
+				(m_x->m_state > 0) * m_y.m_gradient +
+				(m_x->m_state <= 0) * m_y.m_gradient * m_m;
 			m_y.m_gradient = 0;
+		}
+
+	};
+
+	class branch : public element
+	{
+	private:
+		std::vector<affix_base::data::ptr<element>> m_elements;
+		bool m_enabled = false;
+
+	public:
+		branch(
+			std::vector<affix_base::data::ptr<element>>& a_elements,
+			const bool& a_enabled
+		) :
+			element(a_elements),
+			m_enabled(a_enabled)
+		{
+
+		}
+
+		virtual void fwd(
+
+		)
+		{
+			if (m_enabled)
+			{
+				for (int i = 0; i < m_elements.size(); i++)
+				{
+					m_elements[i]->fwd();
+				}
+			}
+		}
+
+		virtual void bwd(
+
+		)
+		{
+			if (m_enabled)
+			{
+				for (int i = m_elements.size() - 1; i >= 0; i--)
+				{
+					m_elements[i]->bwd();
+				}
+			}
+		}
+
+		virtual void enable(
+
+		)
+		{
+			m_enabled = true;
+		}
+
+		virtual void disable(
+
+		)
+		{
+			m_enabled = false;
+		}
+
+		std::vector<affix_base::data::ptr<element>>& elements(
+
+		)
+		{
+			return m_elements;
 		}
 
 	};

@@ -11,7 +11,7 @@ namespace aurora
 {
 	std::function<state_gradient_pair* (state_gradient_pair*)> neuron_sigmoid(
 		std::vector<affix_base::data::ptr<element>>& a_elements,
-		std::vector<parameter*>& a_parameters
+		std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
 	)
 	{
 		return [&](state_gradient_pair* a_x)
@@ -24,7 +24,7 @@ namespace aurora
 
 	std::function<state_gradient_pair* (state_gradient_pair*)> neuron_tanh(
 		std::vector<affix_base::data::ptr<element>>& a_elements,
-		std::vector<parameter*>& a_parameters
+		std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
 	)
 	{
 		return [&](state_gradient_pair* a_x)
@@ -37,7 +37,7 @@ namespace aurora
 
 	std::function<state_gradient_pair* (state_gradient_pair*)> neuron_leaky_relu(
 		std::vector<affix_base::data::ptr<element>>& a_elements,
-		std::vector<parameter*>& a_parameters
+		std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
 	)
 	{
 		return [&](state_gradient_pair* a_x)
