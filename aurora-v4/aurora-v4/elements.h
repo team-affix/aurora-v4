@@ -109,7 +109,7 @@ namespace aurora
 			const double& a_y
 		) :
 			element(a_elements),
-			m_y({ a_y, 0 })
+			m_y(a_y)
 		{
 
 		}

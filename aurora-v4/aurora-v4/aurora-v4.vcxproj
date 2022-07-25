@@ -162,6 +162,7 @@
     <ClInclude Include="generators.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="optimizers.h" />
+    <ClInclude Include="losses.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lstm.cpp" />

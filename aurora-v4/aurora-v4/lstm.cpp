@@ -92,3 +92,57 @@ lstm::timestep::timestep(
 	}
 
 }
+
+lstm::lstm(
+	std::vector<affix_base::data::ptr<element>>& a_elements,
+	std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
+	std::vector<std::vector<state_gradient_pair*>> a_x,
+	const size_t& a_y_size
+)
+{
+	std::vector<state_gradient_pair*> l_cy;
+	std::vector<state_gradient_pair*> l_hy;
+
+	// Initialize the cell state (make it learnable using parameters)
+	for (int i = 0; i < a_y_size; i++)
+	{
+		affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
+		l_cy.push_back(&l_parameter->m_y);
+	}
+
+	// Initialize the hidden state
+	for (int i = 0; i < a_y_size; i++)
+	{
+		affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
+		l_hy.push_back(&l_parameter->m_y);
+	}
+
+	// Dump the initial timestep's parameters into a separate vector,
+	// so the proceeding timesteps' parameters can be linked to them
+	std::vector<affix_base::data::ptr<state_gradient_pair>> l_initial_timestep_params;
+	lstm::timestep l_initial_timestep(a_elements, l_initial_timestep_params, a_x[0], l_cy, l_hy);
+	l_cy = l_initial_timestep.m_cy;
+	l_hy = l_initial_timestep.m_y;
+	m_y.push_back(l_initial_timestep.m_y);
+
+
+	for (int i = 1; i < a_x.size(); i++)
+	{
+		std::vector<affix_base::data::ptr<state_gradient_pair>> l_timestep_params;
+
+		lstm::timestep l_timestep(a_elements, l_timestep_params, a_x[i], l_cy, l_hy);
+		l_cy = l_timestep.m_cy;
+		l_hy = l_timestep.m_y;
+		m_y.push_back(l_timestep.m_y);
+
+		for (int i = 0; i < l_timestep_params.size(); i++)
+			// Link this parameter to initial timestep's parameter
+			l_timestep_params[i].group_link(l_initial_timestep_params[i]);
+
+	}
+
+	for (int i = 0; i < l_initial_timestep_params.size(); i++)
+		// Add initial timestep's parameter to the list of all parameters
+		a_parameters.push_back(l_initial_timestep_params[i]);
+
+}
