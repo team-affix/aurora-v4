@@ -3,7 +3,6 @@
 #include <vector>
 #include "affix-base/ptr.h"
 #include "maths.h"
-#include "optimizers.h"
 
 namespace aurora
 {
@@ -353,7 +352,7 @@ namespace aurora
 
 		)
 		{
-
+			
 		}
 
 		tanh_activate(

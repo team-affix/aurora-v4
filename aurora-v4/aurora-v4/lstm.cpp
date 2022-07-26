@@ -73,7 +73,6 @@ lstm::timestep::timestep(
 
 	// Cell state is now finalized, save it as the cell state output
 	m_cy = l_cell_state_after_input;
-
 	
 	std::vector<state_gradient_pair*> l_cell_state_after_tanh;
 

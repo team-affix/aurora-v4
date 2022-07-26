@@ -225,22 +225,16 @@ void tnn_test(
 		l_parameters[i]->m_state = l_urd(l_dre);
 	}
 
-	auto l_cycle = [&](const std::vector<double>& a_x, const std::vector<double>& a_y)
+	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
 	{
 		for (int i = 0; i < l_x.size(); i++)
-			l_x[i].m_state = a_x[i];
+			l_x[i].m_state = a_x[i].m_state;
 
 		for (int i = 0; i < l_elements.size(); i++)
 			l_elements[i]->fwd();
 
-		double l_cost = 0;
-
-		for (int i = 0; i < l_tnn.m_y.size(); i++)
-		{
-			l_tnn.m_y[i]->m_gradient = l_tnn.m_y[i]->m_state - a_y[i];
-			l_cost += abs(l_tnn.m_y[i]->m_gradient);
-		}
-
+		double l_cost = mean_squared_error(l_tnn.m_y, a_y);
+			
 		for (int i = l_elements.size() - 1; i >= 0; i--)
 			l_elements[i]->bwd();
 
@@ -250,14 +244,14 @@ void tnn_test(
 
 	const int CHECKPOINT = 100000;
 
-	std::vector<std::vector<double>> l_ts_x = {
+	std::vector<state_gradient_pair_vector> l_ts_x = {
 		{0, 0},
 		{0, 1},
 		{1, 0},
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_ts_y = {
+	std::vector<state_gradient_pair_vector> l_ts_y = {
 		{0},
 		{1},
 		{1},
@@ -545,7 +539,7 @@ int main(
 {
 	srand(time(0));
 
-	lstm_test();
+	tnn_test();
 
 	return 0;
 }

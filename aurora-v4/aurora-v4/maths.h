@@ -153,4 +153,120 @@ namespace aurora
 
 	};
 
+	class optimizer
+	{
+	public:
+		state_gradient_pair* m_value = nullptr;
+
+	public:
+		optimizer(
+			state_gradient_pair* a_value
+		) :
+			m_value(a_value)
+		{
+
+		}
+
+		virtual void update(
+
+		)
+		{
+
+		}
+
+	};
+
+	class gradient_descent : public optimizer
+	{
+	public:
+		double m_learn_rate = 0;
+
+	public:
+		gradient_descent(
+			state_gradient_pair* a_value,
+			const double& a_learn_rate
+		) :
+			optimizer(a_value),
+			m_learn_rate(a_learn_rate)
+		{
+
+		}
+
+		virtual void update(
+
+		)
+		{
+			m_value->m_state -= m_learn_rate * m_value->m_gradient;
+			m_value->m_gradient = 0;
+		}
+
+	};
+	
+	inline double mean_squared_error(
+		std::vector<state_gradient_pair*> a_predicted,
+		const std::vector<state_gradient_pair>& a_desired
+	)
+	{
+		assert(a_predicted.size() == a_desired.size());
+
+		double l_result = 0;
+		
+		double l_coefficient = 1.0 / (double)a_predicted.size();
+
+		double l_2_coefficient = 2.0 * l_coefficient;
+
+		for (int i = 0; i < a_predicted.size(); i++)
+		{
+			state_gradient_pair& l_prediction = *a_predicted[i];
+			const state_gradient_pair& l_desired = a_desired[i];
+			double l_error = l_prediction.m_state - l_desired.m_state;
+			double l_squared_error = l_error * l_error;
+			l_result += l_coefficient * l_squared_error;
+			l_prediction.m_gradient += l_2_coefficient * l_error;
+		}
+
+		return l_result;
+
+	}
+
+	inline double mean_squared_error(
+		std::vector<std::vector<state_gradient_pair*>> a_predicted,
+		const std::vector<std::vector<state_gradient_pair>>& a_desired
+	)
+	{
+		assert(a_predicted.size() == a_desired.size());
+		assert(a_predicted[0].size() == a_desired[0].size());
+
+		double l_result = 0;
+
+		double l_coefficient = 1.0 / (double)a_predicted.size() / (double)a_predicted[0].size();
+
+		double l_2_coefficient = 2.0 * l_coefficient;
+
+		for (int i = 0; i < a_predicted.size(); i++)
+		{
+			for (int j = 0; j < a_predicted[i].size(); j++)
+			{
+				state_gradient_pair& l_prediction = *a_predicted[i][j];
+				const state_gradient_pair& l_desired = a_desired[i][j];
+				double l_error = l_prediction.m_state - l_desired.m_state;
+				double l_squared_error = l_error * l_error;
+				l_result += l_coefficient * l_squared_error;
+				l_prediction.m_gradient += l_2_coefficient * l_error;
+			}
+		}
+
+		return l_result;
+
+	}
+
+
+	inline double cross_entropy(
+		std::vector<state_gradient_pair*> a_predicted,
+		const std::vector<state_gradient_pair>& a_desired
+	)
+	{
+		return 0;
+	}
+
 }
