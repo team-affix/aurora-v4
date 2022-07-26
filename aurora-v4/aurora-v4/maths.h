@@ -204,7 +204,7 @@ namespace aurora
 	
 	inline double mean_squared_error(
 		std::vector<state_gradient_pair*> a_predicted,
-		const std::vector<state_gradient_pair>& a_desired
+		const state_gradient_pair_vector& a_desired
 	)
 	{
 		assert(a_predicted.size() == a_desired.size());
@@ -231,7 +231,7 @@ namespace aurora
 
 	inline double mean_squared_error(
 		std::vector<std::vector<state_gradient_pair*>> a_predicted,
-		const std::vector<std::vector<state_gradient_pair>>& a_desired
+		const state_gradient_pair_matrix& a_desired
 	)
 	{
 		assert(a_predicted.size() == a_desired.size());
@@ -263,7 +263,7 @@ namespace aurora
 
 	inline double cross_entropy(
 		std::vector<state_gradient_pair*> a_predicted,
-		const std::vector<state_gradient_pair>& a_desired
+		const state_gradient_pair_vector& a_desired
 	)
 	{
 		return 0;

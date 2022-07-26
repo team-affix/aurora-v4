@@ -416,48 +416,35 @@ void lstm_test(
 {
 	std::vector<affix_base::data::ptr<element>> l_elements;
 	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
+	std::vector<affix_base::data::ptr<gradient_descent>> l_optimizers;
 
 	const size_t l_lstm_y_units = 1;
-	const size_t l_tnn_h0_units = 1;
+	const size_t l_tnn_h0_units = 3;
 	const size_t l_tnn_y_units = 1;
 
 	auto l_x = state_gradient_pair_matrix(4, 2);
 
 	lstm l_lstm_0(l_elements, l_parameters, l_x.pointers(), l_lstm_y_units);
 
-	tnn l_tnn_0(l_elements, l_parameters, l_lstm_0.m_y[0],
-		{
-			tnn::layer_info(l_lstm_y_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
-		});
-	tnn l_tnn_1(l_elements, l_parameters, l_lstm_0.m_y[1],
-		{
-			tnn::layer_info(l_lstm_y_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
-		});
-	tnn l_tnn_2(l_elements, l_parameters, l_lstm_0.m_y[2],
-		{
-			tnn::layer_info(l_lstm_y_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
-		});
-	tnn l_tnn_3(l_elements, l_parameters, l_lstm_0.m_y[3],
-		{
-			tnn::layer_info(l_lstm_y_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
-		});
+	std::vector<std::vector<state_gradient_pair*>> l_y;
 
-	std::vector<std::vector<state_gradient_pair*>> l_y = { l_tnn_0.m_y, l_tnn_1.m_y, l_tnn_2.m_y, l_tnn_3.m_y };
+	for (int i = 0; i < l_lstm_0.m_y.size(); i++)
+	{
+		tnn l_tnn(l_elements, l_parameters, l_lstm_0.m_y[i],
+			{
+				tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
+				tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
+			});
+		l_y.push_back(l_tnn.m_y);
+	}
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
-	std::default_random_engine l_dre(27);
+	std::default_random_engine l_dre(28);
 
 	for (auto& l_parameter : l_parameters)
 	{
 		l_parameter->m_state = l_urd(l_dre);
+		l_optimizers.push_back(new gradient_descent(l_parameter, 0.2));
 	}
 
 	std::vector<state_gradient_pair_matrix> l_training_set_xs =
@@ -505,14 +492,7 @@ void lstm_test(
 				l_elements[j]->fwd();
 
 			// Signal output
-			for (int j = 0; j < l_y.size(); j++)
-			{
-				for (int k = 0; k < l_y[j].size(); k++)
-				{
-					l_y[j][k]->m_gradient = l_y[j][k]->m_state - l_training_set_ys[i][j][k].m_state;
-					l_cost += abs(l_y[j][k]->m_gradient);
-				}
-			}
+			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
 
 			// Carry backward
 			for (int j = l_elements.size() - 1; j >= 0; j--)
@@ -520,11 +500,8 @@ void lstm_test(
 
 		}
 
-		for (int i = 0; i < l_parameters.size(); i++)
-		{
-			l_parameters[i]->m_state -= 0.2 * l_parameters[i]->m_gradient;
-			l_parameters[i]->m_gradient = 0;
-		}
+		for (int i = 0; i < l_optimizers.size(); i++)
+			l_optimizers[i]->update();
 
 		if (epoch % 1000 == 0)
 			std::cout << l_cost << std::endl;
@@ -539,7 +516,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	lstm_test();
 
 	return 0;
 }
