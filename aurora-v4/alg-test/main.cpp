@@ -525,7 +525,7 @@ int main(
 {
 	srand(time(0));
 
-	lstm_test();
+	tnn_test();
 
 	return 0;
 }

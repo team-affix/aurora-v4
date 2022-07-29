@@ -116,28 +116,24 @@ lstm::lstm(
 		l_hy.push_back(&l_parameter->m_y);
 	}
 
-	// Dump the initial timestep's parameters into a separate vector,
-	// so the proceeding timesteps' parameters can be linked to them
-	std::vector<affix_base::data::ptr<state_gradient_pair>> l_initial_timestep_params;
-	lstm::timestep l_initial_timestep(a_elements, l_initial_timestep_params, a_x[0], l_cy, l_hy);
-	l_cy = l_initial_timestep.m_cy;
-	l_hy = l_initial_timestep.m_y;
-	m_y.push_back(l_initial_timestep.m_y);
 
+	std::vector<std::vector<affix_base::data::ptr<state_gradient_pair>>> l_timesteps_params(a_x.size());
 
-	for (int i = 1; i < a_x.size(); i++)
+	for (int i = 0; i < a_x.size(); i++)
 	{
-		std::vector<affix_base::data::ptr<state_gradient_pair>> l_timestep_params;
-
-		lstm::timestep l_timestep(a_elements, l_timestep_params, a_x[i], l_cy, l_hy);
+		lstm::timestep l_timestep(a_elements, l_timesteps_params[i], a_x[i], l_cy, l_hy);
 		l_cy = l_timestep.m_cy;
 		l_hy = l_timestep.m_y;
 		m_y.push_back(l_timestep.m_y);
+	}
 
-		for (int i = 0; i < l_timestep_params.size(); i++)
-			// Link this parameter to initial timestep's parameter
-			l_timestep_params[i].group_link(l_initial_timestep_params[i]);
+	std::vector<affix_base::data::ptr<state_gradient_pair>>& l_initial_timestep_params = l_timesteps_params[0];
 
+	// Link all the parameters from each timestep together
+	for (int i = 1; i < l_timesteps_params.size(); i++)
+	{
+		for (int j = 0; j < l_timesteps_params[i].size(); j++)
+			l_timesteps_params[i][j].group_link(l_initial_timestep_params[j]);
 	}
 
 	for (int i = 0; i < l_initial_timestep_params.size(); i++)
