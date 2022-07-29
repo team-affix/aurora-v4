@@ -32,6 +32,36 @@ namespace aurora
 
 	};
 
+	struct vector_vector_multiply
+	{
+	public:
+		state_gradient_pair* m_y = nullptr;
+
+	public:
+		vector_vector_multiply(
+			std::vector<affix_base::data::ptr<element>>& a_elements,
+			std::vector<state_gradient_pair*> a_x_0,
+			std::vector<state_gradient_pair*> a_x_1
+		)
+		{
+			assert(a_x_0.size() == a_x_1.size());
+
+			std::vector<state_gradient_pair*> l_multiply_ys;
+
+			for (int i = 0; i < a_x_0.size(); i++)
+			{
+				affix_base::data::ptr<multiply> l_multiply(new multiply(a_elements, a_x_0[i], a_x_1[i]));
+				l_multiply_ys.push_back(&l_multiply->m_y);
+			}
+
+			additive_aggregate l_additive_aggregate(a_elements, l_multiply_ys);
+
+			m_y = l_additive_aggregate.m_y;
+
+		}
+
+	};
+
 	struct bias
 	{
 	public:
@@ -222,58 +252,6 @@ namespace aurora
 
 	};
 
-	struct vec_vec_dot
-	{
-	public:
-		state_gradient_pair* m_y = nullptr;
-
-	public:
-		vec_vec_dot(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<state_gradient_pair*> a_x_0,
-			std::vector<state_gradient_pair*> a_x_1
-		)
-		{
-			assert(a_x_0.size() == a_x_1.size());
-
-			std::vector<state_gradient_pair*> l_multiply_ys;
-
-			for (int i = 0; i < a_x_0.size(); i++)
-			{
-				affix_base::data::ptr<multiply> l_multiply(new multiply(a_elements, a_x_0[i], a_x_1[i]));
-				l_multiply_ys.push_back(&l_multiply->m_y);
-			}
-
-			additive_aggregate l_additive_aggregate(a_elements, l_multiply_ys);
-
-			m_y = l_additive_aggregate.m_y;
-
-		}
-
-	};
-
-	struct parameterized_interpolate
-	{
-	public:
-		state_gradient_pair* m_y = nullptr;
-
-	public:
-		parameterized_interpolate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
-			std::vector<state_gradient_pair*> a_x
-		)
-		{
-			parameterized_normalize l_normalize(a_elements, a_parameters, a_x.size());
-
-			vec_vec_dot l_dot(a_elements, a_x, l_normalize.m_y);
-
-			m_y = l_dot.m_y;
-
-		}
-
-	};
-
 	struct tnn
 	{
 	public:
@@ -353,6 +331,28 @@ namespace aurora
 			std::vector<std::vector<state_gradient_pair*>> a_x,
 			const size_t& a_y_size
 		);
+
+	};
+
+	struct parameterized_interpolate
+	{
+	public:
+		state_gradient_pair* m_y = nullptr;
+
+	public:
+		parameterized_interpolate(
+			std::vector<affix_base::data::ptr<element>>& a_elements,
+			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
+			std::vector<state_gradient_pair*> a_x
+		)
+		{
+			parameterized_normalize l_normalize(a_elements, a_parameters, a_x.size());
+
+			vector_vector_multiply l_dot(a_elements, a_x, l_normalize.m_y);
+
+			m_y = l_dot.m_y;
+
+		}
 
 	};
 

@@ -208,9 +208,9 @@ void tnn_test(
 	std::vector<affix_base::data::ptr<element>> l_elements;
 	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
 
-	state_gradient_pair_vector l_x(2);
+	std::vector<state_gradient_pair> l_x(2);
 
-	tnn l_tnn(l_elements, l_parameters, l_x.pointers(),
+	tnn l_tnn(l_elements, l_parameters, pointers(l_x),
 		{
 			tnn::layer_info(5, neuron_tanh(l_elements, l_parameters)),
 			tnn::layer_info(1, neuron_sigmoid(l_elements, l_parameters))
@@ -244,14 +244,14 @@ void tnn_test(
 
 	const int CHECKPOINT = 100000;
 
-	std::vector<state_gradient_pair_vector> l_ts_x = {
+	std::vector<std::vector<state_gradient_pair>> l_ts_x = {
 		{0, 0},
 		{0, 1},
 		{1, 0},
 		{1, 1}
 	};
 
-	std::vector<state_gradient_pair_vector> l_ts_y = {
+	std::vector<std::vector<state_gradient_pair>> l_ts_y = {
 		{0},
 		{1},
 		{1},
@@ -315,9 +315,9 @@ void parabola_test(
 	std::vector<affix_base::data::ptr<element>> l_elements;
 	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
 
-	state_gradient_pair_vector l_x(1);
+	std::vector<state_gradient_pair> l_x(1);
 
-	tnn l_tnn(l_elements, l_parameters, l_x.pointers(),
+	tnn l_tnn(l_elements, l_parameters, pointers(l_x),
 		{
 			tnn::layer_info(20, neuron_leaky_relu(l_elements, l_parameters)),
 			tnn::layer_info(1, neuron_leaky_relu(l_elements, l_parameters))
@@ -422,9 +422,9 @@ void lstm_test(
 	const size_t l_tnn_h0_units = 3;
 	const size_t l_tnn_y_units = 1;
 
-	auto l_x = state_gradient_pair_matrix(4, 2);
+	auto l_x = matrix(4, 2);
 
-	lstm l_lstm_0(l_elements, l_parameters, l_x.pointers(), l_lstm_y_units);
+	lstm l_lstm_0(l_elements, l_parameters, pointers(l_x), l_lstm_y_units);
 
 	std::vector<std::vector<state_gradient_pair*>> l_y;
 
@@ -447,7 +447,7 @@ void lstm_test(
 		l_optimizers.push_back(new gradient_descent(l_parameter, 0.2));
 	}
 
-	std::vector<state_gradient_pair_matrix> l_training_set_xs =
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
 		{
 			{0, 0},
@@ -463,7 +463,7 @@ void lstm_test(
 		},
 	};
 
-	std::vector<state_gradient_pair_matrix> l_training_set_ys =
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_ys =
 	{
 		{
 			{0},
@@ -479,13 +479,15 @@ void lstm_test(
 		},
 	};
 
+	const size_t CHECKPOINT = 10000;
+
 	for (int epoch = 0; true; epoch++)
 	{
 		double l_cost = 0;
 
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
-			l_x.set_state(l_training_set_xs[i]);
+			set_state(l_x, l_training_set_xs[i]);
 			
 			// Carry forward
 			for (int j = 0; j < l_elements.size(); j++)
@@ -498,13 +500,20 @@ void lstm_test(
 			for (int j = l_elements.size() - 1; j >= 0; j--)
 				l_elements[j]->bwd();
 
+			if (epoch % CHECKPOINT == 0)
+			{
+				for (int i = 0; i < l_y.size(); i++)
+					std::cout << "PREDICTION: " << l_y[i][0]->m_state << std::endl;
+				std::cout << std::endl;
+			}
+
 		}
 
 		for (int i = 0; i < l_optimizers.size(); i++)
 			l_optimizers[i]->update();
 
-		if (epoch % 1000 == 0)
-			std::cout << l_cost << std::endl;
+		if (epoch % CHECKPOINT == 0)
+			std::cout << "COST: " << l_cost << std::endl << std::endl;
 
 	}
 
