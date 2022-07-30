@@ -3,6 +3,7 @@
 #include <vector>
 #include "affix-base/ptr.h"
 #include "maths.h"
+#include "model.h"
 
 namespace aurora
 {
@@ -17,10 +18,10 @@ namespace aurora
 		}
 
 		element(
-			std::vector<affix_base::data::ptr<element>>& a_elements
+
 		)
 		{
-			a_elements.push_back(this);
+			model::insert(affix_base::data::ptr<element>(this));
 		}
 
 		element(
@@ -64,13 +65,11 @@ namespace aurora
 		}
 
 		parameter(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
+
 		) :
-			element(a_elements),
 			m_linkable_value(new state_gradient_pair())
 		{
-			a_parameters.push_back(m_linkable_value);
+			model::insert(m_linkable_value);
 		}
 
 		virtual void fwd(
@@ -104,10 +103,8 @@ namespace aurora
 		}
 
 		constant(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			const double& a_y
 		) :
-			element(a_elements),
 			m_y(a_y)
 		{
 
@@ -133,11 +130,9 @@ namespace aurora
 		}
 
 		add(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
-			element(a_elements),
 			m_x_0(a_x_0),
 			m_x_1(a_x_1)
 		{
@@ -180,11 +175,9 @@ namespace aurora
 		}
 
 		multiply(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
-			element(a_elements),
 			m_x_0(a_x_0),
 			m_x_1(a_x_1)
 		{
@@ -227,11 +220,9 @@ namespace aurora
 		}
 
 		divide(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
-			element(a_elements),
 			m_x_0(a_x_0),
 			m_x_1(a_x_1)
 		{
@@ -274,11 +265,9 @@ namespace aurora
 		}
 
 		power(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
-			element(a_elements),
 			m_x_0(a_x_0),
 			m_x_1(a_x_1)
 		{
@@ -313,10 +302,8 @@ namespace aurora
 
 	public:
 		sigmoid_activate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x
 		) :
-			element(a_elements),
 			m_x(a_x)
 		{
 
@@ -356,10 +343,8 @@ namespace aurora
 		}
 
 		tanh_activate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x
 		) :
-			element(a_elements),
 			m_x(a_x)
 		{
 
@@ -400,11 +385,9 @@ namespace aurora
 		}
 
 		leaky_relu_activate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			state_gradient_pair* a_x,
 			const double& a_m
 		) :
-			element(a_elements),
 			m_x(a_x),
 			m_m(a_m)
 		{
@@ -435,18 +418,19 @@ namespace aurora
 	class branch : public element
 	{
 	private:
-		std::vector<affix_base::data::ptr<element>> m_elements;
+		model m_model;
 		bool m_enabled = false;
 
 	public:
 		branch(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
+			model&& a_model,
 			const bool& a_enabled
 		) :
-			element(a_elements),
+			m_model(a_model),
 			m_enabled(a_enabled)
 		{
-
+			// Make sure to insert the parameters of this branch into the most external model.
+			model::insert(a_model.parameters());
 		}
 
 		virtual void fwd(
@@ -455,10 +439,7 @@ namespace aurora
 		{
 			if (m_enabled)
 			{
-				for (int i = 0; i < m_elements.size(); i++)
-				{
-					m_elements[i]->fwd();
-				}
+				m_model.fwd();
 			}
 		}
 
@@ -468,10 +449,7 @@ namespace aurora
 		{
 			if (m_enabled)
 			{
-				for (int i = m_elements.size() - 1; i >= 0; i--)
-				{
-					m_elements[i]->bwd();
-				}
+				m_model.bwd();
 			}
 		}
 
@@ -489,11 +467,11 @@ namespace aurora
 			m_enabled = false;
 		}
 
-		std::vector<affix_base::data::ptr<element>>& elements(
+		model& internal_model(
 
 		)
 		{
-			return m_elements;
+			return m_model;
 		}
 
 	};

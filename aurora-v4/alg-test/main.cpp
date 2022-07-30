@@ -4,225 +4,30 @@
 
 using namespace aurora;
 
-void additive_aggregate_test(
-
-)
-{
-	std::cout << "ADDITIVE AGGREGATE TEST" << std::endl;
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<parameter*> l_parameters;
-
-	std::vector<state_gradient_pair> l_x = { {1}, {2}, {3}, {4} };
-
-	additive_aggregate l_aggregate(l_elements, { &l_x[0], &l_x[1], &l_x[2], &l_x[3] });
-
-	for (int epoch = 0; epoch < 10000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		l_aggregate.m_y->m_gradient = l_aggregate.m_y->m_state - 20.0;
-
-		if (epoch % 100 == 0)
-			std::cout << l_aggregate.m_y->m_gradient << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		for (int i = 0; i < l_x.size(); i++)
-		{
-			l_x[i].m_state -= 0.002 * l_x[i].m_gradient;
-			l_x[i].m_gradient = 0;
-		}
-	}
-
-}
-
-void multiplicative_aggregate_test(
-
-)
-{
-	std::cout << "MULTIPLICATIVE AGGREGATE TEST" << std::endl;
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<parameter*> l_parameters;
-
-	std::vector<state_gradient_pair> l_x = { {1}, {2}, {3}, {4} };
-
-	multiplicative_aggregate l_aggregate(l_elements, { &l_x[0], &l_x[1], &l_x[2], &l_x[3] });
-
-	for (int epoch = 0; epoch < 1000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		l_aggregate.m_y->m_gradient = l_aggregate.m_y->m_state - 20.0;
-
-		if (epoch % 100 == 0)
-			std::cout << l_aggregate.m_y->m_gradient << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		for (int i = 0; i < l_x.size(); i++)
-		{
-			l_x[i].m_state -= 0.002 * l_x[i].m_gradient;
-			l_x[i].m_gradient = 0;
-		}
-
-	}
-
-}
-
-void tanh_activate_test(
-
-)
-{
-	std::vector<affix_base::data::ptr<element>> l_elements;
-
-	state_gradient_pair l_x = { 3 };
-
-	affix_base::data::ptr<tanh_activate> l_tanh_activate(new tanh_activate(l_elements, &l_x));
-
-	for (int epoch = 0; epoch < 100000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		l_tanh_activate->m_y.m_gradient = l_tanh_activate->m_y.m_state - (-0.5);
-
-		if (epoch % 100 == 0)
-			std::cout << l_tanh_activate->m_y.m_gradient << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		l_x.m_state -= 0.02 * l_x.m_gradient;
-		l_x.m_gradient = 0;
-	}
-
-}
-
-void leaky_relu_activate_test(
-
-)
-{
-	std::vector<affix_base::data::ptr<element>> l_elements;
-
-	state_gradient_pair l_x = { 3 };
-
-	affix_base::data::ptr<leaky_relu_activate> l_leaky_relu_activate(new leaky_relu_activate(l_elements, &l_x, 0.3));
-
-	for (int epoch = 0; epoch < 100000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		l_leaky_relu_activate->m_y.m_gradient = l_leaky_relu_activate->m_y.m_state + 20;
-
-		if (epoch % 100 == 0)
-			std::cout << l_leaky_relu_activate->m_y.m_gradient << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		l_x.m_state -= 0.02 * l_x.m_gradient;
-		l_x.m_gradient = 0;
-	}
-
-}
-
-void normalize_test(
-
-)
-{
-	std::vector<affix_base::data::ptr<element>> l_elements;
-
-	std::vector<state_gradient_pair> l_x = { {1}, {2}, {3} };
-
-	normalize l_normalize(l_elements, { &l_x[0], &l_x[1], &l_x[2] });
-
-	for (int epoch = 0; epoch < 10000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		double l_cost = 0;
-
-		for (int i = 0; i < l_normalize.m_y.size(); i++)
-		{
-			l_normalize.m_y[i]->m_gradient = l_normalize.m_y[i]->m_state - 0.333333333333;
-			l_cost += abs(l_normalize.m_y[i]->m_gradient);
-		}
-
-		if (epoch % 100 == 0)
-			std::cout << l_cost << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		for (int i = 0; i < l_x.size(); i++)
-			l_x[i].m_state -= 0.02 * l_x[i].m_gradient;
-
-	}
-
-}
-
-void parameterized_interpolate_test(
-
-)
-{
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
-
-	std::vector<state_gradient_pair> l_x = { {1}, {20}, {30} };
-
-	parameterized_interpolate l_parameterized_interpolate(l_elements, l_parameters, { &l_x[0], &l_x[1], &l_x[2] });
-
-	for (int i = 0; i < l_parameters.size(); i++)
-		l_parameters[i]->m_state = (double)i * 0.01;
-
-	for (int epoch = 0; epoch < 1000000; epoch++)
-	{
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
-
-		l_parameterized_interpolate.m_y->m_gradient = l_parameterized_interpolate.m_y->m_state - 20;
-
-		if (epoch % 1 == 0)
-			std::cout << l_parameterized_interpolate.m_y->m_gradient << std::endl;
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
-
-		for (int i = 0; i < l_parameters.size(); i++)
-			l_parameters[i]->m_state -= 0.02 * l_parameters[i]->m_gradient;
-
-	}
-
-}
-
 void tnn_test(
 
 )
 {
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
+	model::begin();
 
 	std::vector<state_gradient_pair> l_x(2);
 
-	tnn l_tnn(l_elements, l_parameters, pointers(l_x),
+	tnn l_tnn(
+		pointers(l_x),
 		{
-			tnn::layer_info(5, neuron_tanh(l_elements, l_parameters)),
-			tnn::layer_info(1, neuron_sigmoid(l_elements, l_parameters))
+			tnn::layer_info(5, neuron_tanh()),
+			tnn::layer_info(1, neuron_sigmoid())
 		}
 	);
+
+	model l_model = model::end();
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(25);
 
-	for (int i = 0; i < l_parameters.size(); i++)
+	for (int i = 0; i < l_model.parameters().size(); i++)
 	{
-		l_parameters[i]->m_state = l_urd(l_dre);
+		l_model.parameters()[i]->m_state = l_urd(l_dre);
 	}
 
 	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
@@ -230,13 +35,11 @@ void tnn_test(
 		for (int i = 0; i < l_x.size(); i++)
 			l_x[i].m_state = a_x[i].m_state;
 
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
+		l_model.fwd();
 
 		double l_cost = mean_squared_error(l_tnn.m_y, a_y);
 			
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
+		l_model.bwd();
 
 		return l_cost;
 
@@ -288,10 +91,10 @@ void tnn_test(
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
 
-		for (int i = 0; i < l_parameters.size(); i++)
+		for (int i = 0; i < l_model.parameters().size(); i++)
 		{
-			l_parameters[i]->m_state -= 0.002 * l_parameters[i]->m_gradient;
-			l_parameters[i]->m_gradient = 0;
+			l_model.parameters()[i]->m_state -= 0.002 * l_model.parameters()[i]->m_gradient;
+			l_model.parameters()[i]->m_gradient = 0;
 		}
 
 	}
@@ -312,43 +115,36 @@ void parabola_test(
 
 )
 {
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
-
 	std::vector<state_gradient_pair> l_x(1);
 
-	tnn l_tnn(l_elements, l_parameters, pointers(l_x),
+	model::begin();
+
+	tnn l_tnn(
+		pointers(l_x),
 		{
-			tnn::layer_info(20, neuron_leaky_relu(l_elements, l_parameters)),
-			tnn::layer_info(1, neuron_leaky_relu(l_elements, l_parameters))
+			tnn::layer_info(20, neuron_leaky_relu()),
+			tnn::layer_info(1, neuron_leaky_relu())
 		});
+
+	model l_model = model::end();
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(25);
 
-	for (int i = 0; i < l_parameters.size(); i++)
+	for (int i = 0; i < l_model.parameters().size(); i++)
 	{
-		l_parameters[i]->m_state = l_urd(l_dre);
+		l_model.parameters()[i]->m_state = l_urd(l_dre);
 	}
 
-	auto l_cycle = [&](const std::vector<double>& a_x, const std::vector<double>& a_y)
+	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
 	{
-		for (int i = 0; i < l_x.size(); i++)
-			l_x[i].m_state = a_x[i];
+		set_state(l_x, a_x);
 
-		for (int i = 0; i < l_elements.size(); i++)
-			l_elements[i]->fwd();
+		l_model.fwd();
 
-		double l_cost = 0;
+		double l_cost = mean_squared_error(l_tnn.m_y, a_y);
 
-		for (int i = 0; i < l_tnn.m_y.size(); i++)
-		{
-			l_tnn.m_y[i]->m_gradient = l_tnn.m_y[i]->m_state - a_y[i];
-			l_cost += abs(l_tnn.m_y[i]->m_gradient);
-		}
-
-		for (int i = l_elements.size() - 1; i >= 0; i--)
-			l_elements[i]->bwd();
+		l_model.bwd();
 
 		return l_cost;
 
@@ -377,10 +173,10 @@ void parabola_test(
 
 		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
 
-		for (int i = 0; i < l_parameters.size(); i++)
+		for (int i = 0; i < l_model.parameters().size(); i++)
 		{
-			l_parameters[i]->m_state -= 0.002 * tanh(l_parameters[i]->m_gradient);
-			l_parameters[i]->m_gradient = 0;
+			l_model.parameters()[i]->m_state -= 0.002 * tanh(l_model.parameters()[i]->m_gradient);
+			l_model.parameters()[i]->m_gradient = 0;
 		}
 
 		if (epoch % CHECKPOINT_INTERVAL == 0)
@@ -394,19 +190,22 @@ void branch_test(
 
 )
 {
-	std::vector<affix_base::data::ptr<element>> l_elements;
-
-	affix_base::data::ptr<branch> l_branch(new branch(l_elements, true));
+	model::begin();
 
 	state_gradient_pair l_x_0 = { 1.5 };
 	state_gradient_pair l_x_1 = { 2 };
 
-	affix_base::data::ptr<multiply> l_multiply(new multiply(l_branch->elements(), &l_x_0, &l_x_1));
 
-	for (int i = 0; i < l_elements.size(); i++)
-		l_elements[i]->fwd();
+	// Start a new model for the branch
+	model::begin();
 
+	affix_base::data::ptr<multiply> l_multiply(new multiply(&l_x_0, &l_x_1));
 
+	affix_base::data::ptr<branch> l_branch(new branch(model::end(), true));
+	
+	model l_model = model::end();
+
+	l_model.fwd();
 
 }
 
@@ -414,8 +213,8 @@ void lstm_test(
 
 )
 {
-	std::vector<affix_base::data::ptr<element>> l_elements;
-	std::vector<affix_base::data::ptr<state_gradient_pair>> l_parameters;
+	model::begin();
+
 	std::vector<affix_base::data::ptr<gradient_descent>> l_optimizers;
 
 	const size_t l_lstm_y_units = 1;
@@ -424,24 +223,27 @@ void lstm_test(
 
 	auto l_x = matrix(4, 2);
 
-	lstm l_lstm_0(l_elements, l_parameters, pointers(l_x), l_lstm_y_units);
+	lstm l_lstm_0(pointers(l_x), l_lstm_y_units);
 
 	std::vector<std::vector<state_gradient_pair*>> l_y;
 
 	for (int i = 0; i < l_lstm_0.m_y.size(); i++)
 	{
-		tnn l_tnn(l_elements, l_parameters, l_lstm_0.m_y[i],
+		tnn l_tnn(
+			l_lstm_0.m_y[i],
 			{
-				tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu(l_elements, l_parameters)),
-				tnn::layer_info(l_tnn_y_units, neuron_sigmoid(l_elements, l_parameters))
+				tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu()),
+				tnn::layer_info(l_tnn_y_units, neuron_sigmoid())
 			});
 		l_y.push_back(l_tnn.m_y);
 	}
 
+	model l_model = model::end();
+
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(28);
 
-	for (auto& l_parameter : l_parameters)
+	for (auto& l_parameter : l_model.parameters())
 	{
 		l_parameter->m_state = l_urd(l_dre);
 		l_optimizers.push_back(new gradient_descent(l_parameter, 0.2));
@@ -490,15 +292,13 @@ void lstm_test(
 			set_state(l_x, l_training_set_xs[i]);
 			
 			// Carry forward
-			for (int j = 0; j < l_elements.size(); j++)
-				l_elements[j]->fwd();
+			l_model.fwd();
 
 			// Signal output
 			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
 
 			// Carry backward
-			for (int j = l_elements.size() - 1; j >= 0; j--)
-				l_elements[j]->bwd();
+			l_model.bwd();
 
 			if (epoch % CHECKPOINT == 0)
 			{
@@ -519,13 +319,107 @@ void lstm_test(
 
 }
 
+void lstm_stacked_test(
+
+)
+{
+	model::begin();
+
+	auto l_x = matrix(4, 2);
+
+	lstm l_lstm_0(pointers(l_x), 20);
+	lstm l_lstm_1(l_lstm_0.m_y, 20);
+	lstm l_lstm_2(l_lstm_1.m_y, 1);
+
+	std::vector<std::vector<state_gradient_pair*>> l_y;
+
+	for (int i = 0; i < l_lstm_2.m_y.size(); i++)
+	{
+		tnn l_tnn(
+			l_lstm_2.m_y[i],
+			{
+				tnn::layer_info(5, neuron_leaky_relu()),
+				tnn::layer_info(1, neuron_sigmoid())
+			});
+		l_y.push_back(l_tnn.m_y);
+	}
+
+	model l_model = model::end();
+
+	std::uniform_real_distribution<double> l_urd(-1, 1);
+	std::default_random_engine l_dre(28);
+
+	for (auto& l_parameter : l_model.parameters())
+	{
+		l_parameter->m_state = l_urd(l_dre);
+	}
+
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
+	{
+		{
+			{0, 0},
+			{0, 1},
+			{1, 0},
+			{1, 1}
+		},
+		{
+			{0, 1},
+			{0, 1},
+			{1, 0},
+			{1, 1}
+		},
+	};
+
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_ys =
+	{
+		{
+			{0},
+			{1},
+			{1},
+			{0}
+		},
+		{
+			{0},
+			{1},
+			{1},
+			{1}
+		},
+	};
+
+	size_t CHECKPOINT = 100;
+
+	for (int epoch = 0; epoch < 1000000; epoch++)
+	{
+		double l_cost = 0;
+
+		for (int i = 0; i < l_training_set_xs.size(); i++)
+		{
+			set_state(l_x, l_training_set_xs[i]);
+			l_model.fwd();
+			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
+			l_model.bwd();
+		}
+
+		for (auto& l_parameter : l_model.parameters())
+		{
+			l_parameter->m_state -= 0.2 * l_parameter->m_gradient;
+			l_parameter->m_gradient = 0;
+		}
+
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_cost << std::endl;
+
+	}
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	tnn_test();
+	lstm_stacked_test();
 
 	return 0;
 }

@@ -14,7 +14,6 @@ namespace aurora
 
 	public:
 		additive_aggregate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
@@ -24,7 +23,7 @@ namespace aurora
 
 			for (int i = 1; i < a_x.size(); i++)
 			{
-				affix_base::data::ptr<add> l_add(new add(a_elements, m_y, a_x[i]));
+				affix_base::data::ptr<add> l_add(new add(m_y, a_x[i]));
 				m_y = &l_add->m_y;
 			}
 
@@ -39,7 +38,6 @@ namespace aurora
 
 	public:
 		vector_vector_multiply(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			std::vector<state_gradient_pair*> a_x_0,
 			std::vector<state_gradient_pair*> a_x_1
 		)
@@ -50,11 +48,11 @@ namespace aurora
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
-				affix_base::data::ptr<multiply> l_multiply(new multiply(a_elements, a_x_0[i], a_x_1[i]));
+				affix_base::data::ptr<multiply> l_multiply(new multiply(a_x_0[i], a_x_1[i]));
 				l_multiply_ys.push_back(&l_multiply->m_y);
 			}
 
-			additive_aggregate l_additive_aggregate(a_elements, l_multiply_ys);
+			additive_aggregate l_additive_aggregate(l_multiply_ys);
 
 			m_y = l_additive_aggregate.m_y;
 
@@ -76,13 +74,11 @@ namespace aurora
 		}
 
 		bias(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			state_gradient_pair* a_x
 		)
 		{
-			affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
-			affix_base::data::ptr<add> l_add(new add(a_elements, a_x, &l_parameter->m_y));
+			affix_base::data::ptr<parameter> l_parameter(new parameter());
+			affix_base::data::ptr<add> l_add(new add(a_x, &l_parameter->m_y));
 			m_y = &l_add->m_y;
 		}
 
@@ -102,13 +98,11 @@ namespace aurora
 		}
 
 		weight(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			state_gradient_pair* a_x
 		)
 		{
-			affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
-			affix_base::data::ptr<multiply> l_multiply(new multiply(a_elements, a_x, &l_parameter->m_y));
+			affix_base::data::ptr<parameter> l_parameter(new parameter());
+			affix_base::data::ptr<multiply> l_multiply(new multiply(a_x, &l_parameter->m_y));
 			m_y = &l_multiply->m_y;
 		}
 
@@ -128,8 +122,6 @@ namespace aurora
 		}
 
 		weights(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
@@ -137,11 +129,11 @@ namespace aurora
 
 			for (int i = 0; i < a_x.size(); i++)
 			{
-				affix_base::data::ptr<weight> l_weight(new weight(a_elements, a_parameters, a_x[i]));
+				affix_base::data::ptr<weight> l_weight(new weight(a_x[i]));
 				l_weight_ys.push_back(l_weight->m_y);
 			}
 
-			additive_aggregate l_agg(a_elements, l_weight_ys);
+			additive_aggregate l_agg(l_weight_ys);
 
 			m_y = l_agg.m_y;
 
@@ -156,15 +148,13 @@ namespace aurora
 
 	public:
 		weight_junction(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x,
 			const size_t& a_y_size
 		)
 		{
 			for (int i = 0; i < a_y_size; i++)
 			{
-				weights l_weights(a_elements, a_parameters, a_x);
+				weights l_weights(a_x);
 				m_y.push_back(l_weights.m_y);
 			}
 		}
@@ -178,7 +168,6 @@ namespace aurora
 
 	public:
 		multiplicative_aggregate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
@@ -188,7 +177,7 @@ namespace aurora
 
 			for (int i = 1; i < a_x.size(); i++)
 			{
-				affix_base::data::ptr<multiply> l_multiply(new multiply(a_elements, m_y, a_x[i]));
+				affix_base::data::ptr<multiply> l_multiply(new multiply(m_y, a_x[i]));
 				m_y = &l_multiply->m_y;
 			}
 		}
@@ -202,14 +191,13 @@ namespace aurora
 
 	public:
 		normalize(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
-			additive_aggregate l_additive_aggregate(a_elements, a_x);
+			additive_aggregate l_additive_aggregate(a_x);
 			for (int i = 0; i < a_x.size(); i++)
 			{
-				affix_base::data::ptr<divide> l_divide(new divide(a_elements, a_x[i], l_additive_aggregate.m_y));
+				affix_base::data::ptr<divide> l_divide(new divide(a_x[i], l_additive_aggregate.m_y));
 				m_y.push_back(&l_divide->m_y);
 			}
 		}
@@ -223,8 +211,6 @@ namespace aurora
 
 	public:
 		parameterized_normalize(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			const size_t& a_parameter_count
 		)
 		{
@@ -232,7 +218,7 @@ namespace aurora
 
 			for (int i = 0; i < a_parameter_count; i++)
 			{
-				affix_base::data::ptr<parameter> l_parameter(new parameter(a_elements, a_parameters));
+				affix_base::data::ptr<parameter> l_parameter(new parameter());
 				l_parameter_ys.push_back(&l_parameter->m_y);
 			}
 
@@ -240,11 +226,11 @@ namespace aurora
 
 			for (int i = 0; i < a_parameter_count; i++)
 			{
-				affix_base::data::ptr<sigmoid_activate> l_sigmoid_activate(new sigmoid_activate(a_elements, l_parameter_ys[i]));
+				affix_base::data::ptr<sigmoid_activate> l_sigmoid_activate(new sigmoid_activate(l_parameter_ys[i]));
 				l_sigmoid_ys.push_back(&l_sigmoid_activate->m_y);
 			}
 
-			normalize l_normalize(a_elements, l_sigmoid_ys);
+			normalize l_normalize(l_sigmoid_ys);
 
 			m_y = l_normalize.m_y;
 
@@ -277,8 +263,6 @@ namespace aurora
 
 	public:
 		tnn(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x,
 			std::vector<tnn::layer_info> a_layer_infos
 		)
@@ -287,7 +271,7 @@ namespace aurora
 
 			for (int i = 0; i < a_layer_infos.size(); i++)
 			{
-				weight_junction l_w(a_elements, a_parameters, l_y, a_layer_infos[i].m_size);
+				weight_junction l_w(l_y, a_layer_infos[i].m_size);
 				
 				l_y.resize(l_w.m_y.size());
 
@@ -312,8 +296,6 @@ namespace aurora
 
 		public:
 			timestep(
-				std::vector<affix_base::data::ptr<element>>& a_elements,
-				std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 				std::vector<state_gradient_pair*> a_x,
 				std::vector<state_gradient_pair*> a_cx,
 				std::vector<state_gradient_pair*> a_hx
@@ -326,8 +308,6 @@ namespace aurora
 
 	public:
 		lstm(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<std::vector<state_gradient_pair*>> a_x,
 			const size_t& a_y_size
 		);
@@ -341,14 +321,12 @@ namespace aurora
 
 	public:
 		parameterized_interpolate(
-			std::vector<affix_base::data::ptr<element>>& a_elements,
-			std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters,
 			std::vector<state_gradient_pair*> a_x
 		)
 		{
-			parameterized_normalize l_normalize(a_elements, a_parameters, a_x.size());
+			parameterized_normalize l_normalize(a_x.size());
 
-			vector_vector_multiply l_dot(a_elements, a_x, l_normalize.m_y);
+			vector_vector_multiply l_dot(a_x, l_normalize.m_y);
 
 			m_y = l_dot.m_y;
 
