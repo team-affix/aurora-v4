@@ -422,6 +422,12 @@ namespace aurora
 		bool m_enabled = false;
 
 	public:
+		virtual ~branch(
+
+		)
+		{
+
+		}
 		branch(
 			model&& a_model,
 			const bool& a_enabled
@@ -472,6 +478,52 @@ namespace aurora
 		)
 		{
 			return m_model;
+		}
+
+	};
+
+	class running_average : public element
+	{
+	private:
+		state_gradient_pair* m_x = nullptr;
+		double m_beta = 0;
+		double m_alpha = 0;
+
+	public:
+		state_gradient_pair m_y = {1};
+
+	public:
+		virtual ~running_average(
+
+		)
+		{
+
+		}
+
+		running_average(
+			state_gradient_pair* a_x,
+			const double& a_beta
+		) :
+			m_x(a_x),
+			m_beta(a_beta),
+			m_alpha(1.0 - a_beta)
+		{
+			assert(a_beta >= 0 && a_beta <= 1);
+		}
+
+		virtual void fwd(
+
+		)
+		{
+			m_y.m_state = m_beta * m_y.m_state + m_alpha * m_x->m_state;
+		}
+
+		virtual void bwd(
+
+		)
+		{
+			m_x->m_gradient += m_alpha * m_y.m_gradient;
+			m_y.m_gradient = 0;
 		}
 
 	};

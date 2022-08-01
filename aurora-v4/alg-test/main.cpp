@@ -419,7 +419,7 @@ int main(
 {
 	srand(time(0));
 
-	lstm_stacked_test();
+	parabola_test();
 
 	return 0;
 }

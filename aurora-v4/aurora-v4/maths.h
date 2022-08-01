@@ -74,8 +74,8 @@ namespace aurora
 		}
 
 	};
-	
 
+	
 	inline std::vector<std::vector<state_gradient_pair>> matrix(
 		const size_t& a_rows,
 		const size_t& a_cols
