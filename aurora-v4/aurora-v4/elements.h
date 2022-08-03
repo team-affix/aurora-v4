@@ -157,6 +157,51 @@ namespace aurora
 
 	};
 
+	class subtract : public element
+	{
+	private:
+		state_gradient_pair* m_x_0 = nullptr;
+		state_gradient_pair* m_x_1 = nullptr;
+
+	public:
+		state_gradient_pair m_y;
+
+	public:
+		virtual ~subtract(
+
+		)
+		{
+
+		}
+
+		subtract(
+			state_gradient_pair* a_x_0,
+			state_gradient_pair* a_x_1
+		) :
+			m_x_0(a_x_0),
+			m_x_1(a_x_1)
+		{
+
+		}
+
+		virtual void fwd(
+
+		)
+		{
+			m_y.m_state = m_x_0->m_state - m_x_1->m_state;
+		}
+		
+		virtual void bwd(
+
+		)
+		{
+			m_x_0->m_gradient += m_y.m_gradient;
+			m_x_1->m_gradient -= m_y.m_gradient;
+			m_y.m_gradient = 0;
+		}
+
+	};
+
 	class multiply : public element
 	{
 	private:
@@ -523,6 +568,47 @@ namespace aurora
 		)
 		{
 			m_x->m_gradient += m_alpha * m_y.m_gradient;
+			m_y.m_gradient = 0;
+		}
+
+	};
+
+	class logarithm
+	{
+	private:
+		state_gradient_pair* m_x = nullptr;
+
+	public:
+		state_gradient_pair m_y;
+
+	public:
+		virtual ~logarithm(
+
+		)
+		{
+
+		}
+
+		logarithm(
+			state_gradient_pair* a_x
+		) :
+			m_x(a_x)
+		{
+
+		}
+
+		virtual void fwd(
+
+		)
+		{
+			m_y.m_state = log(m_x->m_state);
+		}
+
+		virtual void bwd(
+
+		)
+		{
+			m_x->m_gradient += m_y.m_gradient / m_x->m_state;
 			m_y.m_gradient = 0;
 		}
 

@@ -413,13 +413,92 @@ void lstm_stacked_test(
 
 }
 
+void matrix_vector_multiply_test(
+
+)
+{
+	model::begin();
+
+	std::vector<std::vector<state_gradient_pair>> l_x_0
+	{
+		{1, 2},
+		{3, 4},
+		{5, 6},
+		{7, 8}
+	};
+
+	std::vector<state_gradient_pair> l_x_1
+	{
+		2,
+		3
+	};
+
+	matrix_vector_multiply l_multiply(pointers(l_x_0), pointers(l_x_1));
+
+	model l_model = model::end();
+
+	l_model.fwd();
+
+}
+
+void cosine_similarity_test(
+
+)
+{
+	model::begin();
+
+	std::vector<state_gradient_pair> l_x_0{ 0, 1, 0, 0 };
+	std::vector<state_gradient_pair> l_x_1{ 0, -1, 0, 0 };
+
+	cosine_similarity l_similarity(pointers(l_x_0), pointers(l_x_1));
+
+	model l_model = model::end();
+
+	l_model.fwd();
+
+}
+
+void similarity_interpolate_test(
+
+)
+{
+	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1},
+		{1, 0.75}
+	};
+
+	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	{
+		{0},
+		{1},
+		{1},
+		{0},
+		{0.862}
+	};
+
+	std::vector<state_gradient_pair> l_query = { 1, 0.75 };
+	
+	model::begin();
+
+	similarity_interpolate l_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
+
+	model l_model = model::end();
+
+	l_model.fwd();
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	parabola_test();
+	similarity_interpolate_test();
 
 	return 0;
 }
