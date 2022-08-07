@@ -201,7 +201,7 @@ void branch_test(
 
 	state_gradient_pair* l_multiplied = multiply(&l_x_0, &l_x_1);
 
-	affix_base::data::ptr<element_branch> l_branch(new element_branch(model::end(), true));
+	bool* l_branch_enabled = branch(model::end(), true);
 	
 	model l_model = model::end();
 
@@ -548,7 +548,7 @@ int main(
 {
 	srand(time(0));
 
-	lstm_test();
+	parabola_test();
 
 	return 0;
 }

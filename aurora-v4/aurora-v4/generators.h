@@ -5,7 +5,7 @@
 #include "affix-base/ptr.h"
 #include "maths.h"
 #include "elements.h"
-#include "constructors.h"
+#include "compounds.h"
 
 namespace aurora
 {
