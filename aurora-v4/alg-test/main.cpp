@@ -542,13 +542,111 @@ void large_memory_usage_test(
 
 }
 
+std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_predict(
+	std::vector<std::vector<state_gradient_pair*>> a_x,
+	const std::vector<size_t>& a_lstm_y_sizes,
+	const std::vector<size_t>& a_layer_y_sizes,
+	const size_t& a_time_slot_predictions_per_timestep,
+	const size_t& a_time_slot_prediction_size
+)
+{
+	std::vector<std::vector<state_gradient_pair*>> l_y_raw = a_x;
+
+	for (int i = 0; i < a_lstm_y_sizes.size(); i++)
+		l_y_raw = lstm(l_y_raw, a_lstm_y_sizes[i]);
+
+	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_prediction_size * a_time_slot_predictions_per_timestep;
+
+	std::vector<tnn_layer_info> l_tnn_layer_infos;
+
+	for (int i = 0; i < a_layer_y_sizes.size(); i++)
+		l_tnn_layer_infos.push_back(tnn_layer_info(a_layer_y_sizes[i], neuron_leaky_relu()));
+
+	l_tnn_layer_infos.push_back(tnn_layer_info(TOTAL_OUTPUT_UNITS, neuron_leaky_relu()));
+
+	for (int i = 0; i < l_y_raw.size(); i++)
+		l_y_raw[i] = tnn(l_y_raw[i], l_tnn_layer_infos);
+
+
+	std::vector<std::vector<std::vector<state_gradient_pair*>>> l_future_hour_predictions;
+
+	for (int i = 0; i < l_y_raw.size(); i++)
+	{
+		// Link the raw output with specific time slots
+
+		std::vector<state_gradient_pair*> l_timestep_y_raw = l_y_raw[i];
+
+		std::vector<std::vector<state_gradient_pair*>> l_future_hourly_predictions;
+
+		for (int j = 0; j < l_timestep_y_raw.size(); j += a_time_slot_prediction_size)
+		{
+			std::vector<state_gradient_pair*> l_future_hour_predictions;
+
+			for (int k = 0; k < a_time_slot_prediction_size; k++)
+			{
+				l_future_hour_predictions.push_back(l_timestep_y_raw[j + k]);
+			}
+
+			l_future_hourly_predictions.push_back(l_future_hour_predictions);
+
+		}
+
+		l_future_hour_predictions.push_back(l_future_hourly_predictions);
+
+	}
+
+	return l_future_hour_predictions;
+
+}
+
+void issp_test(
+
+)
+{
+	model::begin();
+
+	std::vector<std::vector<state_gradient_pair>> l_x = matrix(100, 4);
+
+	auto l_y = in_sequence_stock_predict(
+		pointers(l_x),
+		{ 20, 20 },
+		{ 20, 40 },
+		10,
+		2
+	);
+
+	model l_model = model::end();
+
+	std::vector<affix_base::data::ptr<optimizer>> l_optimizers;
+
+	std::uniform_real_distribution<double> l_urd(-1, 1);
+	std::default_random_engine l_dre(26);
+
+	for (auto& l_parameter : l_model.parameters())
+	{
+		l_parameter->m_state = l_urd(l_dre);
+		l_optimizers.push_back(new gradient_descent(l_parameter, 0.02));
+	}
+
+	l_x[0][0].m_state = 10;
+
+	l_model.fwd();
+
+
+
+	l_model.bwd();
+
+
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	parabola_test();
+	issp_test();
 
 	return 0;
 }
