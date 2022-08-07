@@ -12,11 +12,11 @@ void tnn_test(
 
 	std::vector<state_gradient_pair> l_x(2);
 
-	tnn l_tnn(
+	auto l_tnn = tnn(
 		pointers(l_x),
 		{
-			tnn::layer_info(5, neuron_tanh()),
-			tnn::layer_info(1, neuron_sigmoid())
+			tnn_layer_info(5, neuron_tanh()),
+			tnn_layer_info(1, neuron_sigmoid())
 		}
 	);
 
@@ -37,7 +37,7 @@ void tnn_test(
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_tnn.m_y, a_y);
+		double l_cost = mean_squared_error(l_tnn, a_y);
 			
 		l_model.bwd();
 
@@ -71,22 +71,22 @@ void tnn_test(
 		l_cost += l_cycle(l_ts_x[0], l_ts_y[0]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn.m_y[0]->m_state << std::endl;
+			std::cout << l_tnn[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[1], l_ts_y[1]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn.m_y[0]->m_state << std::endl;
+			std::cout << l_tnn[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[2], l_ts_y[2]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn.m_y[0]->m_state << std::endl;
+			std::cout << l_tnn[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[3], l_ts_y[3]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn.m_y[0]->m_state << std::endl;
+			std::cout << l_tnn[0]->m_state << std::endl;
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
@@ -119,11 +119,11 @@ void parabola_test(
 
 	model::begin();
 
-	tnn l_tnn(
+	auto l_tnn = tnn(
 		pointers(l_x),
 		{
-			tnn::layer_info(20, neuron_leaky_relu()),
-			tnn::layer_info(1, neuron_leaky_relu())
+			tnn_layer_info(20, neuron_leaky_relu()),
+			tnn_layer_info(1, neuron_leaky_relu())
 		});
 
 	model l_model = model::end();
@@ -142,7 +142,7 @@ void parabola_test(
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_tnn.m_y, a_y);
+		double l_cost = mean_squared_error(l_tnn, a_y);
 
 		l_model.bwd();
 
@@ -167,7 +167,7 @@ void parabola_test(
 			l_cost += l_cycle({ l_ts_x }, { l_ts_y });
 
 			if (epoch % CHECKPOINT_INTERVAL == 0)
-				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_tnn.m_y[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
+				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_tnn[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
 
 		}
 
@@ -199,9 +199,9 @@ void branch_test(
 	// Start a new model for the branch
 	model::begin();
 
-	affix_base::data::ptr<multiply> l_multiply(new multiply(&l_x_0, &l_x_1));
+	state_gradient_pair* l_multiplied = multiply(&l_x_0, &l_x_1);
 
-	affix_base::data::ptr<branch> l_branch(new branch(model::end(), true));
+	affix_base::data::ptr<element_branch> l_branch(new element_branch(model::end(), true));
 	
 	model l_model = model::end();
 
@@ -223,19 +223,21 @@ void lstm_test(
 
 	auto l_x = matrix(4, 2);
 
-	lstm l_lstm_0(pointers(l_x), l_lstm_y_units);
+	auto l_lstm_0 = lstm(pointers(l_x), l_lstm_y_units);
 
 	std::vector<std::vector<state_gradient_pair*>> l_y;
 
-	for (int i = 0; i < l_lstm_0.m_y.size(); i++)
+	for (int i = 0; i < l_lstm_0.size(); i++)
 	{
-		tnn l_tnn(
-			l_lstm_0.m_y[i],
-			{
-				tnn::layer_info(l_tnn_h0_units, neuron_leaky_relu()),
-				tnn::layer_info(l_tnn_y_units, neuron_sigmoid())
-			});
-		l_y.push_back(l_tnn.m_y);
+		l_y.push_back(
+			tnn(
+				l_lstm_0[i],
+				{
+					tnn_layer_info(l_tnn_h0_units, neuron_leaky_relu()),
+					tnn_layer_info(l_tnn_y_units, neuron_sigmoid())
+				}
+			)
+		);
 	}
 
 	model l_model = model::end();
@@ -327,21 +329,23 @@ void lstm_stacked_test(
 
 	auto l_x = matrix(4, 2);
 
-	lstm l_lstm_0(pointers(l_x), 20);
-	lstm l_lstm_1(l_lstm_0.m_y, 20);
-	lstm l_lstm_2(l_lstm_1.m_y, 1);
+	auto l_lstm_0 = lstm(pointers(l_x), 20);
+	auto l_lstm_1 = lstm(l_lstm_0, 20);
+	auto l_lstm_2 = lstm(l_lstm_1, 1);
 
 	std::vector<std::vector<state_gradient_pair*>> l_y;
 
-	for (int i = 0; i < l_lstm_2.m_y.size(); i++)
+	for (int i = 0; i < l_lstm_2.size(); i++)
 	{
-		tnn l_tnn(
-			l_lstm_2.m_y[i],
-			{
-				tnn::layer_info(5, neuron_leaky_relu()),
-				tnn::layer_info(1, neuron_sigmoid())
-			});
-		l_y.push_back(l_tnn.m_y);
+		l_y.push_back(
+			tnn(
+				l_lstm_2[i],
+				{
+					tnn_layer_info(5, neuron_leaky_relu()),
+					tnn_layer_info(1, neuron_sigmoid())
+				}
+			)
+		);
 	}
 
 	model l_model = model::end();
@@ -433,7 +437,7 @@ void matrix_vector_multiply_test(
 		3
 	};
 
-	matrix_vector_multiply l_multiply(pointers(l_x_0), pointers(l_x_1));
+	auto l_y = matrix_vector_multiply(pointers(l_x_0), pointers(l_x_1));
 
 	model l_model = model::end();
 
@@ -450,7 +454,7 @@ void cosine_similarity_test(
 	std::vector<state_gradient_pair> l_x_0{ 0, 1, 0, 0 };
 	std::vector<state_gradient_pair> l_x_1{ 0, -1, 0, 0 };
 
-	cosine_similarity l_similarity(pointers(l_x_0), pointers(l_x_1));
+	auto l_y = cosine_similarity(pointers(l_x_0), pointers(l_x_1));
 
 	model l_model = model::end();
 
@@ -480,15 +484,61 @@ void similarity_interpolate_test(
 		{0.862}
 	};
 
-	std::vector<state_gradient_pair> l_query = { 1, 0.75 };
+	std::vector<state_gradient_pair> l_query = { 1, 0 };
 	
 	model::begin();
 
-	similarity_interpolate l_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
+	auto l_y = similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
 
 	model l_model = model::end();
 
 	l_model.fwd();
+
+}
+
+void large_memory_usage_test(
+
+)
+{
+	model::begin();
+
+	std::vector<state_gradient_pair> l_x(1000);
+
+	affix_base::timing::stopwatch l_stopwatch;
+	l_stopwatch.start();
+
+	{
+		tnn(
+			pointers(l_x),
+			{
+				tnn_layer_info(1000, neuron_leaky_relu()),
+				tnn_layer_info(1000, neuron_leaky_relu()),
+				tnn_layer_info(1000, neuron_leaky_relu()),
+			});
+
+		model l_model = model::end();
+		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+		l_stopwatch.start();
+
+		std::uniform_real_distribution<double> l_urd(-1, 1);
+		std::default_random_engine l_dre(25);
+
+		for (auto& l_parameter : l_model.parameters())
+			l_parameter->m_state = l_urd(l_dre);
+		std::cout << "PARAMETERS INITIALIZED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+		l_stopwatch.start();
+
+		l_model.fwd();
+		std::cout << "FORWARD COMPLETED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+		l_stopwatch.start();
+
+		l_model.bwd();
+		std::cout << "BACKWARD COMPLETED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+		l_stopwatch.start();
+	}
+
+	std::cout << "DECONSTRUCTED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+
 
 }
 
@@ -498,7 +548,7 @@ int main(
 {
 	srand(time(0));
 
-	similarity_interpolate_test();
+	lstm_test();
 
 	return 0;
 }

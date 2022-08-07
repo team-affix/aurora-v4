@@ -27,7 +27,7 @@
     <ClInclude Include="generators.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="compounds.h">
+    <ClInclude Include="constructors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="model.h">
@@ -39,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="elements.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

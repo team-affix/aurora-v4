@@ -157,13 +157,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aurora.h" />
-    <ClInclude Include="compounds.h" />
+    <ClInclude Include="constructors.h" />
     <ClInclude Include="elements.h" />
     <ClInclude Include="generators.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="model.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="elements.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="lstm.cpp" />
   </ItemGroup>

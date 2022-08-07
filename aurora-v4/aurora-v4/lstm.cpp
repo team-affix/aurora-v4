@@ -1,115 +1,119 @@
 #include "affix-base/pch.h"
-#include "compounds.h"
+#include "constructors.h"
 #include "generators.h"
 
 using namespace aurora;
 
-lstm::timestep::timestep(
-	std::vector<state_gradient_pair*> a_x,
-	std::vector<state_gradient_pair*> a_cx,
-	std::vector<state_gradient_pair*> a_hx
-)
+struct lstm_timestep
 {
-	std::vector<state_gradient_pair*> l_hx_x_concat;
+public:
+	std::vector<state_gradient_pair*> m_cy;
+	std::vector<state_gradient_pair*> m_y;
 
-	// Concatenate hx and x into one vector
-	for (int i = 0; i < a_hx.size(); i++)
-		l_hx_x_concat.push_back(a_hx[i]);
-	for (int i = 0; i < a_x.size(); i++)
-		l_hx_x_concat.push_back(a_x[i]);
+public:
+	lstm_timestep(
+		std::vector<state_gradient_pair*> a_x,
+		std::vector<state_gradient_pair*> a_cx,
+		std::vector<state_gradient_pair*> a_hx
+	)
+	{
+		std::vector<state_gradient_pair*> l_hx_x_concat;
+
+		// Concatenate hx and x into one vector
+		for (int i = 0; i < a_hx.size(); i++)
+			l_hx_x_concat.push_back(a_hx[i]);
+		for (int i = 0; i < a_x.size(); i++)
+			l_hx_x_concat.push_back(a_x[i]);
 
 
-	// Construct gates
+		// Construct gates
 
-	tnn l_forget_gate(l_hx_x_concat,
+		auto l_forget_gate = tnn(l_hx_x_concat,
+			{
+				tnn_layer_info(a_hx.size(), neuron_sigmoid())
+			});
+
+		auto l_input_limit_gate = tnn(l_hx_x_concat,
+			{
+				tnn_layer_info(a_hx.size(), neuron_sigmoid())
+			});
+
+		auto l_input_gate = tnn(l_hx_x_concat,
+			{
+				tnn_layer_info(a_hx.size(), neuron_tanh())
+			});
+
+		auto l_output_gate = tnn(l_hx_x_concat,
+			{
+				tnn_layer_info(a_hx.size(), neuron_sigmoid())
+			});
+
+
+		std::vector<state_gradient_pair*> l_cell_state_after_forget;
+
+		// Forget parts of the cell state
+		for (int i = 0; i < l_forget_gate.size(); i++)
 		{
-			tnn::layer_info(a_hx.size(), neuron_sigmoid())
-		});
+			l_cell_state_after_forget.push_back(multiply(a_cx[i], l_forget_gate[i]));
+		}
 
-	tnn l_input_limit_gate(l_hx_x_concat,
+		std::vector<state_gradient_pair*> l_limited_input_ys;
+
+		// Calculate the input to the cell state
+		for (int i = 0; i < l_input_gate.size(); i++)
 		{
-			tnn::layer_info(a_hx.size(), neuron_sigmoid())
-		});
+			l_limited_input_ys.push_back(multiply(l_input_gate[i], l_input_limit_gate[i]));
+		}
 
-	tnn l_input_gate(l_hx_x_concat,
+		std::vector<state_gradient_pair*> l_cell_state_after_input;
+
+		// Write the input to the cell state
+		for (int i = 0; i < l_limited_input_ys.size(); i++)
 		{
-			tnn::layer_info(a_hx.size(), neuron_tanh())
-		});
+			l_cell_state_after_input.push_back(add(l_cell_state_after_forget[i], l_limited_input_ys[i]));
+		}
 
-	tnn l_output_gate(l_hx_x_concat,
+		// Cell state is now finalized, save it as the cell state output
+		m_cy = l_cell_state_after_input;
+
+		std::vector<state_gradient_pair*> l_cell_state_after_tanh;
+
+		// Do a temporary step to compute tanh(cy)
+		for (int i = 0; i < l_cell_state_after_input.size(); i++)
 		{
-			tnn::layer_info(a_hx.size(), neuron_sigmoid())
-		});
+			l_cell_state_after_tanh.push_back(tanh(l_cell_state_after_input[i]));
+		}
 
+		// Compute output to the timestep
+		for (int i = 0; i < l_output_gate.size(); i++)
+		{
+			m_y.push_back(multiply(l_output_gate[i], l_cell_state_after_tanh[i]));
+		}
 
-	std::vector<state_gradient_pair*> l_cell_state_after_forget;
-
-	// Forget parts of the cell state
-	for (int i = 0; i < l_forget_gate.m_y.size(); i++)
-	{
-		affix_base::data::ptr<multiply> l_multiply(new multiply(a_cx[i], l_forget_gate.m_y[i]));
-		l_cell_state_after_forget.push_back(&l_multiply->m_y);
 	}
 
-	std::vector<state_gradient_pair*> l_limited_input_ys;
+};
 
-	// Calculate the input to the cell state
-	for (int i = 0; i < l_input_gate.m_y.size(); i++)
-	{
-		affix_base::data::ptr<multiply> l_multiply(new multiply(l_input_gate.m_y[i], l_input_limit_gate.m_y[i]));
-		l_limited_input_ys.push_back(&l_multiply->m_y);
-	}
-
-	std::vector<state_gradient_pair*> l_cell_state_after_input;
-
-	// Write the input to the cell state
-	for (int i = 0; i < l_limited_input_ys.size(); i++)
-	{
-		affix_base::data::ptr<add> l_add(new add(l_cell_state_after_forget[i], l_limited_input_ys[i]));
-		l_cell_state_after_input.push_back(&l_add->m_y);
-	}
-
-	// Cell state is now finalized, save it as the cell state output
-	m_cy = l_cell_state_after_input;
-	
-	std::vector<state_gradient_pair*> l_cell_state_after_tanh;
-
-	// Do a temporary step to compute tanh(cy)
-	for (int i = 0; i < l_cell_state_after_input.size(); i++)
-	{
-		affix_base::data::ptr<tanh_activate> l_tanh(new tanh_activate(l_cell_state_after_input[i]));
-		l_cell_state_after_tanh.push_back(&l_tanh->m_y);
-	}
-
-	// Compute output to the timestep
-	for (int i = 0; i < l_output_gate.m_y.size(); i++)
-	{
-		affix_base::data::ptr<multiply> l_multiply(new multiply(l_output_gate.m_y[i], l_cell_state_after_tanh[i]));
-		m_y.push_back(&l_multiply->m_y);
-	}
-
-}
-
-lstm::lstm(
+std::vector<std::vector<state_gradient_pair*>> aurora::lstm(
 	std::vector<std::vector<state_gradient_pair*>> a_x,
 	const size_t& a_y_size
 )
 {
+	std::vector<std::vector<state_gradient_pair*>> l_result;
+
 	std::vector<state_gradient_pair*> l_cy;
 	std::vector<state_gradient_pair*> l_hy;
 
 	// Initialize the cell state (make it learnable using parameters)
 	for (int i = 0; i < a_y_size; i++)
 	{
-		affix_base::data::ptr<parameter> l_parameter(new parameter());
-		l_cy.push_back(&l_parameter->m_y);
+		l_cy.push_back(parameter());
 	}
 
 	// Initialize the hidden state
 	for (int i = 0; i < a_y_size; i++)
 	{
-		affix_base::data::ptr<parameter> l_parameter(new parameter());
-		l_hy.push_back(&l_parameter->m_y);
+		l_hy.push_back(parameter());
 	}
 
 
@@ -119,11 +123,11 @@ lstm::lstm(
 	{
 		model::begin();
 
-		lstm::timestep l_timestep(a_x[i], l_cy, l_hy);
+		lstm_timestep l_timestep(a_x[i], l_cy, l_hy);
 		l_cy = l_timestep.m_cy;
 		l_hy = l_timestep.m_y;
-		m_y.push_back(l_timestep.m_y);
-		
+		l_result.push_back(l_timestep.m_y);
+
 		// Push the LSTM Timestep model into the list
 		l_timestep_models.push_back(model::end());
 
@@ -148,5 +152,7 @@ lstm::lstm(
 
 	// Add the parameters which each timestep now shares to the list of all parameters
 	model::insert(l_initial_timestep_model.parameters());
+
+	return l_result;
 
 }

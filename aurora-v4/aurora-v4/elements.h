@@ -48,7 +48,7 @@ namespace aurora
 
 	};
 
-	class parameter : public element
+	class element_parameter : public element
 	{
 	private:
 		affix_base::data::ptr<state_gradient_pair> m_linkable_value = new state_gradient_pair();
@@ -57,14 +57,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~parameter(
+		virtual ~element_parameter(
 
 		)
 		{
 
 		}
 
-		parameter(
+		element_parameter(
 
 		) :
 			m_linkable_value(new state_gradient_pair())
@@ -89,20 +89,20 @@ namespace aurora
 
 	};
 
-	class constant : public element
+	class element_constant : public element
 	{
 	public:
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~constant(
+		virtual ~element_constant(
 
 		)
 		{
 
 		}
 
-		constant(
+		element_constant(
 			const double& a_y
 		) :
 			m_y(a_y)
@@ -112,7 +112,7 @@ namespace aurora
 
 	};
 
-	class add : public element
+	class element_add : public element
 	{
 	private:
 		state_gradient_pair* m_x_0 = nullptr;
@@ -122,14 +122,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~add(
+		virtual ~element_add(
 
 		)
 		{
 
 		}
 
-		add(
+		element_add(
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
@@ -157,7 +157,7 @@ namespace aurora
 
 	};
 
-	class subtract : public element
+	class element_subtract : public element
 	{
 	private:
 		state_gradient_pair* m_x_0 = nullptr;
@@ -167,14 +167,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~subtract(
+		virtual ~element_subtract(
 
 		)
 		{
 
 		}
 
-		subtract(
+		element_subtract(
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
@@ -202,7 +202,7 @@ namespace aurora
 
 	};
 
-	class multiply : public element
+	class element_multiply : public element
 	{
 	private:
 		state_gradient_pair* m_x_0 = nullptr;
@@ -212,14 +212,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~multiply(
+		virtual ~element_multiply(
 
 		)
 		{
 
 		}
 
-		multiply(
+		element_multiply(
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
@@ -247,7 +247,7 @@ namespace aurora
 
 	};
 
-	class divide : public element
+	class element_divide : public element
 	{
 	private:
 		state_gradient_pair* m_x_0 = nullptr;
@@ -257,14 +257,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~divide(
+		virtual ~element_divide(
 
 		)
 		{
 
 		}
 
-		divide(
+		element_divide(
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
@@ -286,13 +286,13 @@ namespace aurora
 		)
 		{
 			m_x_0->m_gradient += m_y.m_gradient / m_x_1->m_state;
-			m_x_1->m_gradient += m_y.m_gradient * (-m_x_0->m_state / pow(m_x_1->m_state, 2.0));
+			m_x_1->m_gradient += m_y.m_gradient * (-m_x_0->m_state / std::pow(m_x_1->m_state, 2.0));
 			m_y.m_gradient = 0;
 		}
 
 	};
 
-	class power : public element
+	class element_pow : public element
 	{
 	private:
 		state_gradient_pair* m_x_0 = nullptr;
@@ -302,14 +302,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~power(
+		virtual ~element_pow(
 
 		)
 		{
 
 		}
 
-		power(
+		element_pow(
 			state_gradient_pair* a_x_0,
 			state_gradient_pair* a_x_1
 		) :
@@ -323,21 +323,21 @@ namespace aurora
 
 		)
 		{
-			m_y.m_state = pow(m_x_0->m_state, m_x_1->m_state);
+			m_y.m_state = std::pow(m_x_0->m_state, m_x_1->m_state);
 		}
 
 		virtual void bwd(
 
 		)
 		{
-			m_x_0->m_gradient += m_y.m_gradient * m_x_1->m_state * pow(m_x_0->m_state, m_x_1->m_state - 1.0);
-			m_x_1->m_gradient += m_y.m_gradient * pow(m_x_0->m_state, m_x_1->m_state) * log(m_x_0->m_state);
+			m_x_0->m_gradient += m_y.m_gradient * m_x_1->m_state * std::pow(m_x_0->m_state, m_x_1->m_state - 1.0);
+			m_x_1->m_gradient += m_y.m_gradient * std::pow(m_x_0->m_state, m_x_1->m_state) * std::log(m_x_0->m_state);
 			m_y.m_gradient = 0;
 		}
 
 	};
 
-	class sigmoid_activate : public element
+	class element_sigmoid : public element
 	{
 	private:
 		state_gradient_pair* m_x = nullptr;
@@ -346,7 +346,7 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		sigmoid_activate(
+		element_sigmoid(
 			state_gradient_pair* a_x
 		) :
 			m_x(a_x)
@@ -371,7 +371,7 @@ namespace aurora
 
 	};
 
-	class tanh_activate : public element
+	class element_tanh : public element
 	{
 	private:
 		state_gradient_pair* m_x = nullptr;
@@ -380,14 +380,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~tanh_activate(
+		virtual ~element_tanh(
 
 		)
 		{
 			
 		}
 
-		tanh_activate(
+		element_tanh(
 			state_gradient_pair* a_x
 		) :
 			m_x(a_x)
@@ -399,20 +399,20 @@ namespace aurora
 
 		)
 		{
-			m_y.m_state = tanh(m_x->m_state);
+			m_y.m_state = std::tanh(m_x->m_state);
 		}
 
 		virtual void bwd(
 
 		)
 		{
-			m_x->m_gradient += m_y.m_gradient / pow(cosh(m_x->m_state), 2.0);
+			m_x->m_gradient += m_y.m_gradient / std::pow(cosh(m_x->m_state), 2.0);
 			m_y.m_gradient = 0;
 		}
 
 	};
 
-	class leaky_relu_activate : public element
+	class element_leaky_relu : public element
 	{
 	private:
 		state_gradient_pair* m_x = nullptr;
@@ -422,14 +422,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~leaky_relu_activate(
+		virtual ~element_leaky_relu(
 
 		)
 		{
 
 		}
 
-		leaky_relu_activate(
+		element_leaky_relu(
 			state_gradient_pair* a_x,
 			const double& a_m
 		) :
@@ -460,20 +460,21 @@ namespace aurora
 
 	};
 
-	class branch : public element
+	class element_branch : public element
 	{
 	private:
 		model m_model;
 		bool m_enabled = false;
 
 	public:
-		virtual ~branch(
+		virtual ~element_branch(
 
 		)
 		{
 
 		}
-		branch(
+
+		element_branch(
 			model&& a_model,
 			const bool& a_enabled
 		) :
@@ -527,7 +528,7 @@ namespace aurora
 
 	};
 
-	class running_average : public element
+	class element_running_average : public element
 	{
 	private:
 		state_gradient_pair* m_x = nullptr;
@@ -538,14 +539,14 @@ namespace aurora
 		state_gradient_pair m_y = {1};
 
 	public:
-		virtual ~running_average(
+		virtual ~element_running_average(
 
 		)
 		{
 
 		}
 
-		running_average(
+		element_running_average(
 			state_gradient_pair* a_x,
 			const double& a_beta
 		) :
@@ -573,7 +574,7 @@ namespace aurora
 
 	};
 
-	class logarithm
+	class element_log
 	{
 	private:
 		state_gradient_pair* m_x = nullptr;
@@ -582,14 +583,14 @@ namespace aurora
 		state_gradient_pair m_y;
 
 	public:
-		virtual ~logarithm(
+		virtual ~element_log(
 
 		)
 		{
 
 		}
 
-		logarithm(
+		element_log(
 			state_gradient_pair* a_x
 		) :
 			m_x(a_x)
@@ -601,7 +602,7 @@ namespace aurora
 
 		)
 		{
-			m_y.m_state = log(m_x->m_state);
+			m_y.m_state = std::log(m_x->m_state);
 		}
 
 		virtual void bwd(
