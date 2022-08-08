@@ -162,6 +162,7 @@
     <ClInclude Include="generators.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="optimizers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model.cpp" />

@@ -126,15 +126,9 @@ void parabola_test(
 			tnn_layer_info(1, neuron_leaky_relu())
 		});
 
-	model l_model = model::end();
+	model l_model = model::end(-1, 1);
 
-	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(25);
-
-	for (int i = 0; i < l_model.parameters().size(); i++)
-	{
-		l_model.parameters()[i]->m_state = l_urd(l_dre);
-	}
 
 	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
 	{
@@ -215,9 +209,7 @@ void lstm_test(
 {
 	model::begin();
 
-	std::vector<affix_base::data::ptr<gradient_descent>> l_optimizers;
-
-	const size_t l_lstm_y_units = 1;
+	const size_t l_lstm_y_units = 3;
 	const size_t l_tnn_h0_units = 3;
 	const size_t l_tnn_y_units = 1;
 
@@ -240,16 +232,7 @@ void lstm_test(
 		);
 	}
 
-	model l_model = model::end();
-
-	std::uniform_real_distribution<double> l_urd(-1, 1);
-	std::default_random_engine l_dre(28);
-
-	for (auto& l_parameter : l_model.parameters())
-	{
-		l_parameter->m_state = l_urd(l_dre);
-		l_optimizers.push_back(new gradient_descent(l_parameter, 0.2));
-	}
+	model l_model = model::end(-1, 1, gradient_descent(0.2));
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
@@ -311,8 +294,7 @@ void lstm_test(
 
 		}
 
-		for (int i = 0; i < l_optimizers.size(); i++)
-			l_optimizers[i]->update();
+		l_model.update();
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << "COST: " << l_cost << std::endl << std::endl;
@@ -615,18 +597,7 @@ void issp_test(
 		2
 	);
 
-	model l_model = model::end();
-
-	std::vector<affix_base::data::ptr<optimizer>> l_optimizers;
-
-	std::uniform_real_distribution<double> l_urd(-1, 1);
-	std::default_random_engine l_dre(26);
-
-	for (auto& l_parameter : l_model.parameters())
-	{
-		l_parameter->m_state = l_urd(l_dre);
-		l_optimizers.push_back(new gradient_descent(l_parameter, 0.02));
-	}
+	model l_model = model::end(-1, 1, gradient_descent(0.02));
 
 	l_x[0][0].m_state = 10;
 
@@ -646,7 +617,7 @@ int main(
 {
 	srand(time(0));
 
-	issp_test();
+	parabola_test();
 
 	return 0;
 }

@@ -26,56 +26,6 @@ namespace aurora
 
 	};
 
-	class optimizer
-	{
-	public:
-		state_gradient_pair* m_value = nullptr;
-
-	public:
-		optimizer(
-			state_gradient_pair* a_value
-		) :
-			m_value(a_value)
-		{
-
-		}
-
-		virtual void update(
-
-		)
-		{
-
-		}
-
-	};
-
-	class gradient_descent : public optimizer
-	{
-	public:
-		double m_learn_rate = 0;
-
-	public:
-		gradient_descent(
-			state_gradient_pair* a_value,
-			const double& a_learn_rate
-		) :
-			optimizer(a_value),
-			m_learn_rate(a_learn_rate)
-		{
-
-		}
-
-		virtual void update(
-
-		)
-		{
-			m_value->m_state -= m_learn_rate * m_value->m_gradient;
-			m_value->m_gradient = 0;
-		}
-
-	};
-
-	
 	inline std::vector<std::vector<state_gradient_pair>> matrix(
 		const size_t& a_rows,
 		const size_t& a_cols
@@ -86,7 +36,6 @@ namespace aurora
 			l_result.push_back(std::vector<state_gradient_pair>(a_cols));
 		return l_result;
 	}
-
 
 	inline std::vector<state_gradient_pair*> pointers(
 		std::vector<state_gradient_pair>& a_vector
@@ -108,7 +57,6 @@ namespace aurora
 		return l_result;
 	}
 
-
 	inline void set_state(
 		std::vector<state_gradient_pair>& a_destination,
 		const std::vector<state_gradient_pair>& a_source
@@ -126,7 +74,6 @@ namespace aurora
 		for (int i = 0; i < a_destination.size(); i++)
 			set_state(a_destination[i], a_source[i]);
 	}
-
 
 	inline double mean_squared_error(
 		std::vector<state_gradient_pair*> a_predicted,
@@ -185,7 +132,6 @@ namespace aurora
 		return l_result;
 
 	}
-
 
 	inline double cross_entropy(
 		std::vector<state_gradient_pair*> a_predicted,

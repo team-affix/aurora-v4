@@ -5,3 +5,4 @@
 #include "compounds.h"
 #include "generators.h"
 #include "model.h"
+#include "optimizers.h"
