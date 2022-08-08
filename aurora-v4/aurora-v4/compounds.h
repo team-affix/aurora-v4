@@ -7,6 +7,27 @@
 
 namespace aurora
 {
+	inline std::vector<state_gradient_pair*> parameters(
+		const size_t& a_count
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_count; i++)
+			l_result.push_back(parameter());
+		return l_result;
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> parameters(
+		const size_t& a_rows,
+		const size_t& a_cols
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+		for (int i = 0; i < a_rows; i++)
+			l_result.push_back(parameters(a_cols));
+		return l_result;
+	}
+
 	inline state_gradient_pair* additive_aggregate(
 		std::vector<state_gradient_pair*> a_x
 	)
@@ -47,6 +68,16 @@ namespace aurora
 	)
 	{
 		return add(parameter(), a_x);
+	}
+
+	inline std::vector<state_gradient_pair*> bias(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(bias(a_x[i]));
+		return l_result;
 	}
 
 	inline state_gradient_pair* weight(
@@ -309,6 +340,17 @@ namespace aurora
 		std::vector<state_gradient_pair*> l_result;
 		for (int i = 0; i < a_x.size(); i++)
 			l_result.push_back(tanh(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> leaky_relu(
+		std::vector<state_gradient_pair*> a_x,
+		const double& a_m
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(leaky_relu(a_x[i], a_m));
 		return l_result;
 	}
 

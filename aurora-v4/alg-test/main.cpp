@@ -599,13 +599,17 @@ void pablo_tnn_example(
 	model::begin();
 
 	// Write model building code here
-	std::vector<state_gradient_pair> l_x = { 0, 0, 0 };
-	std::vector<state_gradient_pair*> l_y = tnn(
-		pointers(l_x),
-		{
-			tnn_layer_info(10, neuron_leaky_relu()),
-			tnn_layer_info(2, neuron_leaky_relu())
-		});
+	std::vector<state_gradient_pair> l_x = { 0, 0 };
+
+	std::vector<state_gradient_pair*> l_y = pointers(l_x);
+
+	l_y = matrix_vector_multiply(parameters(5, l_y.size()), l_y);
+	l_y = bias(l_y);
+	l_y = tanh(l_y);
+	
+	l_y = matrix_vector_multiply(parameters(1, l_y.size()), l_y);
+	l_y = bias(l_y);
+	l_y = sigmoid(l_y);
 
 							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
