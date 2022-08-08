@@ -24,7 +24,7 @@
     <ClInclude Include="maths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="generators.h">
+    <ClInclude Include="neurons.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="compounds.h">

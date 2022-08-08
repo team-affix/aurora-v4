@@ -1,6 +1,6 @@
 #include "affix-base/pch.h"
 #include "compounds.h"
-#include "generators.h"
+#include "neurons.h"
 
 using namespace aurora;
 

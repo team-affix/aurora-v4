@@ -529,7 +529,7 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 	const std::vector<size_t>& a_lstm_y_sizes,
 	const std::vector<size_t>& a_layer_y_sizes,
 	const size_t& a_time_slot_predictions_per_timestep,
-	const size_t& a_time_slot_prediction_size
+	const size_t& a_time_slot_bin_size
 )
 {
 	std::vector<std::vector<state_gradient_pair*>> l_y_raw = a_x;
@@ -537,7 +537,7 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 	for (int i = 0; i < a_lstm_y_sizes.size(); i++)
 		l_y_raw = lstm(l_y_raw, a_lstm_y_sizes[i]);
 
-	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_prediction_size * a_time_slot_predictions_per_timestep;
+	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_bin_size * a_time_slot_predictions_per_timestep;
 
 	std::vector<tnn_layer_info> l_tnn_layer_infos;
 
@@ -555,26 +555,7 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 	for (int i = 0; i < l_y_raw.size(); i++)
 	{
 		// Link the raw output with specific time slots
-
-		std::vector<state_gradient_pair*> l_timestep_y_raw = l_y_raw[i];
-
-		std::vector<std::vector<state_gradient_pair*>> l_future_hourly_predictions;
-
-		for (int j = 0; j < l_timestep_y_raw.size(); j += a_time_slot_prediction_size)
-		{
-			std::vector<state_gradient_pair*> l_future_hour_predictions;
-
-			for (int k = 0; k < a_time_slot_prediction_size; k++)
-			{
-				l_future_hour_predictions.push_back(l_timestep_y_raw[j + k]);
-			}
-
-			l_future_hourly_predictions.push_back(l_future_hour_predictions);
-
-		}
-
-		l_future_hour_predictions.push_back(l_future_hourly_predictions);
-
+		l_future_hour_predictions.push_back(partition(l_y_raw[i], a_time_slot_bin_size));
 	}
 
 	return l_future_hour_predictions;
@@ -611,13 +592,36 @@ void issp_test(
 
 }
 
+void pablo_tnn_example(
+
+)
+{
+	model::begin();
+
+	// Write model building code here
+	std::vector<state_gradient_pair> l_x = { 0, 0, 0 };
+	std::vector<state_gradient_pair*> l_y = tnn(
+		pointers(l_x),
+		{
+			tnn_layer_info(10, neuron_leaky_relu()),
+			tnn_layer_info(2, neuron_leaky_relu())
+		});
+
+							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
+							 // This function call finalizes our model and spits it out. (This also initializes parameters)
+	model l_model = model::end(-1, 1, gradient_descent(0.02));
+
+
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	parabola_test();
+	pablo_tnn_example();
 
 	return 0;
 }

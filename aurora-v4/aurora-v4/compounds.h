@@ -357,4 +357,28 @@ namespace aurora
 
 	}
 
+	inline std::vector<std::vector<state_gradient_pair*>> partition(
+		std::vector<state_gradient_pair*> a_x,
+		const size_t& a_bin_size
+	)
+	{
+		assert(a_x.size() % a_bin_size == 0);
+
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+
+		for (int i = 0; i < a_x.size(); i += a_bin_size)
+		{
+			std::vector<state_gradient_pair*> l_bin;
+
+			for (int j = 0; j < a_bin_size; j++)
+				l_bin.push_back(a_x[i + j]);
+
+			l_result.push_back(l_bin);
+
+		}
+
+		return l_result;
+
+	}
+
 }
