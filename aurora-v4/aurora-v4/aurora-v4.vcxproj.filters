@@ -24,9 +24,6 @@
     <ClInclude Include="maths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="neurons.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="compounds.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -159,7 +159,6 @@
     <ClInclude Include="aurora.h" />
     <ClInclude Include="compounds.h" />
     <ClInclude Include="elements.h" />
-    <ClInclude Include="neurons.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="optimizers.h" />

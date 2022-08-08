@@ -1,6 +1,5 @@
 #include "affix-base/pch.h"
 #include "compounds.h"
-#include "neurons.h"
 
 using namespace aurora;
 
@@ -28,25 +27,21 @@ public:
 
 		// Construct gates
 
-		auto l_forget_gate = tnn(l_hx_x_concat,
-			{
-				tnn_layer_info(a_hx.size(), neuron_sigmoid())
-			});
+		auto l_forget_gate = weight_junction(l_hx_x_concat, a_hx.size());
+		l_forget_gate = bias(l_forget_gate);
+		l_forget_gate = sigmoid(l_forget_gate);
 
-		auto l_input_limit_gate = tnn(l_hx_x_concat,
-			{
-				tnn_layer_info(a_hx.size(), neuron_sigmoid())
-			});
+		auto l_input_limit_gate = weight_junction(l_hx_x_concat, a_hx.size());
+		l_input_limit_gate = bias(l_input_limit_gate);
+		l_input_limit_gate = sigmoid(l_input_limit_gate);
 
-		auto l_input_gate = tnn(l_hx_x_concat,
-			{
-				tnn_layer_info(a_hx.size(), neuron_tanh())
-			});
+		auto l_input_gate = weight_junction(l_hx_x_concat, a_hx.size());
+		l_input_gate = bias(l_input_gate);
+		l_input_gate = tanh(l_input_gate);
 
-		auto l_output_gate = tnn(l_hx_x_concat,
-			{
-				tnn_layer_info(a_hx.size(), neuron_sigmoid())
-			});
+		auto l_output_gate = weight_junction(l_hx_x_concat, a_hx.size());
+		l_output_gate = bias(l_output_gate);
+		l_output_gate = sigmoid(l_output_gate);
 
 
 		std::vector<state_gradient_pair*> l_cell_state_after_forget;

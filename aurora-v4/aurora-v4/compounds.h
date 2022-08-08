@@ -63,184 +63,6 @@ namespace aurora
 
 	}
 
-	inline state_gradient_pair* bias(
-		state_gradient_pair* a_x
-	)
-	{
-		return add(parameter(), a_x);
-	}
-
-	inline std::vector<state_gradient_pair*> bias(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-		for (int i = 0; i < a_x.size(); i++)
-			l_result.push_back(bias(a_x[i]));
-		return l_result;
-	}
-
-	inline state_gradient_pair* weight(
-		state_gradient_pair* a_x
-	)
-	{
-		return multiply(parameter(), a_x);
-	}
-
-	inline state_gradient_pair* weights(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_weight_ys;
-
-		for (int i = 0; i < a_x.size(); i++)
-		{
-			l_weight_ys.push_back(weight(a_x[i]));
-		}
-
-		return additive_aggregate(l_weight_ys);
-
-	}
-
-	inline std::vector<state_gradient_pair*> weight_junction(
-		std::vector<state_gradient_pair*> a_x,
-		const size_t& a_y_size
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-
-		for (int i = 0; i < a_y_size; i++)
-		{
-			l_result.push_back(weights(a_x));
-		}
-
-		return l_result;
-
-	}
-
-	inline state_gradient_pair* multiplicative_aggregate(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		assert(a_x.size() > 0);
-
-		state_gradient_pair* l_result = a_x[0];
-
-		for (int i = 1; i < a_x.size(); i++)
-		{
-			l_result = multiply(l_result, a_x[i]);
-		}
-
-		return l_result;
-
-	}
-
-	inline std::vector<state_gradient_pair*> normalize(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-
-		state_gradient_pair* l_sum = additive_aggregate(a_x);
-
-		for (int i = 0; i < a_x.size(); i++)
-		{
-			l_result.push_back(divide(a_x[i], l_sum));
-		}
-
-		return l_result;
-
-	}
-
-	inline std::vector<state_gradient_pair*> parameterized_normalize(
-		const size_t& a_parameter_count
-	)
-	{
-		std::vector<state_gradient_pair*> l_sigmoid_ys;
-
-		for (int i = 0; i < a_parameter_count; i++)
-		{
-			l_sigmoid_ys.push_back(sigmoid(parameter()));
-		}
-
-		return normalize(l_sigmoid_ys);
-
-	}
-
-	struct tnn_layer_info
-	{
-		size_t m_size;
-		std::function<state_gradient_pair* (state_gradient_pair*)> m_generate_neurons;
-
-		tnn_layer_info(
-			const size_t& a_size,
-			const std::function<state_gradient_pair* (state_gradient_pair*)>& a_generate_neurons
-		) :
-			m_size(a_size),
-			m_generate_neurons(a_generate_neurons)
-		{
-
-		}
-
-	};
-
-	inline std::vector<state_gradient_pair*> tnn(
-		std::vector<state_gradient_pair*> a_x,
-		std::vector<tnn_layer_info> a_layer_infos
-	)
-	{
-		std::vector<state_gradient_pair*> l_y = a_x;
-
-		for (int i = 0; i < a_layer_infos.size(); i++)
-		{
-			std::vector<state_gradient_pair*> l_w = weight_junction(l_y, a_layer_infos[i].m_size);
-
-			l_y.resize(l_w.size());
-
-			for (int j = 0; j < l_w.size(); j++)
-				l_y[j] = a_layer_infos[i].m_generate_neurons(l_w[j]);
-
-		}
-
-		return l_y;
-
-	}
-
-	std::vector<std::vector<state_gradient_pair*>> lstm(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
-		const size_t& a_y_size
-	);
-
-	inline state_gradient_pair* parameterized_interpolate(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		return vector_vector_multiply(parameterized_normalize(a_x.size()), a_x);
-	}
-
-	inline state_gradient_pair* vector_magnitude(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_square_ys(a_x.size());
-		for (int i = 0; i < a_x.size(); i++)
-		{
-			l_square_ys[i] = pow(a_x[i], constant(2));
-		}
-		return pow(additive_aggregate(l_square_ys), constant(0.5));
-	}
-
-	inline state_gradient_pair* cosine_similarity(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
-	)
-	{
-		auto l_multiply = vector_vector_multiply(a_x_0, a_x_1);
-		auto l_magnitude_0 = vector_magnitude(a_x_0);
-		auto l_magnitude_1 = vector_magnitude(a_x_1);
-		return divide(divide(l_multiply, l_magnitude_0), l_magnitude_1);
-	}
-
 	inline std::vector<state_gradient_pair*> vector_scalar_multiply(
 		std::vector<state_gradient_pair*> a_x_0,
 		state_gradient_pair* a_x_1
@@ -321,6 +143,115 @@ namespace aurora
 			l_scaled_transpose.push_back(vector_scalar_multiply(l_transpose[i], a_x_1[i]));
 		}
 		return vector_additive_aggregate(l_scaled_transpose);
+	}
+
+	inline state_gradient_pair* bias(
+		state_gradient_pair* a_x
+	)
+	{
+		return add(parameter(), a_x);
+	}
+
+	inline std::vector<state_gradient_pair*> bias(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(bias(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> weight_junction(
+		std::vector<state_gradient_pair*> a_x,
+		const size_t& a_y_size
+	)
+	{
+		return matrix_vector_multiply(parameters(a_y_size, a_x.size()), a_x);
+	}
+
+	inline state_gradient_pair* multiplicative_aggregate(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		assert(a_x.size() > 0);
+
+		state_gradient_pair* l_result = a_x[0];
+
+		for (int i = 1; i < a_x.size(); i++)
+		{
+			l_result = multiply(l_result, a_x[i]);
+		}
+
+		return l_result;
+
+	}
+
+	inline std::vector<state_gradient_pair*> normalize(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+
+		state_gradient_pair* l_sum = additive_aggregate(a_x);
+
+		for (int i = 0; i < a_x.size(); i++)
+		{
+			l_result.push_back(divide(a_x[i], l_sum));
+		}
+
+		return l_result;
+
+	}
+
+	inline std::vector<state_gradient_pair*> parameterized_normalize(
+		const size_t& a_parameter_count
+	)
+	{
+		std::vector<state_gradient_pair*> l_sigmoid_ys;
+
+		for (int i = 0; i < a_parameter_count; i++)
+		{
+			l_sigmoid_ys.push_back(sigmoid(parameter()));
+		}
+
+		return normalize(l_sigmoid_ys);
+
+	}
+
+	std::vector<std::vector<state_gradient_pair*>> lstm(
+		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const size_t& a_y_size
+	);
+
+	inline state_gradient_pair* parameterized_interpolate(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		return vector_vector_multiply(parameterized_normalize(a_x.size()), a_x);
+	}
+
+	inline state_gradient_pair* vector_magnitude(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_square_ys(a_x.size());
+		for (int i = 0; i < a_x.size(); i++)
+		{
+			l_square_ys[i] = pow(a_x[i], constant(2));
+		}
+		return pow(additive_aggregate(l_square_ys), constant(0.5));
+	}
+
+	inline state_gradient_pair* cosine_similarity(
+		std::vector<state_gradient_pair*> a_x_0,
+		std::vector<state_gradient_pair*> a_x_1
+	)
+	{
+		auto l_multiply = vector_vector_multiply(a_x_0, a_x_1);
+		auto l_magnitude_0 = vector_magnitude(a_x_0);
+		auto l_magnitude_1 = vector_magnitude(a_x_1);
+		return divide(divide(l_multiply, l_magnitude_0), l_magnitude_1);
 	}
 
 	inline std::vector<state_gradient_pair*> sigmoid(

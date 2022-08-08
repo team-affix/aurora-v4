@@ -12,13 +12,13 @@ void tnn_test(
 
 	std::vector<state_gradient_pair> l_x(2);
 
-	auto l_tnn = tnn(
-		pointers(l_x),
-		{
-			tnn_layer_info(5, neuron_tanh()),
-			tnn_layer_info(1, neuron_sigmoid())
-		}
-	);
+	auto l_y = pointers(l_x);
+	l_y = weight_junction(l_y, 5);
+	l_y = bias(l_y);
+	l_y = leaky_relu(l_y, 0.3);
+	l_y = weight_junction(l_y, 1);
+	l_y = bias(l_y);
+	l_y = sigmoid(l_y);
 
 	model l_model = model::end();
 
@@ -37,7 +37,7 @@ void tnn_test(
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_tnn, a_y);
+		double l_cost = mean_squared_error(l_y, a_y);
 			
 		l_model.bwd();
 
@@ -71,22 +71,22 @@ void tnn_test(
 		l_cost += l_cycle(l_ts_x[0], l_ts_y[0]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn[0]->m_state << std::endl;
+			std::cout << l_y[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[1], l_ts_y[1]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn[0]->m_state << std::endl;
+			std::cout << l_y[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[2], l_ts_y[2]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn[0]->m_state << std::endl;
+			std::cout << l_y[0]->m_state << std::endl;
 
 		l_cost += l_cycle(l_ts_x[3], l_ts_y[3]);
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_tnn[0]->m_state << std::endl;
+			std::cout << l_y[0]->m_state << std::endl;
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
@@ -119,12 +119,13 @@ void parabola_test(
 
 	model::begin();
 
-	auto l_tnn = tnn(
-		pointers(l_x),
-		{
-			tnn_layer_info(20, neuron_leaky_relu()),
-			tnn_layer_info(1, neuron_leaky_relu())
-		});
+	auto l_y = pointers(l_x);
+	l_y = weight_junction(l_y, 20);
+	l_y = bias(l_y);
+	l_y = leaky_relu(l_y, 0.3);
+	l_y = weight_junction(l_y, 1);
+	l_y = bias(l_y);
+	l_y = leaky_relu(l_y, 0.3);
 
 	model l_model = model::end(-1, 1);
 
@@ -136,7 +137,7 @@ void parabola_test(
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_tnn, a_y);
+		double l_cost = mean_squared_error(l_y, a_y);
 
 		l_model.bwd();
 
@@ -161,7 +162,7 @@ void parabola_test(
 			l_cost += l_cycle({ l_ts_x }, { l_ts_y });
 
 			if (epoch % CHECKPOINT_INTERVAL == 0)
-				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_tnn[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
+				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_y[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
 
 		}
 
@@ -221,15 +222,14 @@ void lstm_test(
 
 	for (int i = 0; i < l_lstm_0.size(); i++)
 	{
-		l_y.push_back(
-			tnn(
-				l_lstm_0[i],
-				{
-					tnn_layer_info(l_tnn_h0_units, neuron_leaky_relu()),
-					tnn_layer_info(l_tnn_y_units, neuron_sigmoid())
-				}
-			)
-		);
+		auto l_tnn_y = l_lstm_0[i];
+		l_tnn_y = weight_junction(l_tnn_y, l_tnn_h0_units);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = weight_junction(l_tnn_y, l_tnn_y_units);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_y.push_back(l_tnn_y);
 	}
 
 	model l_model = model::end(-1, 1, gradient_descent(0.2));
@@ -319,15 +319,14 @@ void lstm_stacked_test(
 
 	for (int i = 0; i < l_lstm_2.size(); i++)
 	{
-		l_y.push_back(
-			tnn(
-				l_lstm_2[i],
-				{
-					tnn_layer_info(5, neuron_leaky_relu()),
-					tnn_layer_info(1, neuron_sigmoid())
-				}
-			)
-		);
+		auto l_tnn_y = l_lstm_2[i];
+		l_tnn_y = weight_junction(l_tnn_y, 5);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = weight_junction(l_tnn_y, 1);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_y.push_back(l_tnn_y);
 	}
 
 	model l_model = model::end();
@@ -490,13 +489,10 @@ void large_memory_usage_test(
 	l_stopwatch.start();
 
 	{
-		tnn(
-			pointers(l_x),
-			{
-				tnn_layer_info(1000, neuron_leaky_relu()),
-				tnn_layer_info(1000, neuron_leaky_relu()),
-				tnn_layer_info(1000, neuron_leaky_relu()),
-			});
+		auto l_y = pointers(l_x);
+		l_y = weight_junction(l_y, 1000);
+		l_y = weight_junction(l_y, 1000);
+		l_y = weight_junction(l_y, 1000);
 
 		model l_model = model::end();
 		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
@@ -528,8 +524,8 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 	std::vector<std::vector<state_gradient_pair*>> a_x,
 	const std::vector<size_t>& a_lstm_y_sizes,
 	const std::vector<size_t>& a_layer_y_sizes,
-	const size_t& a_time_slot_predictions_per_timestep,
-	const size_t& a_time_slot_bin_size
+	const size_t& a_time_slots_to_predict_per_timestep,
+	const size_t& a_time_slot_prediction_size
 )
 {
 	std::vector<std::vector<state_gradient_pair*>> l_y_raw = a_x;
@@ -537,25 +533,24 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 	for (int i = 0; i < a_lstm_y_sizes.size(); i++)
 		l_y_raw = lstm(l_y_raw, a_lstm_y_sizes[i]);
 
-	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_bin_size * a_time_slot_predictions_per_timestep;
-
-	std::vector<tnn_layer_info> l_tnn_layer_infos;
-
-	for (int i = 0; i < a_layer_y_sizes.size(); i++)
-		l_tnn_layer_infos.push_back(tnn_layer_info(a_layer_y_sizes[i], neuron_leaky_relu()));
-
-	l_tnn_layer_infos.push_back(tnn_layer_info(TOTAL_OUTPUT_UNITS, neuron_leaky_relu()));
+	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_prediction_size * a_time_slots_to_predict_per_timestep;
 
 	for (int i = 0; i < l_y_raw.size(); i++)
-		l_y_raw[i] = tnn(l_y_raw[i], l_tnn_layer_infos);
-
+	{
+		for (int j = 0; j < a_layer_y_sizes.size(); j++)
+		{
+			l_y_raw[i] = weight_junction(l_y_raw[i], a_layer_y_sizes[j]);
+			l_y_raw[i] = bias(l_y_raw[i]);
+			l_y_raw[i] = leaky_relu(l_y_raw[i], 0.3);
+		}
+	}
 
 	std::vector<std::vector<std::vector<state_gradient_pair*>>> l_future_hour_predictions;
 
 	for (int i = 0; i < l_y_raw.size(); i++)
 	{
 		// Link the raw output with specific time slots
-		l_future_hour_predictions.push_back(partition(l_y_raw[i], a_time_slot_bin_size));
+		l_future_hour_predictions.push_back(partition(l_y_raw[i], a_time_slot_prediction_size));
 	}
 
 	return l_future_hour_predictions;
@@ -603,19 +598,58 @@ void pablo_tnn_example(
 
 	std::vector<state_gradient_pair*> l_y = pointers(l_x);
 
-	l_y = matrix_vector_multiply(parameters(5, l_y.size()), l_y);
+	l_y = weight_junction(l_y, 5);
 	l_y = bias(l_y);
 	l_y = tanh(l_y);
 	
-	l_y = matrix_vector_multiply(parameters(1, l_y.size()), l_y);
+	l_y = weight_junction(l_y, 1);
 	l_y = bias(l_y);
 	l_y = sigmoid(l_y);
 
 							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
-	model l_model = model::end(-1, 1, gradient_descent(0.02));
+	model l_model = model::end(-1, 1, gradient_descent_with_momentum(0.02, 0.9));
 
+	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	{
+		{ 0, 0 },
+		{ 0, 1 },
+		{ 1, 0 },
+		{ 1, 1 },
+	};
 
+	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	{
+		{ 0 },
+		{ 1 },
+		{ 1 },
+		{ 0 },
+	};
+
+	const size_t CHECKPOINT = 100000;
+
+	for (int epoch = 0; epoch < 1000000; epoch++)
+	{
+		for (int i = 0; i < l_tsx.size(); i++)
+		{
+			set_state(l_x, l_tsx[i]);
+			l_model.fwd();
+			mean_squared_error(l_y, l_tsy[i]);
+			l_model.bwd();
+			if (epoch % CHECKPOINT == 0)
+			{
+				std::cout << l_y[0]->m_state << std::endl;
+			}
+		}
+
+		l_model.update();
+
+		if (epoch % CHECKPOINT == 0)
+		{
+			std::cout << std::endl;
+		}
+
+	}
 
 }
 
@@ -625,7 +659,7 @@ int main(
 {
 	srand(time(0));
 
-	pablo_tnn_example();
+	parabola_test();
 
 	return 0;
 }
