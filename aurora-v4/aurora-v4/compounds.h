@@ -170,6 +170,37 @@ namespace aurora
 		return matrix_vector_multiply(parameters(a_y_size, a_x.size()), a_x);
 	}
 
+	inline std::vector<state_gradient_pair*> sigmoid(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(sigmoid(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> tanh(
+		std::vector<state_gradient_pair*> a_x
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(tanh(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> leaky_relu(
+		std::vector<state_gradient_pair*> a_x,
+		const double& a_m
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(leaky_relu(a_x[i], a_m));
+		return l_result;
+	}
+
 	inline state_gradient_pair* multiplicative_aggregate(
 		std::vector<state_gradient_pair*> a_x
 	)
@@ -213,7 +244,10 @@ namespace aurora
 		std::vector<state_gradient_pair*> a_x
 	)
 	{
-		return vector_vector_multiply(normalize(parameters(a_x.size())), a_x);
+		return vector_vector_multiply(
+			normalize(sigmoid(parameters(a_x.size()))),
+			a_x
+		);
 	}
 
 	inline state_gradient_pair* vector_magnitude(
@@ -237,37 +271,6 @@ namespace aurora
 		auto l_magnitude_0 = vector_magnitude(a_x_0);
 		auto l_magnitude_1 = vector_magnitude(a_x_1);
 		return divide(divide(l_multiply, l_magnitude_0), l_magnitude_1);
-	}
-
-	inline std::vector<state_gradient_pair*> sigmoid(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-		for (int i = 0; i < a_x.size(); i++)
-			l_result.push_back(sigmoid(a_x[i]));
-		return l_result;
-	}
-
-	inline std::vector<state_gradient_pair*> tanh(
-		std::vector<state_gradient_pair*> a_x
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-		for (int i = 0; i < a_x.size(); i++)
-			l_result.push_back(tanh(a_x[i]));
-		return l_result;
-	}
-
-	inline std::vector<state_gradient_pair*> leaky_relu(
-		std::vector<state_gradient_pair*> a_x,
-		const double& a_m
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-		for (int i = 0; i < a_x.size(); i++)
-			l_result.push_back(leaky_relu(a_x[i], a_m));
-		return l_result;
 	}
 
 	inline std::vector<state_gradient_pair*> vector_vector_subtract(

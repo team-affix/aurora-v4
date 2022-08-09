@@ -667,11 +667,11 @@ void reward_structure_modeling(
 
 	model::begin();
 
-	auto l_y = parameterized_interpolate(
-		pointers(l_x)
-	);
+	auto l_normalized_parameters = normalize(sigmoid(parameters(l_x.size())));
 
-	model::end(-1, 1, gradient_descent(0.02));
+	auto l_y = vector_vector_multiply(l_normalized_parameters, pointers(l_x));
+
+	model l_model = model::end(-1, 1, gradient_descent(0.02));
 
 	struct training_set
 	{
@@ -699,6 +699,46 @@ void reward_structure_modeling(
 
 	};
 
+	for (int epoch = 0; epoch < 1000000; epoch++)
+	{
+		double l_cost = 0;
+		for (auto& l_training_set : l_training_sets)
+		{
+			set_state(l_x, l_training_set.m_x);
+			l_model.fwd();
+			l_cost += mean_squared_error(l_y, l_training_set.m_y);
+			l_model.bwd();
+		}
+		l_model.update();
+		if (epoch % 10000 == 0)
+			std::cout << l_cost << std::endl;
+	}
+
+	std::cout << std::endl;
+	
+	for (auto& l_parameter : l_normalized_parameters)
+		std::cout << l_parameter->m_state << std::endl;
+
+}
+
+void actor_critic_tnn_example_0(
+
+)
+{
+	std::vector<state_gradient_pair> l_x(2);
+
+	// BEGIN ACTOR
+	model::begin();
+
+	model l_actor = model::end(-1, 1, gradient_descent(0.02));
+
+	// BEGIN CRITIC
+	model::begin();
+
+	model l_critic = model::end(-1, 1, gradient_descent(0.02));
+
+
+
 }
 
 int main(
@@ -707,7 +747,7 @@ int main(
 {
 	srand(time(0));
 
-	parabola_test();
+	actor_critic_tnn_example_0();
 
 	return 0;
 }
