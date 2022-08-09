@@ -730,10 +730,14 @@ void actor_critic_tnn_example_0(
 	// BEGIN ACTOR
 	model::begin();
 
+
+
 	model l_actor = model::end(-1, 1, gradient_descent(0.02));
 
 	// BEGIN CRITIC
 	model::begin();
+
+
 
 	model l_critic = model::end(-1, 1, gradient_descent(0.02));
 
