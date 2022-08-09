@@ -45,38 +45,7 @@ namespace aurora
 
 	}
 
-	inline state_gradient_pair* vector_vector_multiply(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
-	)
-	{
-		assert(a_x_0.size() == a_x_1.size());
-
-		std::vector<state_gradient_pair*> l_multiply_ys;
-
-		for (int i = 0; i < a_x_0.size(); i++)
-		{
-			l_multiply_ys.push_back(multiply(a_x_0[i], a_x_1[i]));
-		}
-
-		return additive_aggregate(l_multiply_ys);
-
-	}
-
-	inline std::vector<state_gradient_pair*> vector_scalar_multiply(
-		std::vector<state_gradient_pair*> a_x_0,
-		state_gradient_pair* a_x_1
-	)
-	{
-		std::vector<state_gradient_pair*> l_result;
-		for (int i = 0; i < a_x_0.size(); i++)
-		{
-			l_result.push_back(multiply(a_x_0[i], a_x_1));
-		}
-		return l_result;
-	}
-
-	inline std::vector<state_gradient_pair*> vector_vector_add(
+	inline std::vector<state_gradient_pair*> add(
 		std::vector<state_gradient_pair*> a_x_0,
 		std::vector<state_gradient_pair*> a_x_1
 	)
@@ -90,13 +59,13 @@ namespace aurora
 		return l_result;
 	}
 
-	inline std::vector<state_gradient_pair*> vector_additive_aggregate(
+	inline std::vector<state_gradient_pair*> additive_aggregate(
 		std::vector<std::vector<state_gradient_pair*>> a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result = a_x[0];
 		for (int i = 1; i < a_x.size(); i++)
-			l_result = vector_vector_add(l_result, a_x[i]);
+			l_result = add(l_result, a_x[i]);
 		return l_result;
 	}
 
@@ -130,7 +99,38 @@ namespace aurora
 
 	}
 
-	inline std::vector<state_gradient_pair*> matrix_vector_multiply(
+	inline state_gradient_pair* multiply(
+		std::vector<state_gradient_pair*> a_x_0,
+		std::vector<state_gradient_pair*> a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<state_gradient_pair*> l_multiply_ys;
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_multiply_ys.push_back(multiply(a_x_0[i], a_x_1[i]));
+		}
+
+		return additive_aggregate(l_multiply_ys);
+
+	}
+
+	inline std::vector<state_gradient_pair*> multiply(
+		std::vector<state_gradient_pair*> a_x_0,
+		state_gradient_pair* a_x_1
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_result.push_back(multiply(a_x_0[i], a_x_1));
+		}
+		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> multiply(
 		std::vector<std::vector<state_gradient_pair*>> a_x_0,
 		std::vector<state_gradient_pair*> a_x_1
 	)
@@ -140,9 +140,28 @@ namespace aurora
 		std::vector<std::vector<state_gradient_pair*>> l_scaled_transpose;
 		for (int i = 0; i < a_x_1.size(); i++)
 		{
-			l_scaled_transpose.push_back(vector_scalar_multiply(l_transpose[i], a_x_1[i]));
+			l_scaled_transpose.push_back(multiply(l_transpose[i], a_x_1[i]));
 		}
-		return vector_additive_aggregate(l_scaled_transpose);
+		return additive_aggregate(l_scaled_transpose);
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> multiply(
+		std::vector<std::vector<state_gradient_pair*>> a_x_0,
+		std::vector<std::vector<state_gradient_pair*>> a_x_1
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+		std::vector<std::vector<state_gradient_pair*>> l_x_1_transpose = matrix_transpose(a_x_1);
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			std::vector<state_gradient_pair*> l_result_row;
+			for (int j = 0; j < l_x_1_transpose.size(); j++)
+			{
+				l_result_row.push_back(multiply(a_x_0[i], l_x_1_transpose[j]));
+			}
+			l_result.push_back(l_result_row);
+		}
+		return l_result;
 	}
 
 	inline state_gradient_pair* bias(
@@ -167,7 +186,7 @@ namespace aurora
 		const size_t& a_y_size
 	)
 	{
-		return matrix_vector_multiply(parameters(a_y_size, a_x.size()), a_x);
+		return multiply(parameters(a_y_size, a_x.size()), a_x);
 	}
 
 	inline std::vector<state_gradient_pair*> sigmoid(
@@ -196,6 +215,37 @@ namespace aurora
 	)
 	{
 		std::vector<state_gradient_pair*> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(leaky_relu(a_x[i], a_m));
+		return l_result;
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> sigmoid(
+		std::vector<std::vector<state_gradient_pair*>> a_x
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(sigmoid(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> tanh(
+		std::vector<std::vector<state_gradient_pair*>> a_x
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+		for (int i = 0; i < a_x.size(); i++)
+			l_result.push_back(tanh(a_x[i]));
+		return l_result;
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> leaky_relu(
+		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const double& a_m
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
 		for (int i = 0; i < a_x.size(); i++)
 			l_result.push_back(leaky_relu(a_x[i], a_m));
 		return l_result;
@@ -244,7 +294,7 @@ namespace aurora
 		std::vector<state_gradient_pair*> a_x
 	)
 	{
-		return vector_vector_multiply(
+		return multiply(
 			normalize(sigmoid(parameters(a_x.size()))),
 			a_x
 		);
@@ -267,7 +317,7 @@ namespace aurora
 		std::vector<state_gradient_pair*> a_x_1
 	)
 	{
-		auto l_multiply = vector_vector_multiply(a_x_0, a_x_1);
+		auto l_multiply = multiply(a_x_0, a_x_1);
 		auto l_magnitude_0 = vector_magnitude(a_x_0);
 		auto l_magnitude_1 = vector_magnitude(a_x_1);
 		return divide(divide(l_multiply, l_magnitude_0), l_magnitude_1);
@@ -314,7 +364,7 @@ namespace aurora
 
 		auto l_transpose = matrix_transpose(a_values);
 
-		return matrix_vector_multiply(l_transpose, l_normalized);
+		return multiply(l_transpose, l_normalized);
 
 	}
 
@@ -339,6 +389,17 @@ namespace aurora
 		}
 
 		return l_result;
+
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> scaled_dot_product_attention(
+		std::vector<std::vector<state_gradient_pair*>> a_queries,
+		std::vector<std::vector<state_gradient_pair*>> a_keys,
+		std::vector<std::vector<state_gradient_pair*>> a_values,
+		std::vector<std::vector<state_gradient_pair*>> a_mask = {}
+	)
+	{
+		state_gradient_pair* l_denominator = constant(sqrt(a_keys[0].size()));
 
 	}
 
