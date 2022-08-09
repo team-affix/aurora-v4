@@ -76,6 +76,17 @@ namespace aurora
 	}
 
 	inline double mean_squared_error(
+		state_gradient_pair* a_predicted,
+		const state_gradient_pair& a_desired
+	)
+	{
+		double l_error = a_predicted->m_state - a_desired.m_state;
+		double l_result = l_error * l_error;
+		a_predicted->m_gradient += 2.0 * l_error;
+		return l_result;
+	}
+
+	inline double mean_squared_error(
 		std::vector<state_gradient_pair*> a_predicted,
 		const std::vector<state_gradient_pair>& a_desired
 	)

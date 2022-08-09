@@ -204,21 +204,6 @@ namespace aurora
 
 	}
 
-	inline std::vector<state_gradient_pair*> parameterized_normalize(
-		const size_t& a_parameter_count
-	)
-	{
-		std::vector<state_gradient_pair*> l_sigmoid_ys;
-
-		for (int i = 0; i < a_parameter_count; i++)
-		{
-			l_sigmoid_ys.push_back(sigmoid(parameter()));
-		}
-
-		return normalize(l_sigmoid_ys);
-
-	}
-
 	std::vector<std::vector<state_gradient_pair*>> lstm(
 		std::vector<std::vector<state_gradient_pair*>> a_x,
 		const size_t& a_y_size
@@ -228,7 +213,7 @@ namespace aurora
 		std::vector<state_gradient_pair*> a_x
 	)
 	{
-		return vector_vector_multiply(parameterized_normalize(a_x.size()), a_x);
+		return vector_vector_multiply(normalize(parameters(a_x.size())), a_x);
 	}
 
 	inline state_gradient_pair* vector_magnitude(

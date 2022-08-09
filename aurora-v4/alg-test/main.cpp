@@ -575,8 +575,6 @@ void issp_test(
 
 	model l_model = model::end(-1, 1, gradient_descent(0.02));
 
-	l_x[0][0].m_state = 10;
-
 	l_model.fwd();
 
 
@@ -650,6 +648,56 @@ void pablo_tnn_example(
 		}
 
 	}
+
+}
+
+void reward_structure_modeling(
+
+)
+{
+	std::vector<state_gradient_pair> l_x(3);
+
+	// INPUTS:
+	// PERCEIVED CHEAPNESS OF THE ITEM
+	// PREDICTED INCREASE IN UTILITY
+	// PREDICTED INCREASE IN ENJOYMENT
+
+	// OUTPUTS:
+	// DESIRE TO PURCHASE
+
+	model::begin();
+
+	auto l_y = parameterized_interpolate(
+		pointers(l_x)
+	);
+
+	model::end(-1, 1, gradient_descent(0.02));
+
+	struct training_set
+	{
+		std::vector<state_gradient_pair> m_x;
+		state_gradient_pair m_y;
+	};
+
+	std::vector<training_set> l_training_sets
+	{
+		training_set
+		{
+			{ -1, 0.1, 0.5 },
+			0.25
+		},
+		training_set
+		{
+			{ 0.7, 0.05, 0 },
+			0.3
+		},
+		training_set
+		{
+			{ 0.6, 0.05, -0.1 },
+			-0.3
+		},
+
+	};
 
 }
 
