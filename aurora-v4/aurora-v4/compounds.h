@@ -147,6 +147,19 @@ namespace aurora
 
 	inline std::vector<std::vector<state_gradient_pair*>> multiply(
 		std::vector<std::vector<state_gradient_pair*>> a_x_0,
+		state_gradient_pair* a_x_1
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result;
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_result.push_back(multiply(a_x_0[i], a_x_1));
+		}
+		return l_result;
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> multiply(
+		std::vector<std::vector<state_gradient_pair*>> a_x_0,
 		std::vector<std::vector<state_gradient_pair*>> a_x_1
 	)
 	{
