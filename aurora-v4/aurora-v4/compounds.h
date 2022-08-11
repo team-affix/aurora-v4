@@ -405,15 +405,4 @@ namespace aurora
 
 	}
 
-	inline std::vector<std::vector<state_gradient_pair*>> scaled_dot_product_attention(
-		std::vector<std::vector<state_gradient_pair*>> a_queries,
-		std::vector<std::vector<state_gradient_pair*>> a_keys,
-		std::vector<std::vector<state_gradient_pair*>> a_values,
-		std::vector<std::vector<state_gradient_pair*>> a_mask = {}
-	)
-	{
-		state_gradient_pair* l_denominator = constant(sqrt(a_keys[0].size()));
-
-	}
-
 }

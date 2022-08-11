@@ -418,7 +418,7 @@ void matrix_vector_multiply_test(
 		3
 	};
 
-	auto l_y = matrix_vector_multiply(pointers(l_x_0), pointers(l_x_1));
+	auto l_y = multiply(pointers(l_x_0), pointers(l_x_1));
 
 	model l_model = model::end();
 
@@ -669,7 +669,7 @@ void reward_structure_modeling(
 
 	auto l_normalized_parameters = normalize(sigmoid(parameters(l_x.size())));
 
-	auto l_y = vector_vector_multiply(l_normalized_parameters, pointers(l_x));
+	auto l_y = multiply(l_normalized_parameters, pointers(l_x));
 
 	model l_model = model::end(-1, 1, gradient_descent(0.02));
 
@@ -742,6 +742,124 @@ void actor_critic_tnn_example_0(
 	model l_critic = model::end(-1, 1, gradient_descent(0.02));
 
 
+
+}
+
+void accelerated_learned_network(
+
+)
+{
+	model::begin();
+
+	const size_t l_lstm_y_units = 3;
+	const size_t l_tnn_h0_units = 3;
+	const size_t l_tnn_y_units = 1;
+
+	auto l_x = matrix(4, 2);
+
+	auto l_lstm_0 = lstm(pointers(l_x), l_lstm_y_units);
+
+	std::vector<std::vector<state_gradient_pair*>> l_y;
+
+	for (int i = 0; i < l_lstm_0.size(); i++)
+	{
+		auto l_tnn_y = l_lstm_0[i];
+		l_tnn_y = weight_junction(l_tnn_y, l_tnn_h0_units);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = weight_junction(l_tnn_y, l_tnn_y_units);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_y.push_back(l_tnn_y);
+	}
+
+	model l_model = model::end(-1, 1);
+
+	model::begin();
+
+	std::vector<state_gradient_pair> l_updater_x;
+
+	for (auto& l_parameter : l_model.parameters())
+		l_updater_x.push_back(l_parameter->m_gradient);
+
+	auto l_updater_y = pointers(l_updater_x);
+	l_updater_y = weight_junction(l_updater_y, l_updater_x.size() * 1.5);
+	l_updater_y = bias(l_updater_y);
+	l_updater_y = leaky_relu(l_updater_y, 0.3);
+	l_updater_y = weight_junction(l_updater_y, l_updater_x.size());
+	l_updater_y = bias(l_updater_y);
+	l_updater_y = leaky_relu(l_updater_y, 0.3);
+
+
+
+	model l_updater_model = model::end(-1, 1, gradient_descent(0.2));
+
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
+	{
+		{
+			{0, 0},
+			{0, 1},
+			{1, 0},
+			{1, 1}
+		},
+		{
+			{0, 1},
+			{0, 1},
+			{1, 0},
+			{1, 1}
+		},
+	};
+
+	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_ys =
+	{
+		{
+			{0},
+			{1},
+			{1},
+			{0}
+		},
+		{
+			{0},
+			{1},
+			{1},
+			{1}
+		},
+	};
+
+	const size_t CHECKPOINT = 10000;
+
+	for (int epoch = 0; true; epoch++)
+	{
+		double l_cost = 0;
+
+		for (int i = 0; i < l_training_set_xs.size(); i++)
+		{
+			set_state(l_x, l_training_set_xs[i]);
+
+			// Carry forward
+			l_model.fwd();
+
+			// Signal output
+			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
+
+			// Carry backward
+			l_model.bwd();
+
+			if (epoch % CHECKPOINT == 0)
+			{
+				for (int i = 0; i < l_y.size(); i++)
+					std::cout << "PREDICTION: " << l_y[i][0]->m_state << std::endl;
+				std::cout << std::endl;
+			}
+
+		}
+
+		l_model.update();
+
+		if (epoch % CHECKPOINT == 0)
+			std::cout << "COST: " << l_cost << std::endl << std::endl;
+
+	}
 
 }
 
