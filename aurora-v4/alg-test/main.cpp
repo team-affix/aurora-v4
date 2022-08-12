@@ -781,8 +781,6 @@ void instruction_vector_test(
 
 	model l_task_model = model::end(-1, 1, gradient_descent(0.02));
 
-	
-
 }
 
 int main(
