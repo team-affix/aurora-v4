@@ -405,4 +405,17 @@ namespace aurora
 
 	}
 
+	inline std::vector<state_gradient_pair*> concat(
+		std::vector<state_gradient_pair*> a_x_0,
+		std::vector<state_gradient_pair*> a_x_1
+	)
+	{
+		std::vector<state_gradient_pair*> l_result;
+		for (auto& l_element : a_x_0)
+			l_result.push_back(l_element);
+		for (auto& l_element : a_x_1)
+			l_result.push_back(l_element);
+		return l_result;
+	}
+
 }
