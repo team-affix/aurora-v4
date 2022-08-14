@@ -65,6 +65,14 @@ namespace aurora
 	}
 
 	inline void set_state(
+		state_gradient_pair& a_destination,
+		const state_gradient_pair& a_source
+	)
+	{
+		a_destination.m_state = a_source.m_state;
+	}
+
+	inline void set_state(
 		std::vector<state_gradient_pair>& a_destination,
 		const std::vector<state_gradient_pair>& a_source
 	)

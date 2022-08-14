@@ -19,6 +19,9 @@ void tnn_test(
 	l_y = weight_junction(l_y, 1);
 	l_y = bias(l_y);
 	l_y = sigmoid(l_y);
+	
+	auto l_desired_y = vector(l_y.size());
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	model l_model = model::end();
 
@@ -32,16 +35,16 @@ void tnn_test(
 
 	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
 	{
-		for (int i = 0; i < l_x.size(); i++)
-			l_x[i].m_state = a_x[i].m_state;
+		set_state(l_x, a_x);
+		set_state(l_desired_y, a_y);
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_y, a_y);
+		l_error->m_gradient = 1;
 			
 		l_model.bwd();
 
-		return l_cost;
+		return l_error->m_state;
 
 	};
 
@@ -127,6 +130,9 @@ void parabola_test(
 	l_y = bias(l_y);
 	l_y = leaky_relu(l_y, 0.3);
 
+	auto l_desired_y = vector(l_y.size());
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+
 	model l_model = model::end(-1, 1);
 
 	std::default_random_engine l_dre(25);
@@ -134,14 +140,15 @@ void parabola_test(
 	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
 	{
 		set_state(l_x, a_x);
+		set_state(l_desired_y, a_y);
 
 		l_model.fwd();
 
-		double l_cost = mean_squared_error(l_y, a_y);
+		l_error->m_gradient = 1;
 
 		l_model.bwd();
 
-		return l_cost;
+		return l_error->m_state;
 
 	};
 
@@ -232,6 +239,9 @@ void lstm_test(
 		l_y.push_back(l_tnn_y);
 	}
 
+	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+
 	model l_model = model::end(-1, 1, gradient_descent(0.2));
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
@@ -275,12 +285,14 @@ void lstm_test(
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
 			set_state(l_x, l_training_set_xs[i]);
+			set_state(l_desired_y, l_training_set_ys[i]);
 			
 			// Carry forward
 			l_model.fwd();
 
 			// Signal output
-			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
+			l_cost += l_error->m_state;
+			l_error->m_gradient = 1;
 
 			// Carry backward
 			l_model.bwd();
@@ -328,6 +340,9 @@ void lstm_stacked_test(
 		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
 		l_y.push_back(l_tnn_y);
 	}
+
+	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	model l_model = model::end();
 
@@ -380,8 +395,11 @@ void lstm_stacked_test(
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
 			set_state(l_x, l_training_set_xs[i]);
+			set_state(l_desired_y, l_training_set_ys[i]);
+
 			l_model.fwd();
-			l_cost += mean_squared_error(l_y, l_training_set_ys[i]);
+			l_cost += l_error->m_state;
+			l_error->m_gradient = 1;
 			l_model.bwd();
 		}
 
@@ -604,6 +622,10 @@ void pablo_tnn_example(
 	l_y = bias(l_y);
 	l_y = sigmoid(l_y);
 
+
+	auto l_desired_y = vector(l_y.size());
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+
 							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
 	model l_model = model::end(-1, 1, gradient_descent_with_momentum(0.02, 0.9));
@@ -631,13 +653,17 @@ void pablo_tnn_example(
 		for (int i = 0; i < l_tsx.size(); i++)
 		{
 			set_state(l_x, l_tsx[i]);
+			set_state(l_desired_y, l_tsy[i]);
+
 			l_model.fwd();
-			mean_squared_error(l_y, l_tsy[i]);
+			l_error->m_gradient = 1;
 			l_model.bwd();
+
 			if (epoch % CHECKPOINT == 0)
 			{
 				std::cout << l_y[0]->m_state << std::endl;
 			}
+
 		}
 
 		l_model.update();
@@ -670,6 +696,9 @@ void reward_structure_modeling(
 	auto l_normalized_parameters = normalize(sigmoid(parameters(l_x.size())));
 
 	auto l_y = multiply(l_normalized_parameters, pointers(l_x));
+
+	auto l_desired_y = state_gradient_pair();
+	auto l_error = mean_squared_error(l_y, &l_desired_y);
 
 	model l_model = model::end(-1, 1, gradient_descent(0.02));
 
@@ -705,13 +734,21 @@ void reward_structure_modeling(
 		for (auto& l_training_set : l_training_sets)
 		{
 			set_state(l_x, l_training_set.m_x);
+			l_desired_y.m_state = l_training_set.m_y.m_state;
+
 			l_model.fwd();
-			l_cost += mean_squared_error(l_y, l_training_set.m_y);
+
+			l_cost += l_error->m_state;
+			l_error->m_gradient = 1;
+
 			l_model.bwd();
+
 		}
+
 		l_model.update();
 		if (epoch % 10000 == 0)
 			std::cout << l_cost << std::endl;
+
 	}
 
 	std::cout << std::endl;
@@ -789,7 +826,7 @@ int main(
 {
 	srand(time(0));
 
-	actor_critic_tnn_example_0();
+	tnn_test();
 
 	return 0;
 }

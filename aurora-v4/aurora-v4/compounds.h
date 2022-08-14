@@ -418,4 +418,61 @@ namespace aurora
 		return l_result;
 	}
 
+	inline state_gradient_pair* mean_squared_error(
+		state_gradient_pair* a_prediction,
+		state_gradient_pair* a_desired
+	)
+	{
+		auto l_error = subtract(a_prediction, a_desired);
+		return pow(l_error, constant(2));
+	}
+
+	inline state_gradient_pair* mean_squared_error(
+		std::vector<state_gradient_pair*> a_prediction,
+		std::vector<state_gradient_pair*> a_desired
+	)
+	{
+		std::vector<state_gradient_pair*> l_squared_errors;
+
+		for (int i = 0; i < a_prediction.size(); i++)
+		{
+			l_squared_errors.push_back(
+				pow(
+					subtract(a_prediction[i], a_desired[i]),
+					constant(2))
+			);
+		}
+
+		return divide(
+			additive_aggregate(l_squared_errors),
+			constant(a_prediction.size()));
+	}
+
+	inline state_gradient_pair* mean_squared_error(
+		std::vector<std::vector<state_gradient_pair*>> a_prediction,
+		std::vector<std::vector<state_gradient_pair*>> a_desired
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_squared_errors;
+
+		for (int i = 0; i < a_prediction.size(); i++)
+		{
+			std::vector<state_gradient_pair*> l_squared_error_row;
+			for (int j = 0; j < a_prediction[i].size(); j++)
+			{
+				l_squared_error_row.push_back(
+					pow(
+						subtract(a_prediction[i][j], a_desired[i][j]),
+						constant(2))
+				);
+			}
+			l_squared_errors.push_back(l_squared_error_row);
+		}
+
+		return divide(
+			additive_aggregate(additive_aggregate(l_squared_errors)),
+			constant(a_prediction.size() * a_prediction[0].size()));
+	}
+
+
 }

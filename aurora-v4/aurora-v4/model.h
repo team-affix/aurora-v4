@@ -44,7 +44,7 @@ namespace aurora
 		static model end(
 			const double& a_minimum_parameter_state,
 			const double& a_maximum_parameter_state,
-			const std::function<affix_base::data::ptr<optimizer>(affix_base::data::ptr<state_gradient_pair>)>& a_generate_optimizer
+			const std::function<affix_base::data::ptr<optimizer>(affix_base::data::ptr<state_gradient_pair>)>& a_construct_optimizer
 		);
 
 		static void insert(
