@@ -242,7 +242,9 @@ void lstm_test(
 	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
-	model l_model = model::end(-1, 1, gradient_descent(0.2));
+	model l_model = model::end(-1, 1);
+
+	gradient_descent l_optimizer(l_model.parameters(), 0.02);
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
@@ -306,7 +308,7 @@ void lstm_test(
 
 		}
 
-		l_model.update();
+		l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << "COST: " << l_cost << std::endl << std::endl;
@@ -591,7 +593,7 @@ void issp_test(
 		2
 	);
 
-	model l_model = model::end(-1, 1, gradient_descent(0.02));
+	model l_model = model::end(-1, 1);
 
 	l_model.fwd();
 
@@ -628,7 +630,9 @@ void pablo_tnn_example(
 
 							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
-	model l_model = model::end(-1, 1, gradient_descent_with_momentum(0.02, 0.9));
+	model l_model = model::end(-1, 1);
+
+	gradient_descent l_optimizer(l_model.parameters(), 0.02);
 
 	std::vector<std::vector<state_gradient_pair>> l_tsx =
 	{
@@ -666,7 +670,7 @@ void pablo_tnn_example(
 
 		}
 
-		l_model.update();
+		l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 		{
@@ -700,7 +704,9 @@ void reward_structure_modeling(
 	auto l_desired_y = state_gradient_pair();
 	auto l_error = mean_squared_error(l_y, &l_desired_y);
 
-	model l_model = model::end(-1, 1, gradient_descent(0.02));
+	model l_model = model::end(-1, 1);
+
+	gradient_descent l_optimizer(l_model.parameters(), 0.02);
 
 	struct training_set
 	{
@@ -745,7 +751,7 @@ void reward_structure_modeling(
 
 		}
 
-		l_model.update();
+		l_optimizer.update();
 		if (epoch % 10000 == 0)
 			std::cout << l_cost << std::endl;
 
@@ -769,14 +775,14 @@ void actor_critic_tnn_example_0(
 
 
 
-	model l_actor = model::end(-1, 1, gradient_descent(0.02));
+	model l_actor = model::end(-1, 1);
 
 	// BEGIN CRITIC
 	model::begin();
 
 
 
-	model l_critic = model::end(-1, 1, gradient_descent(0.02));
+	model l_critic = model::end(-1, 1);
 
 
 
@@ -811,7 +817,9 @@ void loss_modeling_test_0(
 
 	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y));
 
-	model l_loss_model = model::end(-1, 1, gradient_descent(0.02, 0.1));
+	model l_loss_model = model::end(-1, 1);
+
+	gradient_descent l_optimizer(l_loss_model.parameters(), 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(26);
@@ -846,7 +854,7 @@ void loss_modeling_test_0(
 
 		}
 
-		l_loss_model.update();
+		l_optimizer.update();
 
 		if (epoch % 1000 == 0)
 			std::cout << l_loss_model_epoch_loss << std::endl;
@@ -861,7 +869,7 @@ int main(
 {
 	srand(time(0));
 
-	loss_modeling_test_0();
+	tnn_test();
 
 	return 0;
 }

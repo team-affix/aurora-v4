@@ -135,7 +135,7 @@ std::vector<std::vector<state_gradient_pair*>> aurora::lstm(
 		for (int j = 0; j < l_timestep_models[i].parameters().size(); j++)
 		{
 			// Link all the parameters from each timestep together
-			l_timestep_models[i].parameters()[j].group_link(l_initial_timestep_model.parameters()[j]);
+			l_timestep_models[i].parameters_linkable()[j].group_link(l_initial_timestep_model.parameters_linkable()[j]);
 		}
 	}
 
@@ -146,7 +146,7 @@ std::vector<std::vector<state_gradient_pair*>> aurora::lstm(
 	}
 
 	// Add the parameters which each timestep now shares to the list of all parameters
-	model::insert(l_initial_timestep_model.parameters());
+	model::insert(l_initial_timestep_model.parameters_linkable());
 
 	return l_result;
 

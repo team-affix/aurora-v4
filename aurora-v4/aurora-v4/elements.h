@@ -73,7 +73,7 @@ namespace aurora
 			) :
 				m_linkable_value(new state_gradient_pair())
 			{
-				model::insert(m_linkable_value);
+				model::insert(m_linkable_value, &m_y);
 			}
 
 			virtual void fwd(
@@ -566,7 +566,7 @@ namespace aurora
 				m_enabled(a_enabled)
 			{
 				// Make sure to insert the parameters of this branch into the most external model.
-				model::insert(a_model.parameters());
+				model::insert(a_model.parameters_linkable(), a_model.parameters());
 			}
 
 			virtual void fwd(
