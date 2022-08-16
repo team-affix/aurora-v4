@@ -782,41 +782,76 @@ void actor_critic_tnn_example_0(
 
 }
 
-void instruction_vector_test(
+void loss_modeling_test_0(
 
 )
 {
-	const size_t INSTRUCTION_TIMESTEPS = 100;
-	const size_t INPUT_VECTOR_SIZE = 128;
-	const std::vector<size_t> INSTRUCTION_LSTM_SIZES = { 128, 128, 128 };
-	const std::vector<size_t> TASK_TNN_SIZES = { 128, 128 };
+	std::vector<state_gradient_pair> l_task_x(10);
+	std::vector<state_gradient_pair> l_task_prediction(1);
+	std::vector<state_gradient_pair> l_loss_model_desired_y(1);
 
-	// Create instructor model
 	model::begin();
 
-	auto l_instructor_x = matrix(INSTRUCTION_TIMESTEPS, INPUT_VECTOR_SIZE);
-	auto l_instructor_y = pointers(l_instructor_x);
+	std::vector<size_t> l_tnn_layer_sizes = { 20, 20 };
 
-	for (int i = 0; i < INSTRUCTION_LSTM_SIZES.size(); i++)
-		l_instructor_y = lstm(l_instructor_y, INSTRUCTION_LSTM_SIZES[i]);
+	auto l_loss_model_y = concat(pointers(l_task_x), pointers(l_task_prediction));
 
-	model l_instructor_model = model::end(-1, 1, gradient_descent(0.02));
-
-	// Create task model
-	model::begin();
-
-	auto l_task_x = vector(128);
-	auto l_task_model_x = concat(l_instructor_y.back(), pointers(l_task_x));
-	auto l_task_model_y = l_task_model_x;
-
-	for (int i = 0; i < TASK_TNN_SIZES.size(); i++)
+	for (int i = 0; i < l_tnn_layer_sizes.size(); i++)
 	{
-		l_task_model_y = weight_junction(l_task_model_y, TASK_TNN_SIZES[i]);
-		l_task_model_y = bias(l_task_model_y);
-		l_task_model_y = leaky_relu(l_task_model_y, 0.3);
+		l_loss_model_y = weight_junction(l_loss_model_y, l_tnn_layer_sizes[i]);
+		l_loss_model_y = bias(l_loss_model_y);
+		l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
 	}
 
-	model l_task_model = model::end(-1, 1, gradient_descent(0.02));
+	l_loss_model_y = weight_junction(l_loss_model_y, 1);
+	l_loss_model_y = bias(l_loss_model_y);
+	l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
+
+	l_loss_model_y = { pow(l_loss_model_y[0], constant(2)) };
+
+	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y));
+
+	model l_loss_model = model::end(-1, 1, gradient_descent(0.02, 0.1));
+
+	std::uniform_real_distribution<double> l_urd(-10, 10);
+	std::default_random_engine l_dre(26);
+
+	for (int epoch = 0; epoch < 1000000; epoch++)
+	{
+		double l_loss_model_epoch_loss = 0;
+
+		for (int i = 0; i < 1; i++)
+		{
+			double l_task_desired_y = 0;
+
+			for (int j = 0; j < l_task_x.size(); j++)
+			{
+				// GENERATE RANDOM TASK INPUT AND APPLY THE ACTUAL TASK TO THE INPUT (ADDITIVE ACCUMULATION IN THIS CASE)
+				l_task_x[j].m_state = l_urd(l_dre);
+				l_task_desired_y += l_task_x[j].m_state;
+			}
+
+			// GENERATE A RANDOM TASK PREDICTION GIVEN THIS INPUT (THIS WILL MOST LIKELY BE WRONG, BUT TO VARYING DEGREES)
+			l_task_prediction[0].m_state = l_urd(l_dre);
+
+			// CALCULATE MEAN SQUARED ERROR OF THE TASK PREDICTION
+			l_loss_model_desired_y[0].m_state = std::pow(l_task_prediction[0].m_state - l_task_desired_y, 2);
+
+			l_loss_model.fwd();
+			
+			l_loss_model_loss->m_gradient = 1;
+			l_loss_model_epoch_loss += l_loss_model_loss->m_state;
+
+			l_loss_model.bwd();
+
+		}
+
+		l_loss_model.update();
+
+		if (epoch % 1000 == 0)
+			std::cout << l_loss_model_epoch_loss << std::endl;
+
+	}
 
 }
 
@@ -826,7 +861,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	loss_modeling_test_0();
 
 	return 0;
 }
