@@ -1,5 +1,6 @@
 #pragma once
 #include "affix-base/pch.h"
+#include "maths.h"
 
 namespace aurora
 {
@@ -21,18 +22,16 @@ namespace aurora
 
 		)
 		{
-			double l_max_gradient_magnitude = 0;
+			double l_gradient_sum = 0;
 
 			for (const auto& l_value : m_values)
 			{
-				double l_abs_gradient = std::abs(l_value->m_gradient);
-				if (l_abs_gradient > l_max_gradient_magnitude)
-					l_max_gradient_magnitude = l_abs_gradient;
+				l_gradient_sum += std::abs(l_value->m_gradient);
 			}
 
 			for (auto& l_value : m_values)
 			{
-				l_value->m_gradient = l_value->m_gradient / l_max_gradient_magnitude;
+				l_value->m_gradient = l_value->m_gradient / l_gradient_sum;
 			}
 
 		}

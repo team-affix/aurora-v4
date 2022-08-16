@@ -1,6 +1,7 @@
 #include "aurora-v4/aurora.h"
 #include <iostream>
 #include "affix-base/stopwatch.h"
+#include "affix-base/vector_extensions.h"
 
 using namespace aurora;
 
@@ -22,7 +23,7 @@ void tnn_test(
 	
 	auto l_desired_y = vector(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
-
+	
 	model l_model = model::end();
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
@@ -244,7 +245,7 @@ void lstm_test(
 
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(l_model.parameters(), 0.02);
+	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
@@ -632,7 +633,7 @@ void pablo_tnn_example(
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(l_model.parameters(), 0.02);
+	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
 
 	std::vector<std::vector<state_gradient_pair>> l_tsx =
 	{
@@ -706,7 +707,7 @@ void reward_structure_modeling(
 
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(l_model.parameters(), 0.02);
+	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
 
 	struct training_set
 	{
@@ -813,13 +814,11 @@ void loss_modeling_test_0(
 	l_loss_model_y = bias(l_loss_model_y);
 	l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
 
-	l_loss_model_y = { pow(l_loss_model_y[0], constant(2)) };
-
 	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y));
 
 	model l_loss_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(l_loss_model.parameters(), 0.02);
+	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_loss_model.parameters()), 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(26);
@@ -843,7 +842,7 @@ void loss_modeling_test_0(
 			l_task_prediction[0].m_state = l_urd(l_dre);
 
 			// CALCULATE MEAN SQUARED ERROR OF THE TASK PREDICTION
-			l_loss_model_desired_y[0].m_state = std::pow(l_task_prediction[0].m_state - l_task_desired_y, 2);
+			l_loss_model_desired_y[0].m_state = l_task_prediction[0].m_state - l_task_desired_y;
 
 			l_loss_model.fwd();
 			
@@ -856,7 +855,7 @@ void loss_modeling_test_0(
 
 		l_optimizer.update();
 
-		if (epoch % 1000 == 0)
+		if (epoch % 10000 == 0)
 			std::cout << l_loss_model_epoch_loss << std::endl;
 
 	}
@@ -869,7 +868,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	loss_modeling_test_0();
 
 	return 0;
 }

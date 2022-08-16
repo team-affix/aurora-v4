@@ -2,7 +2,6 @@
 #include "affix-base/pch.h"
 #include "affix-base/ptr.h"
 #include "maths.h"
-#include "optimizers.h"
 
 namespace aurora
 {
