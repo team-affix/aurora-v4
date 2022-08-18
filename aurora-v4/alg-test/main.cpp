@@ -245,7 +245,10 @@ void lstm_test(
 
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
+	std::vector<gradient_descent> l_optimizers;
+
+	for (auto& l_parameter : l_model.parameters())
+		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
@@ -309,7 +312,8 @@ void lstm_test(
 
 		}
 
-		l_optimizer.update();
+		for (auto& l_optimizer : l_optimizers)
+			l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << "COST: " << l_cost << std::endl << std::endl;
@@ -633,7 +637,9 @@ void pablo_tnn_example(
 							 // This function call finalizes our model and spits it out. (This also initializes parameters)
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
+	std::vector<gradient_descent> l_optimizers;
+	for (auto& l_parameter : l_model.parameters())
+		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
 
 	std::vector<std::vector<state_gradient_pair>> l_tsx =
 	{
@@ -671,7 +677,8 @@ void pablo_tnn_example(
 
 		}
 
-		l_optimizer.update();
+		for (auto& l_optimizer : l_optimizers)
+			l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 		{
@@ -707,7 +714,9 @@ void reward_structure_modeling(
 
 	model l_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_model.parameters()), 0.02);
+	std::vector<gradient_descent> l_optimizers;
+	for (auto& l_parameter : l_model.parameters())
+		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
 
 	struct training_set
 	{
@@ -738,6 +747,7 @@ void reward_structure_modeling(
 	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
 		double l_cost = 0;
+
 		for (auto& l_training_set : l_training_sets)
 		{
 			set_state(l_x, l_training_set.m_x);
@@ -752,7 +762,9 @@ void reward_structure_modeling(
 
 		}
 
-		l_optimizer.update();
+		for (auto& l_optimizer : l_optimizers)
+			l_optimizer.update();
+
 		if (epoch % 10000 == 0)
 			std::cout << l_cost << std::endl;
 
@@ -818,12 +830,15 @@ void loss_modeling_test_0(
 
 	model l_loss_model = model::end(-1, 1);
 
-	gradient_descent l_optimizer(affix_base::data::cast<state_gradient_pair*>(l_loss_model.parameters()), 0.02);
+	std::vector<gradient_descent> l_optimizers;
+
+	for (auto& l_parameter : l_loss_model.parameters())
+		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(26);
 
-	for (int epoch = 0; epoch < 1000000; epoch++)
+	for (int epoch = 0; epoch < 10000000; epoch++)
 	{
 		double l_loss_model_epoch_loss = 0;
 
@@ -853,7 +868,8 @@ void loss_modeling_test_0(
 
 		}
 
-		l_optimizer.update();
+		for (auto& l_optimizer : l_optimizers)
+			l_optimizer.update();
 
 		if (epoch % 10000 == 0)
 			std::cout << l_loss_model_epoch_loss << std::endl;

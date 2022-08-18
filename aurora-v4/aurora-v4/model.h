@@ -12,10 +12,11 @@ namespace aurora
 	private:
 		static std::vector<model> s_models;
 		static std::default_random_engine s_default_random_engine;
+		static std::vector<state_gradient_pair>* m_parameters;
+		static size_t m_parameter_index;
 
 	private:
 		std::vector<affix_base::data::ptr<element>> m_elements;
-		std::vector<affix_base::data::ptr<state_gradient_pair>> m_parameters;
 
 	private:
 		model(
@@ -46,28 +47,14 @@ namespace aurora
 			s_models.back().m_elements.push_back(a_element);
 		}
 
-		static void insert(
-			const affix_base::data::ptr<state_gradient_pair>& a_parameter
-		)
-		{
-			s_models.back().m_parameters.push_back(a_parameter);
-		}
-
-		static void insert(
-			const std::vector<affix_base::data::ptr<element>>& a_elements
-		)
-		{
-			s_models.back().m_elements.insert(s_models.back().m_elements.end(), a_elements.begin(), a_elements.end());
-		}
-
-		static void insert(
-			const std::vector<affix_base::data::ptr<state_gradient_pair>>& a_parameters
-		)
-		{
-			s_models.back().m_parameters.insert(s_models.back().m_parameters.end(), a_parameters.begin(), a_parameters.end());
-		}
-
 	public:
+		std::vector<state_gradient_pair>::iterator next_parameter(
+
+		)
+		{
+			return m_next_parameter;
+		}
+
 		void fwd(
 
 		);
@@ -83,11 +70,60 @@ namespace aurora
 			return m_elements;
 		}
 
-		std::vector<affix_base::data::ptr<state_gradient_pair>>& parameters(
+		std::vector<state_gradient_pair>& parameters(
 
 		)
 		{
 			return m_parameters;
+		}
+
+	};
+
+	struct parameters
+	{
+	private:
+		static std::vector<state_gradient_pair>* s_parameter_vector;
+		static size_t s_next_index;
+
+	public:
+		static void bind(
+			std::vector<state_gradient_pair>& a_parameter_vector
+		)
+		{
+			s_parameter_vector = &a_parameter_vector;
+			s_next_index = 0;
+		}
+
+		static void next_index(
+			const size_t& a_next_index
+		)
+		{
+			if (a_next_index > s_parameter_vector->size())
+				throw std::exception("Error: a_parameter_index was out of legal bounds given s_parameter_vector's size.");
+			s_next_index = a_next_index;
+		}
+
+		static size_t next_index(
+
+		)
+		{
+			return s_next_index;
+		}
+
+		static state_gradient_pair* next(
+
+		)
+		{
+			if (s_next_index == s_parameter_vector->size())
+			{
+				s_parameter_vector->push_back(state_gradient_pair());
+				return &s_parameter_vector->back();
+			}
+			else
+			{
+				return &s_parameter_vector->at(s_next_index);
+			}
+			throw std::exception("Error: reached end of parameters::next() function");
 		}
 
 	};

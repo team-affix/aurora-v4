@@ -9,6 +9,10 @@ std::vector<model> model::s_models;
 
 std::default_random_engine model::s_default_random_engine(26);
 
+std::vector<state_gradient_pair>* model::m_parameters(nullptr);
+
+size_t model::m_parameter_index(0);
+
 void model::begin(
 
 )
