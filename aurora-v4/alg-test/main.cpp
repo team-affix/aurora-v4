@@ -9,7 +9,8 @@ void tnn_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	std::vector<state_gradient_pair> l_x(2);
 
@@ -24,14 +25,15 @@ void tnn_test(
 	auto l_desired_y = vector(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 	
-	model l_model = model::end();
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop();
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(25);
 
-	for (int i = 0; i < l_model.parameters().size(); i++)
+	for (int i = 0; i < l_parameters.size(); i++)
 	{
-		l_model.parameters()[i]->m_state = l_urd(l_dre);
+		l_parameters[i]->m_state = l_urd(l_dre);
 	}
 
 	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
@@ -95,10 +97,10 @@ void tnn_test(
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
 
-		for (int i = 0; i < l_model.parameters().size(); i++)
+		for (int i = 0; i < l_parameters.size(); i++)
 		{
-			l_model.parameters()[i]->m_state -= 0.002 * l_model.parameters()[i]->m_gradient;
-			l_model.parameters()[i]->m_gradient = 0;
+			l_parameters[i]->m_state -= 0.002 * l_parameters[i]->m_gradient;
+			l_parameters[i]->m_gradient = 0;
 		}
 
 	}
@@ -121,8 +123,9 @@ void parabola_test(
 {
 	std::vector<state_gradient_pair> l_x(1);
 
-	model::begin();
-
+	element_vector::start();
+	parameter_vector::start();
+	
 	auto l_y = pointers(l_x);
 	l_y = weight_junction(l_y, 20);
 	l_y = bias(l_y);
@@ -134,7 +137,8 @@ void parabola_test(
 	auto l_desired_y = vector(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
-	model l_model = model::end(-1, 1);
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	std::default_random_engine l_dre(25);
 
@@ -176,10 +180,10 @@ void parabola_test(
 
 		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
 
-		for (int i = 0; i < l_model.parameters().size(); i++)
+		for (int i = 0; i < l_parameters.size(); i++)
 		{
-			l_model.parameters()[i]->m_state -= 0.002 * tanh(l_model.parameters()[i]->m_gradient);
-			l_model.parameters()[i]->m_gradient = 0;
+			l_parameters[i]->m_state -= 0.002 * tanh(l_parameters[i]->m_gradient);
+			l_parameters[i]->m_gradient = 0;
 		}
 
 		if (epoch % CHECKPOINT_INTERVAL == 0)
@@ -193,20 +197,20 @@ void branch_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
 
 	state_gradient_pair l_x_0 = { 1.5 };
 	state_gradient_pair l_x_1 = { 2 };
 
 
 	// Start a new model for the branch
-	model::begin();
+	element_vector::start();
 
 	state_gradient_pair* l_multiplied = multiply(&l_x_0, &l_x_1);
 
-	bool* l_branch_enabled = branch(model::end(), true);
+	bool* l_branch_enabled = branch(element_vector::stop(), true);
 	
-	model l_model = model::end();
+	element_vector l_model = element_vector::stop();
 
 	l_model.fwd();
 
@@ -216,7 +220,8 @@ void lstm_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	const size_t l_lstm_y_units = 3;
 	const size_t l_tnn_h0_units = 3;
@@ -243,12 +248,10 @@ void lstm_test(
 	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
-	model l_model = model::end(-1, 1);
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	std::vector<gradient_descent> l_optimizers;
-
-	for (auto& l_parameter : l_model.parameters())
-		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
+	gradient_descent l_optimizer(l_parameters, 0.02);
 
 	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
 	{
@@ -312,8 +315,7 @@ void lstm_test(
 
 		}
 
-		for (auto& l_optimizer : l_optimizers)
-			l_optimizer.update();
+		l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << "COST: " << l_cost << std::endl << std::endl;
@@ -326,7 +328,8 @@ void lstm_stacked_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	auto l_x = matrix(4, 2);
 
@@ -351,12 +354,13 @@ void lstm_stacked_test(
 	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
-	model l_model = model::end();
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop();
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 	std::default_random_engine l_dre(28);
 
-	for (auto& l_parameter : l_model.parameters())
+	for (auto& l_parameter : l_parameters)
 	{
 		l_parameter->m_state = l_urd(l_dre);
 	}
@@ -410,7 +414,7 @@ void lstm_stacked_test(
 			l_model.bwd();
 		}
 
-		for (auto& l_parameter : l_model.parameters())
+		for (auto& l_parameter : l_parameters)
 		{
 			l_parameter->m_state -= 0.2 * l_parameter->m_gradient;
 			l_parameter->m_gradient = 0;
@@ -427,7 +431,7 @@ void matrix_vector_multiply_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
 
 	std::vector<std::vector<state_gradient_pair>> l_x_0
 	{
@@ -445,7 +449,7 @@ void matrix_vector_multiply_test(
 
 	auto l_y = multiply(pointers(l_x_0), pointers(l_x_1));
 
-	model l_model = model::end();
+	element_vector l_model = element_vector::stop();
 
 	l_model.fwd();
 
@@ -455,14 +459,14 @@ void cosine_similarity_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
 
 	std::vector<state_gradient_pair> l_x_0{ 0, 1, 0, 0 };
 	std::vector<state_gradient_pair> l_x_1{ 0, -1, 0, 0 };
 
 	auto l_y = cosine_similarity(pointers(l_x_0), pointers(l_x_1));
 
-	model l_model = model::end();
+	auto l_model = element_vector::stop();
 
 	l_model.fwd();
 
@@ -492,11 +496,11 @@ void similarity_interpolate_test(
 
 	std::vector<state_gradient_pair> l_query = { 1, 0 };
 	
-	model::begin();
+	element_vector::start();
 
 	auto l_y = similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
 
-	model l_model = model::end();
+	auto l_model = element_vector::stop();
 
 	l_model.fwd();
 
@@ -506,7 +510,8 @@ void large_memory_usage_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	std::vector<state_gradient_pair> l_x(1000);
 
@@ -519,14 +524,16 @@ void large_memory_usage_test(
 		l_y = weight_junction(l_y, 1000);
 		l_y = weight_junction(l_y, 1000);
 
-		model l_model = model::end();
-		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
+		element_vector l_model = element_vector::stop();
+		auto l_parameters = parameter_vector::stop();
+
+		std::cout << "MODEL CREATED: " << l_model.size() << " elements; " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
 		l_stopwatch.start();
 
 		std::uniform_real_distribution<double> l_urd(-1, 1);
 		std::default_random_engine l_dre(25);
 
-		for (auto& l_parameter : l_model.parameters())
+		for (auto& l_parameter : l_parameters)
 			l_parameter->m_state = l_urd(l_dre);
 		std::cout << "PARAMETERS INITIALIZED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
 		l_stopwatch.start();
@@ -586,7 +593,8 @@ void issp_test(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	std::vector<std::vector<state_gradient_pair>> l_x = matrix(100, 4);
 
@@ -598,15 +606,12 @@ void issp_test(
 		2
 	);
 
-	model l_model = model::end(-1, 1);
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	l_model.fwd();
 
-
-
 	l_model.bwd();
-
-
 
 }
 
@@ -614,7 +619,8 @@ void pablo_tnn_example(
 
 )
 {
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	// Write model building code here
 	std::vector<state_gradient_pair> l_x = { 0, 0 };
@@ -633,13 +639,10 @@ void pablo_tnn_example(
 	auto l_desired_y = vector(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
-							 // "model" is just a structure which holds a vector of elements and a vector of parameters.
-							 // This function call finalizes our model and spits it out. (This also initializes parameters)
-	model l_model = model::end(-1, 1);
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	std::vector<gradient_descent> l_optimizers;
-	for (auto& l_parameter : l_model.parameters())
-		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
+	gradient_descent l_optimizer(l_parameters, 0.02);
 
 	std::vector<std::vector<state_gradient_pair>> l_tsx =
 	{
@@ -677,8 +680,7 @@ void pablo_tnn_example(
 
 		}
 
-		for (auto& l_optimizer : l_optimizers)
-			l_optimizer.update();
+		l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 		{
@@ -703,7 +705,8 @@ void reward_structure_modeling(
 	// OUTPUTS:
 	// DESIRE TO PURCHASE
 
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	auto l_normalized_parameters = normalize(sigmoid(parameters(l_x.size())));
 
@@ -712,11 +715,10 @@ void reward_structure_modeling(
 	auto l_desired_y = state_gradient_pair();
 	auto l_error = mean_squared_error(l_y, &l_desired_y);
 
-	model l_model = model::end(-1, 1);
+	auto l_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	std::vector<gradient_descent> l_optimizers;
-	for (auto& l_parameter : l_model.parameters())
-		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
+	gradient_descent l_optimizer(l_parameters, 0.02);
 
 	struct training_set
 	{
@@ -762,8 +764,7 @@ void reward_structure_modeling(
 
 		}
 
-		for (auto& l_optimizer : l_optimizers)
-			l_optimizer.update();
+		l_optimizer.update();
 
 		if (epoch % 10000 == 0)
 			std::cout << l_cost << std::endl;
@@ -777,30 +778,6 @@ void reward_structure_modeling(
 
 }
 
-void actor_critic_tnn_example_0(
-
-)
-{
-	std::vector<state_gradient_pair> l_x(2);
-
-	// BEGIN ACTOR
-	model::begin();
-
-
-
-	model l_actor = model::end(-1, 1);
-
-	// BEGIN CRITIC
-	model::begin();
-
-
-
-	model l_critic = model::end(-1, 1);
-
-
-
-}
-
 void loss_modeling_test_0(
 
 )
@@ -809,7 +786,8 @@ void loss_modeling_test_0(
 	std::vector<state_gradient_pair> l_task_prediction(1);
 	std::vector<state_gradient_pair> l_loss_model_desired_y(1);
 
-	model::begin();
+	element_vector::start();
+	parameter_vector::start();
 
 	std::vector<size_t> l_tnn_layer_sizes = { 20, 20 };
 
@@ -825,15 +803,14 @@ void loss_modeling_test_0(
 	l_loss_model_y = weight_junction(l_loss_model_y, 1);
 	l_loss_model_y = bias(l_loss_model_y);
 	l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
+	l_loss_model_y = { pow(l_loss_model_y[0], constant(2)) };
 
 	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y));
 
-	model l_loss_model = model::end(-1, 1);
+	auto l_loss_model = element_vector::stop();
+	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	std::vector<gradient_descent> l_optimizers;
-
-	for (auto& l_parameter : l_loss_model.parameters())
-		l_optimizers.push_back(gradient_descent(l_parameter, 0.02));
+	gradient_descent l_optimizer(l_parameters, 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(26);
@@ -857,7 +834,7 @@ void loss_modeling_test_0(
 			l_task_prediction[0].m_state = l_urd(l_dre);
 
 			// CALCULATE MEAN SQUARED ERROR OF THE TASK PREDICTION
-			l_loss_model_desired_y[0].m_state = l_task_prediction[0].m_state - l_task_desired_y;
+			l_loss_model_desired_y[0].m_state = std::pow(l_task_prediction[0].m_state - l_task_desired_y, 2);
 
 			l_loss_model.fwd();
 			
@@ -868,11 +845,14 @@ void loss_modeling_test_0(
 
 		}
 
-		for (auto& l_optimizer : l_optimizers)
-			l_optimizer.update();
+		l_optimizer.normalize_gradients();
+		l_optimizer.update();
 
 		if (epoch % 10000 == 0)
-			std::cout << l_loss_model_epoch_loss << std::endl;
+		{
+			std::cout << "LR: " << l_optimizer.m_learn_rate << ", LOSS: " << l_loss_model_epoch_loss << std::endl;
+			l_optimizer.m_learn_rate *= 0.99;
+		}
 
 	}
 

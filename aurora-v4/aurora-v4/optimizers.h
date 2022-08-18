@@ -61,8 +61,11 @@ namespace aurora
 
 		)
 		{
-			m_value->m_state -= m_learn_rate * m_value->m_gradient;
-			m_value->m_gradient = 0;
+			for (auto& l_value : m_values)
+			{
+				l_value->m_state -= m_learn_rate * l_value->m_gradient;
+				l_value->m_gradient = 0;
+			}
 		}
 
 	};
@@ -73,7 +76,7 @@ namespace aurora
 		double m_learn_rate = 0;
 		double m_beta = 0;
 		double m_alpha = 0;
-		double m_momentum = 0;
+		std::vector<double> m_momenta;
 
 	public:
 		gradient_descent_with_momentum(
@@ -84,7 +87,8 @@ namespace aurora
 			optimizer(a_values),
 			m_learn_rate(a_learn_rate),
 			m_beta(a_beta),
-			m_alpha(1.0 - a_beta)
+			m_alpha(1.0 - a_beta),
+			m_momenta(a_values.size())
 		{
 			assert(a_beta >= 0 && a_beta <= 1);
 		}
@@ -93,9 +97,14 @@ namespace aurora
 
 		)
 		{
-			m_momentum = m_beta * m_momentum + m_alpha * m_value->m_gradient;
-			m_value->m_state -= m_learn_rate * m_momentum;
-			m_value->m_gradient = 0;
+			for (int i = 0; i < m_values.size(); i++)
+			{
+				auto& l_value = m_values[i];
+				auto& l_momentum = m_momenta[i];
+				l_momentum = m_beta * l_momentum + m_alpha * l_value->m_gradient;
+				l_value->m_state -= m_learn_rate * l_momentum;
+				l_value->m_gradient = 0;
+			}
 		}
 
 	};

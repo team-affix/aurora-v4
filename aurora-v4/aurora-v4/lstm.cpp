@@ -111,42 +111,16 @@ std::vector<std::vector<state_gradient_pair*>> aurora::lstm(
 		l_hy.push_back(parameter());
 	}
 
-
-	std::vector<model> l_timestep_models;
+	size_t l_timestep_parameters_start_index = parameter_vector::next_index();
 
 	for (int i = 0; i < a_x.size(); i++)
 	{
-		model::begin();
-
+		parameter_vector::next_index(l_timestep_parameters_start_index);
 		lstm_timestep l_timestep(a_x[i], l_cy, l_hy);
 		l_cy = l_timestep.m_cy;
 		l_hy = l_timestep.m_y;
 		l_result.push_back(l_timestep.m_y);
-
-		// Push the LSTM Timestep model into the list
-		l_timestep_models.push_back(model::end());
-
 	}
-
-	model& l_initial_timestep_model = l_timestep_models[0];
-
-	for (int i = 1; i < l_timestep_models.size(); i++)
-	{
-		for (int j = 0; j < l_timestep_models[i].parameters().size(); j++)
-		{
-			// Link all the parameters from each timestep together
-			l_timestep_models[i].parameters()[j].group_link(l_initial_timestep_model.parameters()[j]);
-		}
-	}
-
-	for (int i = 0; i < l_timestep_models.size(); i++)
-	{
-		// Insert every element from every timestep into the main model
-		model::insert(l_timestep_models[i].elements());
-	}
-
-	// Add the parameters which each timestep now shares to the list of all parameters
-	model::insert(l_initial_timestep_model.parameters());
 
 	return l_result;
 

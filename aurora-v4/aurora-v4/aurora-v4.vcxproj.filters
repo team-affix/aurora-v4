@@ -27,7 +27,7 @@
     <ClInclude Include="compounds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="model.h">
+    <ClInclude Include="construction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="optimizers.h">
@@ -38,7 +38,7 @@
     <ClCompile Include="lstm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="model.cpp">
+    <ClCompile Include="construction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -160,11 +160,11 @@
     <ClInclude Include="compounds.h" />
     <ClInclude Include="elements.h" />
     <ClInclude Include="maths.h" />
-    <ClInclude Include="model.h" />
+    <ClInclude Include="construction.h" />
     <ClInclude Include="optimizers.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="model.cpp" />
+    <ClCompile Include="construction.cpp" />
     <ClCompile Include="lstm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

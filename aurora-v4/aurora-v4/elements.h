@@ -3,7 +3,7 @@
 #include <vector>
 #include "affix-base/ptr.h"
 #include "maths.h"
-#include "model.h"
+#include "construction.h"
 
 namespace aurora
 {
@@ -21,7 +21,7 @@ namespace aurora
 
 		)
 		{
-			model::insert(affix_base::data::ptr<element>(this));
+			element_vector::insert(affix_base::data::ptr<element>(this));
 		}
 
 		element(
@@ -52,48 +52,7 @@ namespace aurora
 
 	)
 	{
-		class element_parameter : public element
-		{
-		private:
-			affix_base::data::ptr<state_gradient_pair> m_linkable_value = new state_gradient_pair();
-
-		public:
-			state_gradient_pair m_y;
-
-		public:
-			virtual ~element_parameter(
-
-			)
-			{
-
-			}
-
-			element_parameter(
-
-			) :
-				m_linkable_value(new state_gradient_pair())
-			{
-				model::insert(m_linkable_value);
-			}
-
-			virtual void fwd(
-
-			)
-			{
-				m_y.m_state = m_linkable_value->m_state;
-			}
-
-			virtual void bwd(
-
-			)
-			{
-				m_linkable_value->m_gradient += m_y.m_gradient;
-				m_y.m_gradient = 0;
-			}
-
-		};
-		affix_base::data::ptr<element_parameter> l_element(new element_parameter());
-		return &l_element->m_y;
+		return parameter_vector::next();
 	}
 
 	inline state_gradient_pair* constant(
@@ -538,14 +497,14 @@ namespace aurora
 	}
 
 	inline bool* branch(
-		model&& a_model,
+		element_vector&& a_model,
 		const bool& a_enabled
 	)
 	{
 		class element_branch : public element
 		{
 		private:
-			model m_model;
+			element_vector m_element_vector;
 
 		public:
 			bool m_enabled = false;
@@ -559,14 +518,13 @@ namespace aurora
 			}
 
 			element_branch(
-				model&& a_model,
+				element_vector&& a_element_vector,
 				const bool& a_enabled
 			) :
-				m_model(a_model),
+				m_element_vector(a_element_vector),
 				m_enabled(a_enabled)
 			{
-				// Make sure to insert the parameters of this branch into the most external model.
-				model::insert(a_model.parameters());
+
 			}
 
 			virtual void fwd(
@@ -575,7 +533,7 @@ namespace aurora
 			{
 				if (m_enabled)
 				{
-					m_model.fwd();
+					m_element_vector.fwd();
 				}
 			}
 
@@ -585,7 +543,7 @@ namespace aurora
 			{
 				if (m_enabled)
 				{
-					m_model.bwd();
+					m_element_vector.bwd();
 				}
 			}
 
