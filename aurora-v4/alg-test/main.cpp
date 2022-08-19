@@ -815,7 +815,7 @@ void loss_modeling_test_0(
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(26);
 
-	for (int epoch = 0; epoch < 10000000; epoch++)
+	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
 		double l_loss_model_epoch_loss = 0;
 
@@ -855,6 +855,74 @@ void loss_modeling_test_0(
 		}
 
 	}
+
+	std::cout << std::endl << std::endl << "GENERATING TASK PREDICTION: " << std::endl;
+
+	gradient_descent l_task_prediction_optimizer(pointers(l_task_prediction), 0.2);
+	 
+	double l_task_desired_y = 0;
+
+	for (int j = 0; j < l_task_x.size(); j++)
+	{
+		// GENERATE RANDOM TASK INPUT AND APPLY THE ACTUAL TASK TO THE INPUT (ADDITIVE ACCUMULATION IN THIS CASE)
+		l_task_x[j].m_state = l_urd(l_dre);
+		l_task_desired_y += l_task_x[j].m_state;
+	}
+
+	l_loss_model_desired_y[0].m_state = 0;
+
+	for (int epoch = 0; epoch < 100000; epoch++)
+	{
+		l_loss_model.fwd();
+		l_loss_model_loss->m_gradient = 1;
+		l_loss_model.bwd();
+		l_task_prediction_optimizer.normalize_gradients();
+		l_task_prediction_optimizer.update();
+		if (epoch % 10000 == 0)
+		{
+			std::cout << 
+				"PREDICTED TASK Y: " <<
+				l_task_prediction[0].m_state <<
+				", DESIRED TASK Y: " <<
+				l_task_desired_y <<
+				std::endl;
+		}
+	}
+
+	std::cout << std::endl << std::endl << "GENERATING TASK X: " << std::endl;
+
+	gradient_descent l_task_x_optimizer(pointers(l_task_x), 0.2);
+
+	l_task_prediction[0].m_state = 10000;
+	l_loss_model_desired_y[0].m_state = 0;
+
+	for (int epoch = 0; epoch < 100000; epoch++)
+	{
+		l_loss_model.fwd();
+		l_loss_model_loss->m_gradient = 1;
+		l_loss_model.bwd();
+		l_task_x_optimizer.normalize_gradients();
+		l_task_x_optimizer.update();
+		if (epoch % 10000 == 0)
+		{
+			std::cout <<
+				"TRYING TO ACHIEVE TASK PREDICTION OF: " <<
+				l_task_prediction[0].m_state <<
+				", TASK X: ";
+			
+			for (auto& l_value : l_task_x)
+				std::cout << l_value.m_state << " ";
+
+			double l_x_sum = 0;
+
+			for (auto& l_value : l_task_x)
+				l_x_sum += l_value.m_state;
+
+			std::cout << "WHICH YIELDS A SUM OF: " << l_x_sum << std::endl;
+
+		}
+	}
+
 
 }
 
@@ -931,7 +999,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test_2();
+	loss_modeling_test_0();
 
 	return 0;
 }
