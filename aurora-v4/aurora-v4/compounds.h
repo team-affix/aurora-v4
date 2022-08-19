@@ -474,5 +474,4 @@ namespace aurora
 			constant(a_prediction.size() * a_prediction[0].size()));
 	}
 
-
 }

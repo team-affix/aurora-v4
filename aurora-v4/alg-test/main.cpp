@@ -813,7 +813,7 @@ void loss_modeling_test_0(
 	gradient_descent l_optimizer(l_parameters, 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
-	std::default_random_engine l_dre(26);
+	std::default_random_engine l_dre(28);
 
 	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
