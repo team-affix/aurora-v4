@@ -10,7 +10,7 @@ namespace aurora
 	struct element_vector : public std::vector<affix_base::data::ptr<element>>
 	{
 	private:
-		static std::vector<element_vector> s_models;
+		static std::vector<element_vector> s_element_vectors;
 
 	private:
 		element_vector(
@@ -33,7 +33,7 @@ namespace aurora
 			const affix_base::data::ptr<element>& a_element
 		)
 		{
-			s_models.back().push_back(a_element);
+			s_element_vectors.back().push_back(a_element);
 		}
 
 	public:

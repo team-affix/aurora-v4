@@ -858,13 +858,80 @@ void loss_modeling_test_0(
 
 }
 
+void tnn_test_2(
+
+)
+{
+	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1},
+	};
+	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	{
+		{0},
+		{1},
+		{1},
+		{0},
+	};
+	
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_x = vector(2);
+	auto l_y = pointers(l_x);
+
+	std::vector<size_t> l_layer_sizes = { 5, 1 };
+
+	for (int i = 0; i < l_layer_sizes.size(); i++)
+	{
+		l_y = weight_junction(l_y, l_layer_sizes[i]);
+		l_y = bias(l_y);
+		l_y = leaky_relu(l_y, 0.3);
+	}
+
+	auto l_desired = vector(1);
+	auto l_loss = mean_squared_error(l_y, pointers(l_desired));
+
+	element_vector l_elements = element_vector::stop();
+	parameter_vector l_parameters = parameter_vector::stop(-1, 1);
+
+	gradient_descent l_optimizer(l_parameters, 0.02);
+
+	const int CHECKPOINT = 100000;
+
+	for (int epoch = 0; true; epoch++)
+	{
+		for (int i = 0; i < l_tsx.size(); i++)
+		{
+			set_state(l_x, l_tsx[i]);
+			set_state(l_desired, l_tsy[i]);
+			l_elements.fwd();
+			l_loss->m_gradient = 1;
+			l_elements.bwd();
+			if (epoch % CHECKPOINT == 0)
+			{
+				std::cout << l_y[0]->m_state << std::endl;
+			}
+		}
+		l_optimizer.update();
+		if (epoch % CHECKPOINT == 0)
+		{
+			std::cout << std::endl;
+		}
+	}
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	loss_modeling_test_0();
+	tnn_test_2();
 
 	return 0;
 }
