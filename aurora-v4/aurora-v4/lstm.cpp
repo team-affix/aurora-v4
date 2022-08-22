@@ -1,5 +1,5 @@
 #include "affix-base/pch.h"
-#include "compounds.h"
+#include "construction.h"
 
 using namespace aurora;
 

@@ -18,13 +18,7 @@
     <ClInclude Include="aurora.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="elements.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="maths.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="compounds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="construction.h">
