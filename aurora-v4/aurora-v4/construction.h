@@ -2,6 +2,7 @@
 #include "affix-base/pch.h"
 #include "affix-base/ptr.h"
 #include "maths.h"
+#include "randomization.h"
 
 namespace aurora
 {
@@ -60,7 +61,6 @@ namespace aurora
 	{
 	private:
 		static std::vector<parameter_vector> s_parameter_vectors;
-		static std::default_random_engine s_default_random_engine;
 
 	private:
 		size_t m_next_index = 0;
@@ -108,7 +108,7 @@ namespace aurora
 
 			std::uniform_real_distribution<double> l_urd(a_parameter_minimum_value, a_parameter_maximum_value);
 			for (auto& l_parameter : l_result)
-				l_parameter->m_state = l_urd(s_default_random_engine);
+				l_parameter->m_state = l_urd(i_default_random_engine);
 
 			return l_result;
 

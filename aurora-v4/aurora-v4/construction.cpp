@@ -7,7 +7,6 @@ using namespace aurora;
 std::vector<element_vector> element_vector::s_element_vectors;
 
 std::vector<parameter_vector> parameter_vector::s_parameter_vectors;
-std::default_random_engine parameter_vector::s_default_random_engine(26);
 
 void element_vector::start(
 

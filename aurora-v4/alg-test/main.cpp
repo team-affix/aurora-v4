@@ -2,6 +2,7 @@
 #include <iostream>
 #include "affix-base/stopwatch.h"
 #include "affix-base/vector_extensions.h"
+#include "cryptopp/osrng.h"
 
 using namespace aurora;
 
@@ -36,10 +37,10 @@ void tnn_test(
 		l_parameters[i]->m_state = l_urd(l_dre);
 	}
 
-	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
+	auto l_cycle = [&](std::vector<state_gradient_pair>& a_x, std::vector<state_gradient_pair>& a_y)
 	{
-		set_state(l_x, a_x);
-		set_state(l_desired_y, a_y);
+		set_state(pointers(l_x), pointers(a_x));
+		set_state(pointers(l_desired_y), pointers(a_y));
 
 		l_model.fwd();
 
@@ -142,10 +143,10 @@ void parabola_test(
 
 	std::default_random_engine l_dre(25);
 
-	auto l_cycle = [&](const std::vector<state_gradient_pair>& a_x, const std::vector<state_gradient_pair>& a_y)
+	auto l_cycle = [&](std::vector<state_gradient_pair>& a_x, std::vector<state_gradient_pair>& a_y)
 	{
-		set_state(l_x, a_x);
-		set_state(l_desired_y, a_y);
+		set_state(pointers(l_x), pointers(a_x));
+		set_state(pointers(l_desired_y), pointers(a_y));
 
 		l_model.fwd();
 
@@ -171,7 +172,11 @@ void parabola_test(
 		{
 			double l_ts_x = l_ts_urd(l_dre);
 			double l_ts_y = l_ts_x * l_ts_x;
-			l_cost += l_cycle({ l_ts_x }, { l_ts_y });
+
+			std::vector<state_gradient_pair> l_ts_x_vector = { l_ts_x };
+			std::vector<state_gradient_pair> l_ts_y_vector = { l_ts_y };
+
+			l_cost += l_cycle(l_ts_x_vector, l_ts_y_vector);
 
 			if (epoch % CHECKPOINT_INTERVAL == 0)
 				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_y[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
@@ -293,8 +298,8 @@ void lstm_test(
 
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
-			set_state(l_x, l_training_set_xs[i]);
-			set_state(l_desired_y, l_training_set_ys[i]);
+			set_state(pointers(l_x), pointers(l_training_set_xs[i]));
+			set_state(pointers(l_desired_y), pointers(l_training_set_ys[i]));
 			
 			// Carry forward
 			l_model.fwd();
@@ -405,8 +410,8 @@ void lstm_stacked_test(
 
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
-			set_state(l_x, l_training_set_xs[i]);
-			set_state(l_desired_y, l_training_set_ys[i]);
+			set_state(pointers(l_x), pointers(l_training_set_xs[i]));
+			set_state(pointers(l_desired_y), pointers(l_training_set_ys[i]));
 
 			l_model.fwd();
 			l_cost += l_error->m_state;
@@ -666,8 +671,8 @@ void pablo_tnn_example(
 	{
 		for (int i = 0; i < l_tsx.size(); i++)
 		{
-			set_state(l_x, l_tsx[i]);
-			set_state(l_desired_y, l_tsy[i]);
+			set_state(pointers(l_x), pointers(l_tsx[i]));
+			set_state(pointers(l_desired_y), pointers(l_tsy[i]));
 
 			l_model.fwd();
 			l_error->m_gradient = 1;
@@ -752,7 +757,7 @@ void reward_structure_modeling(
 
 		for (auto& l_training_set : l_training_sets)
 		{
-			set_state(l_x, l_training_set.m_x);
+			set_state(pointers(l_x), pointers(l_training_set.m_x));
 			l_desired_y.m_state = l_training_set.m_y.m_state;
 
 			l_model.fwd();
@@ -974,8 +979,8 @@ void tnn_test_2(
 	{
 		for (int i = 0; i < l_tsx.size(); i++)
 		{
-			set_state(l_x, l_tsx[i]);
-			set_state(l_desired, l_tsy[i]);
+			set_state(pointers(l_x), pointers(l_tsx[i]));
+			set_state(pointers(l_desired), pointers(l_tsy[i]));
 			l_elements.fwd();
 			l_loss->m_gradient = 1;
 			l_elements.bwd();
@@ -993,13 +998,155 @@ void tnn_test_2(
 
 }
 
+void teacher_student_test_0(
+
+)
+{
+	const size_t STUDENT_TASKS_COUNT = 100;
+	const size_t STUDENT_TRAINING_SETS_PER_TASK_COUNT = 10;
+	const size_t STUDENT_TESTING_SETS_PER_TASK_COUNT = 10;
+	const size_t STUDENT_INPUT_SIZE = 128;
+	const std::vector<size_t> STUDENT_DIMENSIONS = { 32, 32 };
+	const double STUDENT_MINIMUM_IO_VALUE = -100;
+	const double STUDENT_MAXIMUM_IO_VALUE = 100;
+	const size_t MINI_BATCH_SIZE = 32;
+
+	// CREATE STUDENT
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_student_x = vector(STUDENT_INPUT_SIZE);
+	auto l_student_y = pointers(l_student_x);
+
+	for (int i = 0; i < STUDENT_DIMENSIONS.size(); i++)
+	{
+		l_student_y = weight_junction(l_student_y, STUDENT_DIMENSIONS[i]);
+		l_student_y = bias(l_student_y);
+		l_student_y = leaky_relu(l_student_y, 0.3);
+	}
+
+	auto l_student_desired_y = vector(l_student_y.size());
+	auto l_student_loss = mean_squared_error(l_student_y, pointers(l_student_desired_y));
+
+	element_vector l_student_element_vector = element_vector::stop();
+	parameter_vector l_student_parameter_vector = parameter_vector::stop();
+
+	// GENERATE STUDENT TRAINING SETS
+	
+	struct student_training_set
+	{
+		std::vector<state_gradient_pair> m_x;
+		std::vector<state_gradient_pair> m_y;
+	};
+
+	struct teacher_training_set
+	{
+		std::vector<std::vector<state_gradient_pair>> m_x;
+		std::vector<student_training_set> m_student_testing_sets;
+	};
+	
+	std::vector<teacher_training_set> l_teacher_training_sets;
+
+	for (int i = 0; i < STUDENT_TASKS_COUNT; i++)
+	{
+		// RANDOMIZE STUDENT PARAM VECTOR
+		randomize(l_student_parameter_vector, -10, 10);
+
+		teacher_training_set l_teacher_training_set;
+
+		for (int j = 0; j < STUDENT_TRAINING_SETS_PER_TASK_COUNT; j++)
+		{
+			randomize(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
+			l_student_element_vector.fwd();
+			l_teacher_training_set.m_x.push_back(get_state(concat(pointers(l_student_x), l_student_y)));
+		}
+
+		for (int j = 0; j < STUDENT_TESTING_SETS_PER_TASK_COUNT; j++)
+		{
+			randomize(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
+			l_student_element_vector.fwd();
+			l_teacher_training_set.m_student_testing_sets.push_back({l_student_x, get_state(l_student_y)});
+		}
+
+		l_teacher_training_sets.push_back(l_teacher_training_set);
+
+	}
+
+	const std::vector<size_t> TEACHER_DIMENSIONS = { 128, l_student_parameter_vector.size()};
+
+	// CREATE TEACHER
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_teacher_x = matrix(STUDENT_TRAINING_SETS_PER_TASK_COUNT, STUDENT_INPUT_SIZE + STUDENT_DIMENSIONS.back());
+	auto l_teacher_y = pointers(l_teacher_x);
+
+	for (int i = 0; i < TEACHER_DIMENSIONS.size(); i++)
+		l_teacher_y = lstm(l_teacher_y, TEACHER_DIMENSIONS[i]);
+
+	element_vector l_teacher_element_vector = element_vector::stop();
+	parameter_vector l_teacher_parameter_vector = parameter_vector::stop(-1, 1);
+
+	gradient_descent l_optimizer(l_teacher_parameter_vector, 0.02);
+
+	CryptoPP::AutoSeededRandomPool l_random;
+
+	for (int epoch = 0; true; epoch++)
+	{
+		double l_cost = 0;
+
+		for (int i = 0; i < MINI_BATCH_SIZE; i++)
+		{
+			size_t l_training_set_index = l_random.GenerateWord32(0, l_teacher_training_sets.size());
+			teacher_training_set& l_teacher_training_set = l_teacher_training_sets[l_training_set_index];
+			
+			set_state(pointers(l_teacher_x), pointers(l_teacher_training_set.m_x));
+			
+			l_teacher_element_vector.fwd();
+			
+			for (int l_timestep = 0; l_timestep < l_teacher_y.size(); l_timestep++)
+			{
+				// SET PARAMETERS OF STUDENT
+				set_state(l_student_parameter_vector, l_teacher_y[l_timestep]);
+
+				for (auto& l_student_training_set : l_teacher_training_set.m_student_testing_sets)
+				{
+					// CYCLE THE STUDENT
+					set_state(pointers(l_student_x), pointers(l_student_training_set.m_x));
+					set_state(pointers(l_student_desired_y), pointers(l_student_training_set.m_y));
+					l_student_element_vector.fwd();
+					l_cost += l_student_loss->m_state;
+					l_student_loss->m_gradient = 1;
+					l_student_element_vector.bwd();
+				}
+
+				add_gradient(l_teacher_y[l_timestep], l_student_parameter_vector);
+				clear_gradient(l_student_parameter_vector);
+
+			}
+
+			l_teacher_element_vector.bwd();
+
+		}
+
+
+		l_optimizer.normalize_gradients();
+		l_optimizer.update();
+
+		if (epoch % 10 == 0)
+			std::cout << l_cost << std::endl;
+
+	}
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	loss_modeling_test_0();
+	teacher_student_test_0();
 
 	return 0;
 }
