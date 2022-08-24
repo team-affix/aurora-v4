@@ -119,7 +119,7 @@ namespace aurora
 			clear_gradient(l_vector);
 	}
 
-	inline void randomize(
+	inline void randomize_state(
 		std::vector<state_gradient_pair*> a_x,
 		const double& a_minimum_random_value,
 		const double& a_maximum_random_value
@@ -132,7 +132,7 @@ namespace aurora
 		}
 	}
 
-	inline void randomize(
+	inline void randomize_state(
 		std::vector<std::vector<state_gradient_pair*>> a_x,
 		const double& a_minimum_random_value,
 		const double& a_maximum_random_value
@@ -140,7 +140,7 @@ namespace aurora
 	{
 		for (auto& l_value : a_x)
 		{
-			randomize(l_value, a_minimum_random_value, a_maximum_random_value);
+			randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
 		}
 	}
 
@@ -158,7 +158,7 @@ namespace aurora
 	)
 	{
 		auto l_result = vector(a_size);
-		randomize(pointers(l_result), a_minimum_random_value, a_maximum_random_value);
+		randomize_state(pointers(l_result), a_minimum_random_value, a_maximum_random_value);
 		return l_result;
 	}
 
@@ -181,7 +181,7 @@ namespace aurora
 	)
 	{
 		auto l_result = matrix(a_rows, a_cols);
-		randomize(pointers(l_result), a_minimum_random_value, a_maximum_random_value);
+		randomize_state(pointers(l_result), a_minimum_random_value, a_maximum_random_value);
 		return l_result;
 	}
 

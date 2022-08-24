@@ -503,7 +503,7 @@ void similarity_interpolate_test(
 	
 	element_vector::start();
 
-	auto l_y = similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
+	auto l_y = distance_reciprocal_similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
 
 	auto l_model = element_vector::stop();
 
@@ -1050,20 +1050,20 @@ void teacher_student_test_0(
 	for (int i = 0; i < STUDENT_TASKS_COUNT; i++)
 	{
 		// RANDOMIZE STUDENT PARAM VECTOR
-		randomize(l_student_parameter_vector, -10, 10);
+		randomize_state(l_student_parameter_vector, -10, 10);
 
 		teacher_training_set l_teacher_training_set;
 
 		for (int j = 0; j < STUDENT_TRAINING_SETS_PER_TASK_COUNT; j++)
 		{
-			randomize(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
+			randomize_state(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
 			l_student_element_vector.fwd();
 			l_teacher_training_set.m_x.push_back(get_state(concat(pointers(l_student_x), l_student_y)));
 		}
 
 		for (int j = 0; j < STUDENT_TESTING_SETS_PER_TASK_COUNT; j++)
 		{
-			randomize(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
+			randomize_state(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
 			l_student_element_vector.fwd();
 			l_teacher_training_set.m_student_testing_sets.push_back({l_student_x, get_state(l_student_y)});
 		}
@@ -1140,13 +1140,105 @@ void teacher_student_test_0(
 
 }
 
+void mrve_test(
+
+)
+{
+	// GENERATE EXAMPLE NEURAL NETWORK
+	element_vector::start();
+	parameter_vector::start();
+
+	size_t l_example_input_dimensions = 8;
+	std::vector<size_t> l_example_dimensions = { 32, 8 };
+
+	std::vector<state_gradient_pair> l_example_x(l_example_input_dimensions);
+	std::vector<state_gradient_pair*> l_example_y(pointers(l_example_x));
+
+	for (int i = 0; i < l_example_dimensions.size(); i++)
+	{
+		l_example_y = weight_junction(l_example_y, l_example_dimensions[i]);
+		l_example_y = bias(l_example_y);
+		l_example_y = leaky_relu(l_example_y, 0.3);
+	}
+
+	element_vector l_example_element_vector = element_vector::stop();
+	parameter_vector l_example_parameter_vector = parameter_vector::stop(-1, 1);
+
+	// GENERATE MRVE ANCHOR POINTS
+
+	size_t l_anchor_points_count = 10;
+
+	std::vector<std::vector<state_gradient_pair>> l_keys;
+	std::vector<std::vector<state_gradient_pair>> l_values;
+
+	for (int i = 0; i < l_anchor_points_count; i++)
+	{
+		randomize_state(pointers(l_example_x), -10, 10);
+		l_example_element_vector.fwd();
+		l_keys.push_back(l_example_x);
+		l_values.push_back(get_state(l_example_y));
+	}
+
+	// START CONSTRUCTION OF ELEMENT AND PARAMETER VECTORS
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_x = vector(l_example_input_dimensions);
+
+	auto l_y = mrve(
+		pointers(l_x),
+		pointers(l_keys),
+		pointers(l_values),
+		{ 32 }
+	);
+
+	auto l_desired_y = vector(l_example_dimensions.back());
+	auto l_loss = mean_squared_error(l_y, pointers(l_desired_y));
+
+	element_vector l_element_vector = element_vector::stop();
+	parameter_vector l_parameter_vector = parameter_vector::stop(-1, 1);
+
+	gradient_descent l_optimizer(l_parameter_vector, 0.02);
+
+	for (int epoch = 0; true; epoch++)
+	{
+		double l_cost = 0;
+
+		for (int i = 0; i < 10; i++)
+		{
+			randomize_state(pointers(l_example_x), -10, 10);
+			l_example_element_vector.fwd();
+
+			set_state(pointers(l_x), pointers(l_example_x));
+			set_state(pointers(l_desired_y), l_example_y);
+
+			l_element_vector.fwd();
+			l_cost += l_loss->m_state;
+			l_loss->m_gradient = 1;
+			l_element_vector.bwd();
+
+		}
+
+		l_optimizer.normalize_gradients();
+		l_optimizer.update();
+
+		if (epoch % 100 == 0)
+		{
+			std::cout << l_cost << std::endl;
+			l_optimizer.m_learn_rate *= 0.99;
+		}
+
+	}
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	teacher_student_test_0();
+	mrve_test();
 
 	return 0;
 }

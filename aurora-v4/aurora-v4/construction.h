@@ -982,6 +982,19 @@ namespace aurora
 		return l_result;
 	}
 
+	inline std::vector<state_gradient_pair*> hadamard(
+		std::vector<state_gradient_pair*> a_x_0,
+		std::vector<state_gradient_pair*> a_x_1
+	)
+	{
+		std::vector<state_gradient_pair*> l_y;
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_y.push_back(multiply(a_x_0[i], a_x_1[i]));
+		}
+		return l_y;
+	}
+
 	inline state_gradient_pair* bias(
 		state_gradient_pair* a_x
 	)
@@ -1163,7 +1176,7 @@ namespace aurora
 		return vector_magnitude(vector_vector_subtract(a_x_0, a_x_1));
 	}
 
-	inline std::vector<state_gradient_pair*> similarity_interpolate(
+	inline std::vector<state_gradient_pair*> distance_reciprocal_similarity_interpolate(
 		std::vector<state_gradient_pair*> a_query,
 		std::vector<std::vector<state_gradient_pair*>> a_keys,
 		std::vector<std::vector<state_gradient_pair*>> a_values
@@ -1221,6 +1234,67 @@ namespace aurora
 		for (auto& l_element : a_x_1)
 			l_result.push_back(l_element);
 		return l_result;
+	}
+
+	inline std::vector<state_gradient_pair*> rve(
+		std::vector<state_gradient_pair*> a_query,
+		std::vector<state_gradient_pair*> a_key,
+		std::vector<state_gradient_pair*> a_value,
+		std::vector<size_t> a_hidden_dimensions = { 128 }
+	)
+	{
+		std::vector<state_gradient_pair*> l_x = concat(a_query, a_key);
+		std::vector<state_gradient_pair*> l_s = l_x;
+
+		for (int j = 0; j < a_hidden_dimensions.size(); j++)
+		{
+			l_s = weight_junction(l_s, a_hidden_dimensions[j]);
+			l_s = bias(l_s);
+			l_s = leaky_relu(l_s, 0.3);
+		}
+
+		l_s = weight_junction(l_s, a_value.size());
+		l_s = bias(l_s);
+		l_s = leaky_relu(l_s, 0.3);
+
+		std::vector<state_gradient_pair*> l_o = l_x;
+
+		for (int j = 0; j < a_hidden_dimensions.size(); j++)
+		{
+			l_o = weight_junction(l_o, a_hidden_dimensions[j]);
+			l_o = bias(l_o);
+			l_o = leaky_relu(l_o, 0.3);
+		}
+
+		l_o = weight_junction(l_o, a_value.size());
+		l_o = bias(l_o);
+		l_o = leaky_relu(l_o, 0.3);
+
+		return add(l_o, hadamard(l_s, a_value));
+
+	}
+
+	inline std::vector<state_gradient_pair*> mrve(
+		std::vector<state_gradient_pair*> a_query,
+		std::vector<std::vector<state_gradient_pair*>> a_keys,
+		std::vector<std::vector<state_gradient_pair*>> a_values,
+		std::vector<size_t> a_hidden_dimensions = { 128 }
+	)
+	{
+		const size_t l_value_dimensions = a_values[0].size();
+
+		std::vector<state_gradient_pair*> l_mrve_y = parameters(l_value_dimensions);
+
+		size_t l_next_parameter_index = parameter_vector::next_index();
+
+		for (int i = 0; i < a_keys.size(); i++)
+		{
+			parameter_vector::next_index(l_next_parameter_index);
+			l_mrve_y = add(l_mrve_y, rve(a_query, a_keys[i], a_values[i], a_hidden_dimensions));
+		}
+
+		return l_mrve_y;
+
 	}
 
 	inline state_gradient_pair* mean_squared_error(
