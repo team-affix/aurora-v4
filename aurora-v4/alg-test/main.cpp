@@ -1148,8 +1148,8 @@ void mrve_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	size_t l_example_input_dimensions = 8;
-	std::vector<size_t> l_example_dimensions = { 32, 8 };
+	size_t l_example_input_dimensions = 10;
+	std::vector<size_t> l_example_dimensions = { 20, 10 };
 
 	std::vector<state_gradient_pair> l_example_x(l_example_input_dimensions);
 	std::vector<state_gradient_pair*> l_example_y(pointers(l_example_x));
@@ -1166,7 +1166,7 @@ void mrve_test(
 
 	// GENERATE MRVE ANCHOR POINTS
 
-	size_t l_anchor_points_count = 10;
+	size_t l_anchor_points_count = 5;
 
 	std::vector<std::vector<state_gradient_pair>> l_keys;
 	std::vector<std::vector<state_gradient_pair>> l_values;
@@ -1189,7 +1189,7 @@ void mrve_test(
 		pointers(l_x),
 		pointers(l_keys),
 		pointers(l_values),
-		{ 32 }
+		{ 30 }
 	);
 
 	auto l_desired_y = vector(l_example_dimensions.back());
@@ -1198,13 +1198,15 @@ void mrve_test(
 	element_vector l_element_vector = element_vector::stop();
 	parameter_vector l_parameter_vector = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameter_vector, 0.02);
+	gradient_descent l_optimizer(l_parameter_vector, 0.2);
+
+	const size_t l_mini_batch_size = 10;
 
 	for (int epoch = 0; true; epoch++)
 	{
 		double l_cost = 0;
 
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < l_mini_batch_size; i++)
 		{
 			randomize_state(pointers(l_example_x), -10, 10);
 			l_example_element_vector.fwd();
@@ -1219,13 +1221,82 @@ void mrve_test(
 
 		}
 
+		l_cost /= (double)l_mini_batch_size;
+
 		l_optimizer.normalize_gradients();
 		l_optimizer.update();
 
 		if (epoch % 100 == 0)
 		{
-			std::cout << l_cost << std::endl;
+			std::cout << "COST: " << l_cost << ", LR: " << l_optimizer.m_learn_rate << std::endl;
 			l_optimizer.m_learn_rate *= 0.99;
+		}
+
+	}
+
+}
+
+void kvm_test(
+
+)
+{
+	// GENERATE EXAMPLE NEURAL NETWORK
+	element_vector::start();
+	parameter_vector::start();
+
+	size_t l_example_input_dimensions = 10;
+	std::vector<size_t> l_example_dimensions = { 20, 30, 10 };
+
+	std::vector<state_gradient_pair> l_example_x(l_example_input_dimensions);
+	std::vector<state_gradient_pair*> l_example_y(pointers(l_example_x));
+
+	for (int i = 0; i < l_example_dimensions.size(); i++)
+	{
+		l_example_y = weight_junction(l_example_y, l_example_dimensions[i]);
+		l_example_y = bias(l_example_y);
+		l_example_y = leaky_relu(l_example_y, 0.3);
+	}
+
+	element_vector l_example_element_vector = element_vector::stop();
+	parameter_vector l_example_parameter_vector = parameter_vector::stop(-1, 1);
+
+	// KVM MODEL
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_y = key_vector_map(pointers(l_example_x), { 10, 10 }, l_example_dimensions.back());
+	auto l_loss = mean_squared_error(l_y, l_example_y);
+
+	element_vector l_kvm_element_vector = element_vector::stop();
+	parameter_vector l_kvm_parameter_vector = parameter_vector::stop(-1, 1);
+
+	gradient_descent l_optimizer(l_kvm_parameter_vector, 0.2);
+
+	size_t l_mini_batch_size = 10;
+
+	for (int epoch = 0; true; epoch++)
+	{
+		double l_cost = 0;
+
+		for (int i = 0; i < l_mini_batch_size; i++)
+		{
+			randomize_state(pointers(l_example_x), -10, 10);
+			l_example_element_vector.fwd();
+			l_kvm_element_vector.fwd();
+			l_cost += l_loss->m_state;
+			l_loss->m_gradient = 1;
+			l_kvm_element_vector.bwd();
+		}
+
+		l_optimizer.normalize_gradients();
+		l_optimizer.update();
+
+		l_cost /= (double)l_mini_batch_size;
+
+		if (epoch % 1000 == 0)
+		{
+			std::cout << l_cost << ", LR: " << l_optimizer.m_learn_rate << std::endl;
+			l_optimizer.m_learn_rate *= 0.96;
 		}
 
 	}
@@ -1238,7 +1309,7 @@ int main(
 {
 	srand(time(0));
 
-	mrve_test();
+	kvm_test();
 
 	return 0;
 }

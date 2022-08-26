@@ -864,6 +864,19 @@ namespace aurora
 		return l_result;
 	}
 
+	inline std::vector<state_gradient_pair*> subtract(
+		std::vector<state_gradient_pair*> a_x_0,
+		std::vector<state_gradient_pair*> a_x_1
+	)
+	{
+		std::vector<state_gradient_pair*> l_y;
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_y.push_back(subtract(a_x_0[i], a_x_1[i]));
+		}
+		return l_y;
+	}
+
 	inline std::vector<state_gradient_pair*> additive_aggregate(
 		std::vector<std::vector<state_gradient_pair*>> a_x
 	)
@@ -874,7 +887,7 @@ namespace aurora
 		return l_result;
 	}
 
-	inline std::vector<std::vector<state_gradient_pair*>> matrix_transpose(
+	inline std::vector<std::vector<state_gradient_pair*>> transpose(
 		std::vector<std::vector<state_gradient_pair*>> a_x
 	)
 	{
@@ -941,7 +954,7 @@ namespace aurora
 	)
 	{
 		assert(a_x_0[0].size() == a_x_1.size());
-		auto l_transpose = matrix_transpose(a_x_0);
+		auto l_transpose = transpose(a_x_0);
 		std::vector<std::vector<state_gradient_pair*>> l_scaled_transpose;
 		for (int i = 0; i < a_x_1.size(); i++)
 		{
@@ -969,7 +982,7 @@ namespace aurora
 	)
 	{
 		std::vector<std::vector<state_gradient_pair*>> l_result;
-		std::vector<std::vector<state_gradient_pair*>> l_x_1_transpose = matrix_transpose(a_x_1);
+		std::vector<std::vector<state_gradient_pair*>> l_x_1_transpose = transpose(a_x_1);
 		for (int i = 0; i < a_x_0.size(); i++)
 		{
 			std::vector<state_gradient_pair*> l_result_row;
@@ -1193,7 +1206,7 @@ namespace aurora
 
 		auto l_normalized = normalize(l_similarity_ys);
 
-		auto l_transpose = matrix_transpose(a_values);
+		auto l_transpose = transpose(a_values);
 
 		return multiply(l_transpose, l_normalized);
 
@@ -1255,7 +1268,7 @@ namespace aurora
 
 		l_s = weight_junction(l_s, a_value.size());
 		l_s = bias(l_s);
-		l_s = leaky_relu(l_s, 0.3);
+		l_s = sigmoid(l_s);
 
 		std::vector<state_gradient_pair*> l_o = l_x;
 
@@ -1283,17 +1296,65 @@ namespace aurora
 	{
 		const size_t l_value_dimensions = a_values[0].size();
 
-		std::vector<state_gradient_pair*> l_mrve_y = parameters(l_value_dimensions);
+		std::vector<std::vector<state_gradient_pair*>> l_rve_ys;
 
-		size_t l_next_parameter_index = parameter_vector::next_index();
+		size_t l_rve_parameter_start_index = parameter_vector::next_index();
 
 		for (int i = 0; i < a_keys.size(); i++)
 		{
-			parameter_vector::next_index(l_next_parameter_index);
-			l_mrve_y = add(l_mrve_y, rve(a_query, a_keys[i], a_values[i], a_hidden_dimensions));
+			parameter_vector::next_index(l_rve_parameter_start_index);
+			l_rve_ys.push_back(rve(a_query, a_keys[i], a_values[i], a_hidden_dimensions));
 		}
 
-		return l_mrve_y;
+		std::vector<state_gradient_pair*> l_confidence_ys;
+
+		size_t l_confidence_parameter_start_index = parameter_vector::next_index();
+
+		for (int i = 0; i < a_keys.size(); i++)
+		{
+			parameter_vector::next_index(l_confidence_parameter_start_index);
+
+			std::vector<state_gradient_pair*> l_confidence_x = concat(a_query, a_keys[i]);
+			std::vector<state_gradient_pair*> l_confidence_y = l_confidence_x;
+
+			for (int j = 0; j < a_hidden_dimensions.size(); j++)
+			{
+				l_confidence_y = weight_junction(l_confidence_y, a_hidden_dimensions[j]);
+				l_confidence_y = bias(l_confidence_y);
+				l_confidence_y = leaky_relu(l_confidence_y, 0.3);
+			}
+
+			l_confidence_y = weight_junction(l_confidence_y, 1);
+			l_confidence_y = bias(l_confidence_y);
+			l_confidence_y = sigmoid(l_confidence_y);
+
+			l_confidence_ys.push_back(l_confidence_y[0]);
+		}
+
+		std::vector<state_gradient_pair*> l_normalized_confidence_ys = normalize(l_confidence_ys);
+
+		return multiply(transpose(l_rve_ys), l_normalized_confidence_ys);
+
+	}
+
+	inline std::vector<state_gradient_pair*> key_vector_map(
+		std::vector<state_gradient_pair*> a_x,
+		const std::vector<size_t>& a_dimensions,
+		const size_t& a_y_size
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_key_matrix = parameters(a_dimensions.back(), a_y_size);
+
+		std::vector<state_gradient_pair*> l_limbic_y = a_x;
+
+		for (int i = 0; i < a_dimensions.size(); i++)
+		{
+			l_limbic_y = weight_junction(l_limbic_y, a_dimensions[i]);
+			l_limbic_y = bias(l_limbic_y);
+			l_limbic_y = leaky_relu(l_limbic_y, 0.3);
+		}
+
+		return multiply(transpose(l_key_matrix), l_limbic_y);
 
 	}
 
