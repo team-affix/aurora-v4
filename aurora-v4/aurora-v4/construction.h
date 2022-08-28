@@ -845,7 +845,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> range(
-		std::vector<state_gradient_pair*> a_vector,
+		const std::vector<state_gradient_pair*>& a_vector,
 		const size_t& a_start_index,
 		const size_t& a_size
 	)
@@ -862,7 +862,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> range(
-		std::vector<std::vector<state_gradient_pair*>> a_matrix,
+		const std::vector<std::vector<state_gradient_pair*>>& a_matrix,
 		const size_t& a_top_index,
 		const size_t& a_left_index,
 		const size_t& a_height,
@@ -881,7 +881,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<std::vector<state_gradient_pair*>>> range(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_tensor,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor,
 		const size_t& a_front_index,
 		const size_t& a_top_index,
 		const size_t& a_left_index,
@@ -902,7 +902,7 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* additive_aggregate(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		assert(a_x.size() > 0);
@@ -919,8 +919,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> add(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		assert(a_x_0.size() == a_x_1.size());
@@ -933,8 +933,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> subtract(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		std::vector<state_gradient_pair*> l_y(a_x_0.size());
@@ -946,7 +946,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> additive_aggregate(
-		std::vector<std::vector<state_gradient_pair*>> a_x
+		const std::vector<std::vector<state_gradient_pair*>>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result = a_x[0];
@@ -956,7 +956,7 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* average(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		return divide(
@@ -965,7 +965,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> transpose(
-		std::vector<std::vector<state_gradient_pair*>> a_x
+		const std::vector<std::vector<state_gradient_pair*>>& a_x
 	)
 	{
 		std::vector<std::vector<state_gradient_pair*>> l_result;
@@ -995,8 +995,8 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* multiply(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		assert(a_x_0.size() == a_x_1.size());
@@ -1013,7 +1013,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> multiply(
-		std::vector<state_gradient_pair*> a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_0,
 		state_gradient_pair* a_x_1
 	)
 	{
@@ -1026,8 +1026,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> multiply(
-		std::vector<std::vector<state_gradient_pair*>> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		assert(a_x_0[0].size() == a_x_1.size());
@@ -1041,7 +1041,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> multiply(
-		std::vector<std::vector<state_gradient_pair*>> a_x_0,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
 		state_gradient_pair* a_x_1
 	)
 	{
@@ -1054,8 +1054,8 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> multiply(
-		std::vector<std::vector<state_gradient_pair*>> a_x_0,
-		std::vector<std::vector<state_gradient_pair*>> a_x_1
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_1
 	)
 	{
 		std::vector<std::vector<state_gradient_pair*>> l_result(a_x_0.size());
@@ -1073,8 +1073,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> hadamard(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		assert(a_x_0.size() == a_x_1.size());
@@ -1098,7 +1098,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> bias(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x.size());
@@ -1111,7 +1111,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> weight_junction(
-		std::vector<state_gradient_pair*> a_x,
+		const std::vector<state_gradient_pair*>& a_x,
 		const size_t& a_y_size
 	)
 	{
@@ -1119,7 +1119,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> sigmoid(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x.size());
@@ -1129,7 +1129,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> tanh(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x.size());
@@ -1139,7 +1139,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> leaky_relu(
-		std::vector<state_gradient_pair*> a_x,
+		const std::vector<state_gradient_pair*>& a_x,
 		const double& a_m
 	)
 	{
@@ -1150,7 +1150,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> sigmoid(
-		std::vector<std::vector<state_gradient_pair*>> a_x
+		const std::vector<std::vector<state_gradient_pair*>>& a_x
 	)
 	{
 		std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
@@ -1160,7 +1160,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> tanh(
-		std::vector<std::vector<state_gradient_pair*>> a_x
+		const std::vector<std::vector<state_gradient_pair*>>& a_x
 	)
 	{
 		std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
@@ -1170,7 +1170,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> leaky_relu(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
 		const double& a_m
 	)
 	{
@@ -1181,7 +1181,7 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* multiplicative_aggregate(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		assert(a_x.size() > 0);
@@ -1198,7 +1198,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> normalize(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x.size());
@@ -1215,12 +1215,12 @@ namespace aurora
 	}
 
 	std::vector<std::vector<state_gradient_pair*>> lstm(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
 		const size_t& a_y_size
 	);
 
 	inline state_gradient_pair* parameterized_interpolate(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		return multiply(
@@ -1230,7 +1230,7 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* vector_magnitude(
-		std::vector<state_gradient_pair*> a_x
+		const std::vector<state_gradient_pair*>& a_x
 	)
 	{
 		std::vector<state_gradient_pair*> l_square_ys(a_x.size());
@@ -1242,8 +1242,8 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* cosine_similarity(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		auto l_multiply = multiply(a_x_0, a_x_1);
@@ -1253,8 +1253,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> vector_vector_subtract(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		assert(a_x_0.size() == a_x_1.size());
@@ -1271,17 +1271,17 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* euclidian_distance(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		return vector_magnitude(vector_vector_subtract(a_x_0, a_x_1));
 	}
 
 	inline std::vector<state_gradient_pair*> similarity_interpolate(
-		std::vector<state_gradient_pair*> a_query,
-		std::vector<std::vector<state_gradient_pair*>> a_keys,
-		std::vector<std::vector<state_gradient_pair*>> a_values
+		const std::vector<state_gradient_pair*>& a_query,
+		const std::vector<std::vector<state_gradient_pair*>>& a_keys,
+		const std::vector<std::vector<state_gradient_pair*>>& a_values
 	)
 	{
 		std::vector<state_gradient_pair*> l_similarity_ys(a_keys.size()); // Each element between 0 and +inf
@@ -1302,7 +1302,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> partition(
-		std::vector<state_gradient_pair*> a_x,
+		const std::vector<state_gradient_pair*>& a_x,
 		const size_t& a_bin_size
 	)
 	{
@@ -1328,8 +1328,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> concat(
-		std::vector<state_gradient_pair*> a_x_0,
-		std::vector<state_gradient_pair*> a_x_1
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x_0.size() + a_x_1.size());
@@ -1341,7 +1341,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> flatten(
-		std::vector<std::vector<state_gradient_pair*>> a_matrix
+		const std::vector<std::vector<state_gradient_pair*>>& a_matrix
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_matrix.size() * a_matrix[0].size());
@@ -1359,7 +1359,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> flatten(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_tensor
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
 	)
 	{
 		std::vector<state_gradient_pair*> l_result;
@@ -1372,8 +1372,8 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> convolve(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
-		std::vector<std::vector<state_gradient_pair*>> a_filter,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
+		const std::vector<std::vector<state_gradient_pair*>>& a_filter,
 		const size_t& a_stride = 1
 	)
 	{
@@ -1405,8 +1405,8 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> convolve(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_x,
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_filter,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_filter,
 		const size_t& a_stride = 1
 	)
 	{
@@ -1446,7 +1446,7 @@ namespace aurora
 	}
 
 	inline std::vector<state_gradient_pair*> average_pool(
-		std::vector<state_gradient_pair*> a_x,
+		const std::vector<state_gradient_pair*>& a_x,
 		const size_t& a_bin_width,
 		const size_t& a_stride = 1
 	)
@@ -1467,7 +1467,7 @@ namespace aurora
 	}
 
 	inline std::vector<std::vector<state_gradient_pair*>> average_pool(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
 		const size_t& a_bin_height,
 		const size_t& a_bin_width,
 		const size_t& a_stride = 1
@@ -1508,8 +1508,8 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* mean_squared_error(
-		std::vector<state_gradient_pair*> a_prediction,
-		std::vector<state_gradient_pair*> a_desired
+		const std::vector<state_gradient_pair*>& a_prediction,
+		const std::vector<state_gradient_pair*>& a_desired
 	)
 	{
 		assert(a_prediction.size() == a_desired.size());
@@ -1531,8 +1531,8 @@ namespace aurora
 	}
 
 	inline state_gradient_pair* mean_squared_error(
-		std::vector<std::vector<state_gradient_pair*>> a_prediction,
-		std::vector<std::vector<state_gradient_pair*>> a_desired
+		const std::vector<std::vector<state_gradient_pair*>>& a_prediction,
+		const std::vector<std::vector<state_gradient_pair*>>& a_desired
 	)
 	{
 		assert(a_prediction.size() == a_desired.size());

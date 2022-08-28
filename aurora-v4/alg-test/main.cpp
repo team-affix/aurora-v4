@@ -1193,8 +1193,8 @@ void cnn_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	auto l_x = input(3, 30, 30);
-	auto l_cnn_y = convolve(pointers(l_x), parameters(3, 3, 3));
+	auto l_x = input(3, 1080, 1920);
+	auto l_cnn_y = convolve(pointers(l_x), parameters(3, 100, 100), 100);
 	l_cnn_y = average_pool(l_cnn_y, 3, 3, 3);
 	l_cnn_y = leaky_relu(l_cnn_y, 0.3);
 	l_cnn_y = convolve({ l_cnn_y }, parameters(1, 2, 2));
@@ -1223,7 +1223,7 @@ int main(
 {
 	srand(time(0));
 
-	cnn_test();
+	tnn_test();
 
 	return 0;
 }

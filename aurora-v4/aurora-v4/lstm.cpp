@@ -60,7 +60,7 @@ public:
 };
 
 std::vector<std::vector<state_gradient_pair*>> aurora::lstm(
-	std::vector<std::vector<state_gradient_pair*>> a_x,
+	const std::vector<std::vector<state_gradient_pair*>>& a_x,
 	const size_t& a_y_size
 )
 {
