@@ -160,7 +160,6 @@
     <ClInclude Include="maths.h" />
     <ClInclude Include="construction.h" />
     <ClInclude Include="optimizers.h" />
-    <ClInclude Include="randomization.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="construction.cpp" />

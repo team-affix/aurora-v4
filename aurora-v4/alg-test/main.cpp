@@ -23,7 +23,7 @@ void tnn_test(
 	l_y = bias(l_y);
 	l_y = sigmoid(l_y);
 	
-	auto l_desired_y = vector(l_y.size());
+	auto l_desired_y = input(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 	
 	auto l_model = element_vector::stop();
@@ -135,7 +135,7 @@ void parabola_test(
 	l_y = bias(l_y);
 	l_y = leaky_relu(l_y, 0.3);
 
-	auto l_desired_y = vector(l_y.size());
+	auto l_desired_y = input(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	auto l_model = element_vector::stop();
@@ -232,7 +232,7 @@ void lstm_test(
 	const size_t l_tnn_h0_units = 3;
 	const size_t l_tnn_y_units = 1;
 
-	auto l_x = matrix(4, 2);
+	auto l_x = input(4, 2);
 
 	auto l_lstm_0 = lstm(pointers(l_x), l_lstm_y_units);
 
@@ -250,7 +250,7 @@ void lstm_test(
 		l_y.push_back(l_tnn_y);
 	}
 
-	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
+	auto l_desired_y = input(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	auto l_model = element_vector::stop();
@@ -336,7 +336,7 @@ void lstm_stacked_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	auto l_x = matrix(4, 2);
+	auto l_x = input(4, 2);
 
 	auto l_lstm_0 = lstm(pointers(l_x), 20);
 	auto l_lstm_1 = lstm(l_lstm_0, 20);
@@ -356,7 +356,7 @@ void lstm_stacked_test(
 		l_y.push_back(l_tnn_y);
 	}
 
-	auto l_desired_y = matrix(l_y.size(), l_y[0].size());
+	auto l_desired_y = input(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	auto l_model = element_vector::stop();
@@ -499,15 +499,23 @@ void similarity_interpolate_test(
 		{0.862}
 	};
 
-	std::vector<state_gradient_pair> l_query = { 1, 0 };
+	auto l_query = input(2);
 	
 	element_vector::start();
 
-	auto l_y = distance_reciprocal_similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
+	auto l_y = similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
 
 	auto l_model = element_vector::stop();
 
-	l_model.fwd();
+	while (true)
+	{
+		std::cout << "INPUT TWO VALUES." << std::endl;
+		std::cin >> l_query[0].m_state;
+		std::cin >> l_query[1].m_state;
+		l_model.fwd();
+		std::cout << l_y[0]->m_state << std::endl;
+	}
+
 
 }
 
@@ -601,7 +609,7 @@ void issp_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	std::vector<std::vector<state_gradient_pair>> l_x = matrix(100, 4);
+	std::vector<std::vector<state_gradient_pair>> l_x = input(100, 4);
 
 	auto l_y = in_sequence_stock_predict(
 		pointers(l_x),
@@ -641,7 +649,7 @@ void pablo_tnn_example(
 	l_y = sigmoid(l_y);
 
 
-	auto l_desired_y = vector(l_y.size());
+	auto l_desired_y = input(l_y.size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
 
 	auto l_model = element_vector::stop();
@@ -953,7 +961,7 @@ void tnn_test_2(
 	element_vector::start();
 	parameter_vector::start();
 
-	auto l_x = vector(2);
+	auto l_x = input(2);
 	auto l_y = pointers(l_x);
 
 	std::vector<size_t> l_layer_sizes = { 5, 1 };
@@ -965,7 +973,7 @@ void tnn_test_2(
 		l_y = leaky_relu(l_y, 0.3);
 	}
 
-	auto l_desired = vector(1);
+	auto l_desired = input(1);
 	auto l_loss = mean_squared_error(l_y, pointers(l_desired));
 
 	element_vector l_elements = element_vector::stop();
@@ -1015,7 +1023,7 @@ void teacher_student_test_0(
 	element_vector::start();
 	parameter_vector::start();
 
-	auto l_student_x = vector(STUDENT_INPUT_SIZE);
+	auto l_student_x = input(STUDENT_INPUT_SIZE);
 	auto l_student_y = pointers(l_student_x);
 
 	for (int i = 0; i < STUDENT_DIMENSIONS.size(); i++)
@@ -1025,7 +1033,7 @@ void teacher_student_test_0(
 		l_student_y = leaky_relu(l_student_y, 0.3);
 	}
 
-	auto l_student_desired_y = vector(l_student_y.size());
+	auto l_student_desired_y = input(l_student_y.size());
 	auto l_student_loss = mean_squared_error(l_student_y, pointers(l_student_desired_y));
 
 	element_vector l_student_element_vector = element_vector::stop();
@@ -1078,7 +1086,7 @@ void teacher_student_test_0(
 	element_vector::start();
 	parameter_vector::start();
 
-	auto l_teacher_x = matrix(STUDENT_TRAINING_SETS_PER_TASK_COUNT, STUDENT_INPUT_SIZE + STUDENT_DIMENSIONS.back());
+	auto l_teacher_x = input(STUDENT_TRAINING_SETS_PER_TASK_COUNT, STUDENT_INPUT_SIZE + STUDENT_DIMENSIONS.back());
 	auto l_teacher_y = pointers(l_teacher_x);
 
 	for (int i = 0; i < TEACHER_DIMENSIONS.size(); i++)
@@ -1140,166 +1148,72 @@ void teacher_student_test_0(
 
 }
 
-void mrve_test(
+void convolve_test(
 
 )
 {
-	// GENERATE EXAMPLE NEURAL NETWORK
 	element_vector::start();
-	parameter_vector::start();
 
-	size_t l_example_input_dimensions = 10;
-	std::vector<size_t> l_example_dimensions = { 20, 10 };
-
-	std::vector<state_gradient_pair> l_example_x(l_example_input_dimensions);
-	std::vector<state_gradient_pair*> l_example_y(pointers(l_example_x));
-
-	for (int i = 0; i < l_example_dimensions.size(); i++)
-	{
-		l_example_y = weight_junction(l_example_y, l_example_dimensions[i]);
-		l_example_y = bias(l_example_y);
-		l_example_y = leaky_relu(l_example_y, 0.3);
-	}
-
-	element_vector l_example_element_vector = element_vector::stop();
-	parameter_vector l_example_parameter_vector = parameter_vector::stop(-1, 1);
-
-	// GENERATE MRVE ANCHOR POINTS
-
-	size_t l_anchor_points_count = 5;
-
-	std::vector<std::vector<state_gradient_pair>> l_keys;
-	std::vector<std::vector<state_gradient_pair>> l_values;
-
-	for (int i = 0; i < l_anchor_points_count; i++)
-	{
-		randomize_state(pointers(l_example_x), -10, 10);
-		l_example_element_vector.fwd();
-		l_keys.push_back(l_example_x);
-		l_values.push_back(get_state(l_example_y));
-	}
-
-	// START CONSTRUCTION OF ELEMENT AND PARAMETER VECTORS
-	element_vector::start();
-	parameter_vector::start();
-
-	auto l_x = vector(l_example_input_dimensions);
-
-	auto l_y = mrve(
-		pointers(l_x),
-		pointers(l_keys),
-		pointers(l_values),
-		{ 30 }
-	);
-
-	auto l_desired_y = vector(l_example_dimensions.back());
-	auto l_loss = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_x = input(3, 50, 50);
+	auto l_filter = input(3, 5, 5);
+	auto l_y = convolve(pointers(l_x), pointers(l_filter), 10);
 
 	element_vector l_element_vector = element_vector::stop();
-	parameter_vector l_parameter_vector = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameter_vector, 0.2);
-
-	const size_t l_mini_batch_size = 10;
-
-	for (int epoch = 0; true; epoch++)
+	for (int i = 0; i < l_x.size(); i++)
 	{
-		double l_cost = 0;
-
-		for (int i = 0; i < l_mini_batch_size; i++)
+		for (int j = 0; j < l_x[0].size(); j++)
 		{
-			randomize_state(pointers(l_example_x), -10, 10);
-			l_example_element_vector.fwd();
-
-			set_state(pointers(l_x), pointers(l_example_x));
-			set_state(pointers(l_desired_y), l_example_y);
-
-			l_element_vector.fwd();
-			l_cost += l_loss->m_state;
-			l_loss->m_gradient = 1;
-			l_element_vector.bwd();
-
+			for (int k = 0; k < l_x[0][0].size(); k++)
+			{
+				l_x[i][j][k] = (i + j + k) % 100;
+			}
 		}
-
-		l_cost /= (double)l_mini_batch_size;
-
-		l_optimizer.normalize_gradients();
-		l_optimizer.update();
-
-		if (epoch % 100 == 0)
-		{
-			std::cout << "COST: " << l_cost << ", LR: " << l_optimizer.m_learn_rate << std::endl;
-			l_optimizer.m_learn_rate *= 0.99;
-		}
-
 	}
+
+	for (int i = 0; i < l_filter.size(); i++)
+	{
+		for (int j = 0; j < l_filter[0].size(); j++)
+		{
+			for (int k = 0; k < l_filter[0][0].size(); k++)
+			{
+				l_filter[i][j][k] = (i + j + k) % 100;
+			}
+		}
+	}
+
+	l_element_vector.fwd();
 
 }
 
-void kvm_test(
+void cnn_test(
 
 )
 {
-	// GENERATE EXAMPLE NEURAL NETWORK
 	element_vector::start();
 	parameter_vector::start();
 
-	size_t l_example_input_dimensions = 10;
-	std::vector<size_t> l_example_dimensions = { 20, 30, 10 };
+	auto l_x = input(3, 30, 30);
+	auto l_cnn_y = convolve(pointers(l_x), parameters(3, 3, 3));
+	l_cnn_y = average_pool(l_cnn_y, 3, 3, 3);
+	l_cnn_y = leaky_relu(l_cnn_y, 0.3);
+	l_cnn_y = convolve({ l_cnn_y }, parameters(1, 2, 2));
 
-	std::vector<state_gradient_pair> l_example_x(l_example_input_dimensions);
-	std::vector<state_gradient_pair*> l_example_y(pointers(l_example_x));
+	std::vector<size_t> l_layer_sizes = { 15, 2 };
 
-	for (int i = 0; i < l_example_dimensions.size(); i++)
+	auto l_tnn_y = flatten(l_cnn_y);
+	
+	for (auto& l_layer_size : l_layer_sizes)
 	{
-		l_example_y = weight_junction(l_example_y, l_example_dimensions[i]);
-		l_example_y = bias(l_example_y);
-		l_example_y = leaky_relu(l_example_y, 0.3);
+		l_tnn_y = weight_junction(l_tnn_y, l_layer_size);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
 	}
 
-	element_vector l_example_element_vector = element_vector::stop();
-	parameter_vector l_example_parameter_vector = parameter_vector::stop(-1, 1);
+	element_vector l_element_vector = element_vector::stop();
+	parameter_vector l_parameter_vector = parameter_vector::stop();
 
-	// KVM MODEL
-	element_vector::start();
-	parameter_vector::start();
 
-	auto l_y = key_vector_map(pointers(l_example_x), { 10, 10 }, l_example_dimensions.back());
-	auto l_loss = mean_squared_error(l_y, l_example_y);
-
-	element_vector l_kvm_element_vector = element_vector::stop();
-	parameter_vector l_kvm_parameter_vector = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_kvm_parameter_vector, 0.2);
-
-	size_t l_mini_batch_size = 10;
-
-	for (int epoch = 0; true; epoch++)
-	{
-		double l_cost = 0;
-
-		for (int i = 0; i < l_mini_batch_size; i++)
-		{
-			randomize_state(pointers(l_example_x), -10, 10);
-			l_example_element_vector.fwd();
-			l_kvm_element_vector.fwd();
-			l_cost += l_loss->m_state;
-			l_loss->m_gradient = 1;
-			l_kvm_element_vector.bwd();
-		}
-
-		l_optimizer.normalize_gradients();
-		l_optimizer.update();
-
-		l_cost /= (double)l_mini_batch_size;
-
-		if (epoch % 1000 == 0)
-		{
-			std::cout << l_cost << ", LR: " << l_optimizer.m_learn_rate << std::endl;
-			l_optimizer.m_learn_rate *= 0.96;
-		}
-
-	}
 
 }
 
@@ -1309,7 +1223,7 @@ int main(
 {
 	srand(time(0));
 
-	kvm_test();
+	cnn_test();
 
 	return 0;
 }
