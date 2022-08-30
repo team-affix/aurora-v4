@@ -11,24 +11,10 @@ namespace aurora
 
 	public:
 		optimizer(
-			std::vector<state_gradient_pair*> a_values
+			const std::vector<state_gradient_pair*>& a_values
 		) :
 			m_values(a_values.begin(), a_values.end())
 		{
-
-		}
-
-		void normalize_gradients(
-
-		)
-		{
-			double l_normalization_denominator = 0;
-
-			for (auto& l_value : m_values)
-				l_normalization_denominator += std::abs(l_value->m_gradient);
-
-			for (auto& l_value : m_values)
-				l_value->m_gradient /= l_normalization_denominator;
 
 		}
 
@@ -36,6 +22,25 @@ namespace aurora
 
 		)
 		{
+
+		}
+
+	protected:
+		std::vector<double> normalized_gradients(
+
+		)
+		{
+			double l_normalization_denominator = 0;
+
+			std::vector<double> l_gradients = get_gradient(m_values);
+
+			for (auto& l_gradient : l_gradients)
+				l_normalization_denominator += std::abs(l_gradient);
+
+			for (auto& l_gradient : l_gradients)
+				l_gradient /= l_normalization_denominator;
+
+			return l_gradients;
 
 		}
 
@@ -48,7 +53,7 @@ namespace aurora
 
 	public:
 		gradient_descent(
-			std::vector<state_gradient_pair*> a_values,
+			const std::vector<state_gradient_pair*>& a_values,
 			const double& a_learn_rate
 		) :
 			optimizer(a_values),
@@ -61,10 +66,10 @@ namespace aurora
 
 		)
 		{
-			for (auto& l_value : m_values)
+			std::vector<double> l_gradients = normalized_gradients();
+			for (int i = 0; i < m_values.size(); i++)
 			{
-				l_value->m_state -= m_learn_rate * l_value->m_gradient;
-				l_value->m_gradient = 0;
+				m_values[i]->m_state -= m_learn_rate * l_gradients[i];
 			}
 		}
 
@@ -80,7 +85,7 @@ namespace aurora
 
 	public:
 		gradient_descent_with_momentum(
-			std::vector<state_gradient_pair*> a_values,
+			const std::vector<state_gradient_pair*>& a_values,
 			const double& a_learn_rate,
 			const double& a_beta
 		) :
@@ -97,13 +102,13 @@ namespace aurora
 
 		)
 		{
+			std::vector<double> l_gradients = normalized_gradients();
 			for (int i = 0; i < m_values.size(); i++)
 			{
 				auto& l_value = m_values[i];
 				auto& l_momentum = m_momenta[i];
-				l_momentum = m_beta * l_momentum + m_alpha * l_value->m_gradient;
+				l_momentum = m_beta * l_momentum + m_alpha * l_gradients[i];
 				l_value->m_state -= m_learn_rate * l_momentum;
-				l_value->m_gradient = 0;
 			}
 		}
 

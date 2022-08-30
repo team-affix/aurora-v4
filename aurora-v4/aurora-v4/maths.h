@@ -1,15 +1,23 @@
 #pragma once
 #include "affix-base/pch.h"
+#include "affix-base/ptr.h"
 #include <vector>
 
 namespace aurora
 {
 	inline std::default_random_engine i_default_random_engine(28);
 
+	struct state_gradient_pair_dependency
+	{
+		double& m_state;
+		double& m_partial_gradient;
+	};
+
 	struct state_gradient_pair
 	{
 		double m_state = 0;
-		double m_gradient = 0;
+
+		std::vector<affix_base::data::ptr<double>> m_partial_gradients;
 
 		state_gradient_pair(
 
@@ -26,15 +34,35 @@ namespace aurora
 
 		}
 
+		double gradient(
+
+		)
+		{
+			double l_result = 0;
+			for (auto& l_partial_gradient : m_partial_gradients)
+			{
+				l_result += *l_partial_gradient;
+			}
+			return l_result;
+		}
+
+		state_gradient_pair_dependency depend(
+
+		)
+		{
+			m_partial_gradients.push_back(new double(0));
+			return state_gradient_pair_dependency{ m_state, *m_partial_gradients.back() };
+		}
+
 	};
 
 	inline std::vector<state_gradient_pair*> pointers(
 		std::vector<state_gradient_pair>& a_vector
 	)
 	{
-		std::vector<state_gradient_pair*> l_result(a_vector.size());
+		std::vector<state_gradient_pair*> l_result;
 		for (int i = 0; i < a_vector.size(); i++)
-			l_result[i] = a_vector.data() + i;
+			l_result.push_back(&a_vector[i]);
 		return l_result;
 	}
 
@@ -42,9 +70,9 @@ namespace aurora
 		std::vector<std::vector<state_gradient_pair>>& a_matrix
 	)
 	{
-		std::vector<std::vector<state_gradient_pair*>> l_result(a_matrix.size());
+		std::vector<std::vector<state_gradient_pair*>> l_result;
 		for (int i = 0; i < a_matrix.size(); i++)
-			l_result[i] = pointers(a_matrix[i]);
+			l_result.push_back(pointers(a_matrix[i]));
 		return l_result;
 	}
 
@@ -52,54 +80,54 @@ namespace aurora
 		std::vector<std::vector<std::vector<state_gradient_pair>>>& a_tensor
 	)
 	{
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result(a_tensor.size());
+		std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result;
 		for (int i = 0; i < a_tensor.size(); i++)
-			l_result[i] = pointers(a_tensor[i]);
+			l_result.push_back(pointers(a_tensor[i]));
 		return l_result;
 	}
 
-	inline std::vector<state_gradient_pair> get_state(
-		std::vector<state_gradient_pair*> a_vector
+	inline std::vector<double> get_state(
+		const std::vector<state_gradient_pair*>& a_vector
 	)
 	{
-		std::vector<state_gradient_pair> l_result(a_vector.size());
+		std::vector<double> l_result(a_vector.size());
 		for (int i = 0; i < a_vector.size(); i++)
-			l_result[i].m_state = a_vector[i]->m_state;
+			l_result[i] = a_vector[i]->m_state;
 		return l_result;
 	}
 
-	inline std::vector<std::vector<state_gradient_pair>> get_state(
-		std::vector<std::vector<state_gradient_pair*>> a_matrix
+	inline std::vector<std::vector<double>> get_state(
+		const std::vector<std::vector<state_gradient_pair*>>& a_matrix
 	)
 	{
-		std::vector<std::vector<state_gradient_pair>> l_result(a_matrix.size());
+		std::vector<std::vector<double>> l_result(a_matrix.size());
 		for (int i = 0; i < a_matrix.size(); i++)
 			l_result[i] = get_state(a_matrix[i]);
 		return l_result;
 	}
 
-	inline std::vector<std::vector<std::vector<state_gradient_pair>>> get_state(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_tensor
+	inline std::vector<std::vector<std::vector<double>>> get_state(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
 	)
 	{
-		std::vector<std::vector<std::vector<state_gradient_pair>>> l_result(a_tensor.size());
+		std::vector<std::vector<std::vector<double>>> l_result(a_tensor.size());
 		for (int i = 0; i < a_tensor.size(); i++)
 			l_result[i] = get_state(a_tensor[i]);
 		return l_result;
 	}
 
 	inline void set_state(
-		std::vector<state_gradient_pair*> a_destination,
-		const std::vector<state_gradient_pair*> a_source
+		const std::vector<state_gradient_pair*>& a_destination,
+		const std::vector<double>& a_source
 	)
 	{
 		for (int i = 0; i < a_destination.size(); i++)
-			a_destination[i]->m_state = a_source[i]->m_state;
+			a_destination[i]->m_state = a_source[i];
 	}
 
 	inline void set_state(
-		std::vector<std::vector<state_gradient_pair*>> a_destination,
-		const std::vector<std::vector<state_gradient_pair*>> a_source
+		const std::vector<std::vector<state_gradient_pair*>>& a_destination,
+		const std::vector<std::vector<double>>& a_source
 	)
 	{
 		for (int i = 0; i < a_destination.size(); i++)
@@ -107,67 +135,46 @@ namespace aurora
 	}
 
 	inline void set_state(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_destination,
-		const std::vector<std::vector<std::vector<state_gradient_pair*>>> a_source
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_destination,
+		const std::vector<std::vector<std::vector<double>>>& a_source
 	)
 	{
 		for (int i = 0; i < a_destination.size(); i++)
 			set_state(a_destination[i], a_source[i]);
 	}
 
-	inline void add_gradient(
-		std::vector<state_gradient_pair*> a_destination,
-		std::vector<state_gradient_pair*> a_source
+	inline std::vector<double> get_gradient(
+		const std::vector<state_gradient_pair*>& a_vector
 	)
 	{
-		for (int i = 0; i < a_destination.size(); i++)
-			a_destination[i]->m_gradient += a_source[i]->m_gradient;
+		std::vector<double> l_result(a_vector.size());
+		for (int i = 0; i < a_vector.size(); i++)
+			l_result[i] = a_vector[i]->gradient();
+		return l_result;
 	}
 
-	inline void add_gradient(
-		std::vector<std::vector<state_gradient_pair*>> a_destination,
-		std::vector<std::vector<state_gradient_pair*>> a_source
+	inline std::vector<std::vector<double>> get_gradient(
+		const std::vector<std::vector<state_gradient_pair*>>& a_matrix
 	)
 	{
-		for (int i = 0; i < a_destination.size(); i++)
-			add_gradient(a_destination[i], a_source[i]);
+		std::vector<std::vector<double>> l_result(a_matrix.size());
+		for (int i = 0; i < a_matrix.size(); i++)
+			l_result[i] = get_state(a_matrix[i]);
+		return l_result;
 	}
 
-	inline void add_gradient(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_destination,
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_source
+	inline std::vector<std::vector<std::vector<double>>> get_gradient(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
 	)
 	{
-		for (int i = 0; i < a_destination.size(); i++)
-			add_gradient(a_destination[i], a_source[i]);
-	}
-
-	inline void clear_gradient(
-		std::vector<state_gradient_pair*> a_vector
-	)
-	{
-		for (auto& l_value : a_vector)
-			l_value->m_gradient = 0;
-	}
-
-	inline void clear_gradient(
-		std::vector<std::vector<state_gradient_pair*>> a_matrix
-	)
-	{
-		for (auto& l_vector : a_matrix)
-			clear_gradient(l_vector);
-	}
-
-	inline void clear_gradient(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_tensor
-	)
-	{
-		for (auto& l_matrix : a_tensor)
-			clear_gradient(l_matrix);
+		std::vector<std::vector<std::vector<double>>> l_result(a_tensor.size());
+		for (int i = 0; i < a_tensor.size(); i++)
+			l_result[i] = get_state(a_tensor[i]);
+		return l_result;
 	}
 
 	inline void randomize_state(
-		std::vector<state_gradient_pair*> a_x,
+		const std::vector<state_gradient_pair*>& a_x,
 		const double& a_minimum_random_value,
 		const double& a_maximum_random_value
 	)
@@ -180,7 +187,7 @@ namespace aurora
 	}
 
 	inline void randomize_state(
-		std::vector<std::vector<state_gradient_pair*>> a_x,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
 		const double& a_minimum_random_value,
 		const double& a_maximum_random_value
 	)
@@ -192,7 +199,7 @@ namespace aurora
 	}
 
 	inline void randomize_state(
-		std::vector<std::vector<std::vector<state_gradient_pair*>>> a_x,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
 		const double& a_minimum_random_value,
 		const double& a_maximum_random_value
 	)

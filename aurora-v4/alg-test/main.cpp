@@ -13,18 +13,27 @@ void tnn_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	std::vector<state_gradient_pair> l_x(2);
+	auto l_x = input(4, 2);
+	auto l_desired_y = input(4, 1);
 
-	auto l_y = pointers(l_x);
-	l_y = weight_junction(l_y, 5);
-	l_y = bias(l_y);
-	l_y = leaky_relu(l_y, 0.3);
-	l_y = weight_junction(l_y, 1);
-	l_y = bias(l_y);
-	l_y = sigmoid(l_y);
+	std::vector<std::vector<state_gradient_pair*>> l_y;
+
+	size_t l_next_parameter_index = parameter_vector::next_index();
+
+	for (int i = 0; i < l_x.size(); i++)
+	{
+		parameter_vector::next_index(l_next_parameter_index);
+		auto l_y_element = pointers(l_x[i]);
+		l_y_element = weight_junction(l_y_element, 5);
+		l_y_element = bias(l_y_element);
+		l_y_element = leaky_relu(l_y_element, 0.3);
+		l_y_element = weight_junction(l_y_element, 1);
+		l_y_element = bias(l_y_element);
+		l_y_element = sigmoid(l_y_element);
+		l_y.push_back(l_y_element);
+	}
 	
-	auto l_desired_y = input(l_y.size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 	
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop();
@@ -37,31 +46,18 @@ void tnn_test(
 		l_parameters[i]->m_state = l_urd(l_dre);
 	}
 
-	auto l_cycle = [&](std::vector<state_gradient_pair>& a_x, std::vector<state_gradient_pair>& a_y)
-	{
-		set_state(pointers(l_x), pointers(a_x));
-		set_state(pointers(l_desired_y), pointers(a_y));
-
-		l_model.fwd();
-
-		l_error->m_gradient = 1;
-			
-		l_model.bwd();
-
-		return l_error->m_state;
-
-	};
-
 	const int CHECKPOINT = 100000;
 
-	std::vector<std::vector<state_gradient_pair>> l_ts_x = {
+	std::vector<std::vector<double>> l_ts_x =
+	{
 		{0, 0},
 		{0, 1},
 		{1, 0},
 		{1, 1}
 	};
 
-	std::vector<std::vector<state_gradient_pair>> l_ts_y = {
+	std::vector<std::vector<double>> l_ts_y =
+	{
 		{0},
 		{1},
 		{1},
@@ -69,39 +65,38 @@ void tnn_test(
 	};
 
 	affix_base::timing::stopwatch l_stopwatch;
+
 	l_stopwatch.start();
 
 	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
-		double l_cost = 0;
+		set_state(pointers(l_x), l_ts_x);
+		set_state(pointers(l_desired_y), l_ts_y);
 
-		l_cost += l_cycle(l_ts_x[0], l_ts_y[0]);
+		l_model.fwd();
 
-		if (epoch % CHECKPOINT == 0)
-			std::cout << l_y[0]->m_state << std::endl;
+		l_error.m_partial_gradient = 1;
 
-		l_cost += l_cycle(l_ts_x[1], l_ts_y[1]);
-
-		if (epoch % CHECKPOINT == 0)
-			std::cout << l_y[0]->m_state << std::endl;
-
-		l_cost += l_cycle(l_ts_x[2], l_ts_y[2]);
+		l_model.bwd();
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_y[0]->m_state << std::endl;
-
-		l_cost += l_cycle(l_ts_x[3], l_ts_y[3]);
+			std::cout << l_y[0][0]->m_state << std::endl;
 
 		if (epoch % CHECKPOINT == 0)
-			std::cout << l_y[0]->m_state << std::endl;
+			std::cout << l_y[1][0]->m_state << std::endl;
+
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[2][0]->m_state << std::endl;
+
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[3][0]->m_state << std::endl;
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
 
 		for (int i = 0; i < l_parameters.size(); i++)
 		{
-			l_parameters[i]->m_state -= 0.002 * l_parameters[i]->m_gradient;
-			l_parameters[i]->m_gradient = 0;
+			l_parameters[i]->m_state -= 0.002 * l_parameters[i]->gradient();
 		}
 
 	}
@@ -136,25 +131,25 @@ void parabola_test(
 	l_y = leaky_relu(l_y, 0.3);
 
 	auto l_desired_y = input(l_y.size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	std::default_random_engine l_dre(25);
 
-	auto l_cycle = [&](std::vector<state_gradient_pair>& a_x, std::vector<state_gradient_pair>& a_y)
+	auto l_cycle = [&](std::vector<double>& a_x, std::vector<double>& a_y)
 	{
-		set_state(pointers(l_x), pointers(a_x));
-		set_state(pointers(l_desired_y), pointers(a_y));
+		set_state(pointers(l_x), a_x);
+		set_state(pointers(l_desired_y), a_y);
 
 		l_model.fwd();
 
-		l_error->m_gradient = 1;
+		l_error.m_partial_gradient = 1;
 
 		l_model.bwd();
 
-		return l_error->m_state;
+		return l_error.m_state;
 
 	};
 
@@ -173,8 +168,8 @@ void parabola_test(
 			double l_ts_x = l_ts_urd(l_dre);
 			double l_ts_y = l_ts_x * l_ts_x;
 
-			std::vector<state_gradient_pair> l_ts_x_vector = { l_ts_x };
-			std::vector<state_gradient_pair> l_ts_y_vector = { l_ts_y };
+			std::vector<double> l_ts_x_vector = { l_ts_x };
+			std::vector<double> l_ts_y_vector = { l_ts_y };
 
 			l_cost += l_cycle(l_ts_x_vector, l_ts_y_vector);
 
@@ -187,8 +182,7 @@ void parabola_test(
 
 		for (int i = 0; i < l_parameters.size(); i++)
 		{
-			l_parameters[i]->m_state -= 0.002 * tanh(l_parameters[i]->m_gradient);
-			l_parameters[i]->m_gradient = 0;
+			l_parameters[i]->m_state -= 0.002 * tanh(l_parameters[i]->gradient());
 		}
 
 		if (epoch % CHECKPOINT_INTERVAL == 0)
@@ -251,14 +245,14 @@ void lstm_test(
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	gradient_descent l_optimizer(l_parameters, 0.02);
 
-	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
+	std::vector<std::vector<std::vector<double>>> l_training_set_xs =
 	{
 		{
 			{0, 0},
@@ -274,7 +268,7 @@ void lstm_test(
 		},
 	};
 
-	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_ys =
+	std::vector<std::vector<std::vector<double>>> l_training_set_ys =
 	{
 		{
 			{0},
@@ -298,15 +292,15 @@ void lstm_test(
 
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
-			set_state(pointers(l_x), pointers(l_training_set_xs[i]));
-			set_state(pointers(l_desired_y), pointers(l_training_set_ys[i]));
+			set_state(pointers(l_x), l_training_set_xs[i]);
+			set_state(pointers(l_desired_y), l_training_set_ys[i]);
 			
 			// Carry forward
 			l_model.fwd();
 
 			// Signal output
-			l_cost += l_error->m_state;
-			l_error->m_gradient = 1;
+			l_cost += l_error.m_state;
+			l_error.m_partial_gradient = 1;
 
 			// Carry backward
 			l_model.bwd();
@@ -357,7 +351,7 @@ void lstm_stacked_test(
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop();
@@ -370,7 +364,7 @@ void lstm_stacked_test(
 		l_parameter->m_state = l_urd(l_dre);
 	}
 
-	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_xs =
+	std::vector<std::vector<std::vector<double>>> l_training_set_xs =
 	{
 		{
 			{0, 0},
@@ -386,7 +380,7 @@ void lstm_stacked_test(
 		},
 	};
 
-	std::vector<std::vector<std::vector<state_gradient_pair>>> l_training_set_ys =
+	std::vector<std::vector<std::vector<double>>> l_training_set_ys =
 	{
 		{
 			{0},
@@ -410,19 +404,18 @@ void lstm_stacked_test(
 
 		for (int i = 0; i < l_training_set_xs.size(); i++)
 		{
-			set_state(pointers(l_x), pointers(l_training_set_xs[i]));
-			set_state(pointers(l_desired_y), pointers(l_training_set_ys[i]));
+			set_state(pointers(l_x), l_training_set_xs[i]);
+			set_state(pointers(l_desired_y), l_training_set_ys[i]);
 
 			l_model.fwd();
-			l_cost += l_error->m_state;
-			l_error->m_gradient = 1;
+			l_cost += l_error.m_state;
+			l_error.m_partial_gradient = 1;
 			l_model.bwd();
 		}
 
 		for (auto& l_parameter : l_parameters)
 		{
-			l_parameter->m_state -= 0.2 * l_parameter->m_gradient;
-			l_parameter->m_gradient = 0;
+			l_parameter->m_state -= 0.2 * l_parameter->gradient();
 		}
 
 		if (epoch % CHECKPOINT == 0)
@@ -650,14 +643,14 @@ void pablo_tnn_example(
 
 
 	auto l_desired_y = input(l_y.size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y));
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	gradient_descent l_optimizer(l_parameters, 0.02);
 
-	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	std::vector<std::vector<double>> l_tsx =
 	{
 		{ 0, 0 },
 		{ 0, 1 },
@@ -665,7 +658,7 @@ void pablo_tnn_example(
 		{ 1, 1 },
 	};
 
-	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	std::vector<std::vector<double>> l_tsy =
 	{
 		{ 0 },
 		{ 1 },
@@ -679,11 +672,11 @@ void pablo_tnn_example(
 	{
 		for (int i = 0; i < l_tsx.size(); i++)
 		{
-			set_state(pointers(l_x), pointers(l_tsx[i]));
-			set_state(pointers(l_desired_y), pointers(l_tsy[i]));
+			set_state(pointers(l_x), l_tsx[i]);
+			set_state(pointers(l_desired_y), l_tsy[i]);
 
 			l_model.fwd();
-			l_error->m_gradient = 1;
+			l_error.m_partial_gradient = 1;
 			l_model.bwd();
 
 			if (epoch % CHECKPOINT == 0)
@@ -726,7 +719,7 @@ void reward_structure_modeling(
 	auto l_y = multiply(l_normalized_parameters, pointers(l_x));
 
 	auto l_desired_y = state_gradient_pair();
-	auto l_error = mean_squared_error(l_y, &l_desired_y);
+	auto l_error = mean_squared_error(l_y, &l_desired_y)->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
@@ -735,8 +728,8 @@ void reward_structure_modeling(
 
 	struct training_set
 	{
-		std::vector<state_gradient_pair> m_x;
-		state_gradient_pair m_y;
+		std::vector<double> m_x;
+		double m_y;
 	};
 
 	std::vector<training_set> l_training_sets
@@ -765,13 +758,13 @@ void reward_structure_modeling(
 
 		for (auto& l_training_set : l_training_sets)
 		{
-			set_state(pointers(l_x), pointers(l_training_set.m_x));
-			l_desired_y.m_state = l_training_set.m_y.m_state;
+			set_state(pointers(l_x), l_training_set.m_x);
+			l_desired_y.m_state = l_training_set.m_y;
 
 			l_model.fwd();
 
-			l_cost += l_error->m_state;
-			l_error->m_gradient = 1;
+			l_cost += l_error.m_state;
+			l_error.m_partial_gradient = 1;
 
 			l_model.bwd();
 
@@ -818,7 +811,7 @@ void loss_modeling_test_0(
 	l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
 	l_loss_model_y = { pow(l_loss_model_y[0], constant(2)) };
 
-	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y));
+	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y))->depend();
 
 	auto l_loss_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
@@ -851,14 +844,13 @@ void loss_modeling_test_0(
 
 			l_loss_model.fwd();
 			
-			l_loss_model_loss->m_gradient = 1;
-			l_loss_model_epoch_loss += l_loss_model_loss->m_state;
+			l_loss_model_loss.m_partial_gradient = 1;
+			l_loss_model_epoch_loss += l_loss_model_loss.m_state;
 
 			l_loss_model.bwd();
 
 		}
 
-		l_optimizer.normalize_gradients();
 		l_optimizer.update();
 
 		if (epoch % 10000 == 0)
@@ -887,9 +879,8 @@ void loss_modeling_test_0(
 	for (int epoch = 0; epoch < 100000; epoch++)
 	{
 		l_loss_model.fwd();
-		l_loss_model_loss->m_gradient = 1;
+		l_loss_model_loss.m_partial_gradient = 1;
 		l_loss_model.bwd();
-		l_task_prediction_optimizer.normalize_gradients();
 		l_task_prediction_optimizer.update();
 		if (epoch % 10000 == 0)
 		{
@@ -912,9 +903,8 @@ void loss_modeling_test_0(
 	for (int epoch = 0; epoch < 100000; epoch++)
 	{
 		l_loss_model.fwd();
-		l_loss_model_loss->m_gradient = 1;
+		l_loss_model_loss.m_partial_gradient = 1;
 		l_loss_model.bwd();
-		l_task_x_optimizer.normalize_gradients();
 		l_task_x_optimizer.update();
 		if (epoch % 10000 == 0)
 		{
@@ -943,14 +933,14 @@ void tnn_test_2(
 
 )
 {
-	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	std::vector<std::vector<double>> l_tsx =
 	{
 		{0, 0},
 		{0, 1},
 		{1, 0},
 		{1, 1},
 	};
-	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	std::vector<std::vector<double>> l_tsy =
 	{
 		{0},
 		{1},
@@ -974,7 +964,7 @@ void tnn_test_2(
 	}
 
 	auto l_desired = input(1);
-	auto l_loss = mean_squared_error(l_y, pointers(l_desired));
+	auto l_loss = mean_squared_error(l_y, pointers(l_desired))->depend();
 
 	element_vector l_elements = element_vector::stop();
 	parameter_vector l_parameters = parameter_vector::stop(-1, 1);
@@ -987,10 +977,10 @@ void tnn_test_2(
 	{
 		for (int i = 0; i < l_tsx.size(); i++)
 		{
-			set_state(pointers(l_x), pointers(l_tsx[i]));
-			set_state(pointers(l_desired), pointers(l_tsy[i]));
+			set_state(pointers(l_x), l_tsx[i]);
+			set_state(pointers(l_desired), l_tsy[i]);
 			l_elements.fwd();
-			l_loss->m_gradient = 1;
+			l_loss.m_partial_gradient = 1;
 			l_elements.bwd();
 			if (epoch % CHECKPOINT == 0)
 			{
@@ -1002,148 +992,6 @@ void tnn_test_2(
 		{
 			std::cout << std::endl;
 		}
-	}
-
-}
-
-void teacher_student_test_0(
-
-)
-{
-	const size_t STUDENT_TASKS_COUNT = 100;
-	const size_t STUDENT_TRAINING_SETS_PER_TASK_COUNT = 10;
-	const size_t STUDENT_TESTING_SETS_PER_TASK_COUNT = 10;
-	const size_t STUDENT_INPUT_SIZE = 128;
-	const std::vector<size_t> STUDENT_DIMENSIONS = { 32, 32 };
-	const double STUDENT_MINIMUM_IO_VALUE = -100;
-	const double STUDENT_MAXIMUM_IO_VALUE = 100;
-	const size_t MINI_BATCH_SIZE = 32;
-
-	// CREATE STUDENT
-	element_vector::start();
-	parameter_vector::start();
-
-	auto l_student_x = input(STUDENT_INPUT_SIZE);
-	auto l_student_y = pointers(l_student_x);
-
-	for (int i = 0; i < STUDENT_DIMENSIONS.size(); i++)
-	{
-		l_student_y = weight_junction(l_student_y, STUDENT_DIMENSIONS[i]);
-		l_student_y = bias(l_student_y);
-		l_student_y = leaky_relu(l_student_y, 0.3);
-	}
-
-	auto l_student_desired_y = input(l_student_y.size());
-	auto l_student_loss = mean_squared_error(l_student_y, pointers(l_student_desired_y));
-
-	element_vector l_student_element_vector = element_vector::stop();
-	parameter_vector l_student_parameter_vector = parameter_vector::stop();
-
-	// GENERATE STUDENT TRAINING SETS
-	
-	struct student_training_set
-	{
-		std::vector<state_gradient_pair> m_x;
-		std::vector<state_gradient_pair> m_y;
-	};
-
-	struct teacher_training_set
-	{
-		std::vector<std::vector<state_gradient_pair>> m_x;
-		std::vector<student_training_set> m_student_testing_sets;
-	};
-	
-	std::vector<teacher_training_set> l_teacher_training_sets;
-
-	for (int i = 0; i < STUDENT_TASKS_COUNT; i++)
-	{
-		// RANDOMIZE STUDENT PARAM VECTOR
-		randomize_state(l_student_parameter_vector, -10, 10);
-
-		teacher_training_set l_teacher_training_set;
-
-		for (int j = 0; j < STUDENT_TRAINING_SETS_PER_TASK_COUNT; j++)
-		{
-			randomize_state(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
-			l_student_element_vector.fwd();
-			l_teacher_training_set.m_x.push_back(get_state(concat(pointers(l_student_x), l_student_y)));
-		}
-
-		for (int j = 0; j < STUDENT_TESTING_SETS_PER_TASK_COUNT; j++)
-		{
-			randomize_state(pointers(l_student_x), STUDENT_MINIMUM_IO_VALUE, STUDENT_MAXIMUM_IO_VALUE);
-			l_student_element_vector.fwd();
-			l_teacher_training_set.m_student_testing_sets.push_back({l_student_x, get_state(l_student_y)});
-		}
-
-		l_teacher_training_sets.push_back(l_teacher_training_set);
-
-	}
-
-	const std::vector<size_t> TEACHER_DIMENSIONS = { 128, l_student_parameter_vector.size()};
-
-	// CREATE TEACHER
-	element_vector::start();
-	parameter_vector::start();
-
-	auto l_teacher_x = input(STUDENT_TRAINING_SETS_PER_TASK_COUNT, STUDENT_INPUT_SIZE + STUDENT_DIMENSIONS.back());
-	auto l_teacher_y = pointers(l_teacher_x);
-
-	for (int i = 0; i < TEACHER_DIMENSIONS.size(); i++)
-		l_teacher_y = lstm(l_teacher_y, TEACHER_DIMENSIONS[i]);
-
-	element_vector l_teacher_element_vector = element_vector::stop();
-	parameter_vector l_teacher_parameter_vector = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_teacher_parameter_vector, 0.02);
-
-	CryptoPP::AutoSeededRandomPool l_random;
-
-	for (int epoch = 0; true; epoch++)
-	{
-		double l_cost = 0;
-
-		for (int i = 0; i < MINI_BATCH_SIZE; i++)
-		{
-			size_t l_training_set_index = l_random.GenerateWord32(0, l_teacher_training_sets.size());
-			teacher_training_set& l_teacher_training_set = l_teacher_training_sets[l_training_set_index];
-			
-			set_state(pointers(l_teacher_x), pointers(l_teacher_training_set.m_x));
-			
-			l_teacher_element_vector.fwd();
-			
-			for (int l_timestep = 0; l_timestep < l_teacher_y.size(); l_timestep++)
-			{
-				// SET PARAMETERS OF STUDENT
-				set_state(l_student_parameter_vector, l_teacher_y[l_timestep]);
-
-				for (auto& l_student_training_set : l_teacher_training_set.m_student_testing_sets)
-				{
-					// CYCLE THE STUDENT
-					set_state(pointers(l_student_x), pointers(l_student_training_set.m_x));
-					set_state(pointers(l_student_desired_y), pointers(l_student_training_set.m_y));
-					l_student_element_vector.fwd();
-					l_cost += l_student_loss->m_state;
-					l_student_loss->m_gradient = 1;
-					l_student_element_vector.bwd();
-				}
-
-				add_gradient(l_teacher_y[l_timestep], l_student_parameter_vector);
-				clear_gradient(l_student_parameter_vector);
-
-			}
-
-			l_teacher_element_vector.bwd();
-
-		}
-
-
-		l_optimizer.normalize_gradients();
-		l_optimizer.update();
-
-		if (epoch % 10 == 0)
-			std::cout << l_cost << std::endl;
-
 	}
 
 }

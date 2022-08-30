@@ -178,7 +178,7 @@ namespace aurora
 
 		)
 		{
-			element_vector::insert(affix_base::data::ptr<element>(this));
+			element_vector::insert(this);
 		}
 
 		element(
@@ -187,7 +187,7 @@ namespace aurora
 
 		element& operator=(
 			const element&
-			) = delete;
+		) = delete;
 
 		virtual void fwd(
 
@@ -244,8 +244,8 @@ namespace aurora
 		class element_add : public element
 		{
 		private:
-			state_gradient_pair* m_x_0 = nullptr;
-			state_gradient_pair* m_x_1 = nullptr;
+			state_gradient_pair_dependency m_x_0;
+			state_gradient_pair_dependency m_x_1;
 
 		public:
 			state_gradient_pair m_y;
@@ -262,8 +262,8 @@ namespace aurora
 				state_gradient_pair* a_x_0,
 				state_gradient_pair* a_x_1
 			) :
-				m_x_0(a_x_0),
-				m_x_1(a_x_1)
+				m_x_0(a_x_0->depend()),
+				m_x_1(a_x_1->depend())
 			{
 
 			}
@@ -272,16 +272,16 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = m_x_0->m_state + m_x_1->m_state;
+				m_y.m_state = m_x_0.m_state + m_x_1.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x_0->m_gradient += m_y.m_gradient;
-				m_x_1->m_gradient += m_y.m_gradient;
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x_0.m_partial_gradient = l_y_gradient;
+				m_x_1.m_partial_gradient = l_y_gradient;
 			}
 
 		};
@@ -297,8 +297,8 @@ namespace aurora
 		class element_subtract : public element
 		{
 		private:
-			state_gradient_pair* m_x_0 = nullptr;
-			state_gradient_pair* m_x_1 = nullptr;
+			state_gradient_pair_dependency m_x_0;
+			state_gradient_pair_dependency m_x_1;
 
 		public:
 			state_gradient_pair m_y;
@@ -315,8 +315,8 @@ namespace aurora
 				state_gradient_pair* a_x_0,
 				state_gradient_pair* a_x_1
 			) :
-				m_x_0(a_x_0),
-				m_x_1(a_x_1)
+				m_x_0(a_x_0->depend()),
+				m_x_1(a_x_1->depend())
 			{
 
 			}
@@ -325,16 +325,16 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = m_x_0->m_state - m_x_1->m_state;
+				m_y.m_state = m_x_0.m_state - m_x_1.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x_0->m_gradient += m_y.m_gradient;
-				m_x_1->m_gradient -= m_y.m_gradient;
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x_0.m_partial_gradient = l_y_gradient;
+				m_x_1.m_partial_gradient = -l_y_gradient;
 			}
 
 		};
@@ -350,8 +350,8 @@ namespace aurora
 		class element_multiply : public element
 		{
 		private:
-			state_gradient_pair* m_x_0 = nullptr;
-			state_gradient_pair* m_x_1 = nullptr;
+			state_gradient_pair_dependency m_x_0;
+			state_gradient_pair_dependency m_x_1;
 
 		public:
 			state_gradient_pair m_y;
@@ -368,8 +368,8 @@ namespace aurora
 				state_gradient_pair* a_x_0,
 				state_gradient_pair* a_x_1
 			) :
-				m_x_0(a_x_0),
-				m_x_1(a_x_1)
+				m_x_0(a_x_0->depend()),
+				m_x_1(a_x_1->depend())
 			{
 
 			}
@@ -378,16 +378,16 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = m_x_0->m_state * m_x_1->m_state;
+				m_y.m_state = m_x_0.m_state * m_x_1.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x_0->m_gradient += m_y.m_gradient * m_x_1->m_state;
-				m_x_1->m_gradient += m_y.m_gradient * m_x_0->m_state;
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state;
+				m_x_1.m_partial_gradient = l_y_gradient * m_x_0.m_state;
 			}
 
 		};
@@ -403,8 +403,8 @@ namespace aurora
 		class element_divide : public element
 		{
 		private:
-			state_gradient_pair* m_x_0 = nullptr;
-			state_gradient_pair* m_x_1 = nullptr;
+			state_gradient_pair_dependency m_x_0;
+			state_gradient_pair_dependency m_x_1;
 
 		public:
 			state_gradient_pair m_y;
@@ -421,8 +421,8 @@ namespace aurora
 				state_gradient_pair* a_x_0,
 				state_gradient_pair* a_x_1
 			) :
-				m_x_0(a_x_0),
-				m_x_1(a_x_1)
+				m_x_0(a_x_0->depend()),
+				m_x_1(a_x_1->depend())
 			{
 
 			}
@@ -431,16 +431,16 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = m_x_0->m_state / m_x_1->m_state;
+				m_y.m_state = m_x_0.m_state / m_x_1.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x_0->m_gradient += m_y.m_gradient / m_x_1->m_state;
-				m_x_1->m_gradient += m_y.m_gradient * (-m_x_0->m_state / std::pow(m_x_1->m_state, 2.0));
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x_0.m_partial_gradient = l_y_gradient / m_x_1.m_state;
+				m_x_1.m_partial_gradient = l_y_gradient * (-m_x_0.m_state / std::pow(m_x_1.m_state, 2.0));
 			}
 
 		};
@@ -456,8 +456,8 @@ namespace aurora
 		class element_pow : public element
 		{
 		private:
-			state_gradient_pair* m_x_0 = nullptr;
-			state_gradient_pair* m_x_1 = nullptr;
+			state_gradient_pair_dependency m_x_0;
+			state_gradient_pair_dependency m_x_1;
 
 		public:
 			state_gradient_pair m_y;
@@ -474,8 +474,8 @@ namespace aurora
 				state_gradient_pair* a_x_0,
 				state_gradient_pair* a_x_1
 			) :
-				m_x_0(a_x_0),
-				m_x_1(a_x_1)
+				m_x_0(a_x_0->depend()),
+				m_x_1(a_x_1->depend())
 			{
 
 			}
@@ -484,16 +484,16 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = std::pow(m_x_0->m_state, m_x_1->m_state);
+				m_y.m_state = std::pow(m_x_0.m_state, m_x_1.m_state);
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x_0->m_gradient += m_y.m_gradient * m_x_1->m_state * std::pow(m_x_0->m_state, m_x_1->m_state - 1.0);
-				m_x_1->m_gradient += m_y.m_gradient * std::pow(m_x_0->m_state, m_x_1->m_state) * std::log(m_x_0->m_state);
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state * std::pow(m_x_0.m_state, m_x_1.m_state - 1.0);
+				m_x_1.m_partial_gradient = l_y_gradient * std::pow(m_x_0.m_state, m_x_1.m_state) * std::log(m_x_0.m_state);
 			}
 
 		};
@@ -508,7 +508,7 @@ namespace aurora
 		class element_sigmoid : public element
 		{
 		private:
-			state_gradient_pair* m_x = nullptr;
+			state_gradient_pair_dependency m_x;
 
 		public:
 			state_gradient_pair m_y;
@@ -517,7 +517,7 @@ namespace aurora
 			element_sigmoid(
 				state_gradient_pair* a_x
 			) :
-				m_x(a_x)
+				m_x(a_x->depend())
 			{
 
 			}
@@ -526,15 +526,14 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = 1.0 / (1.0 + exp(-m_x->m_state));
+				m_y.m_state = 1.0 / (1.0 + exp(-m_x.m_state));
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x->m_gradient += m_y.m_gradient * m_y.m_state * (1.0 - m_y.m_state);
-				m_y.m_gradient = 0;
+				m_x.m_partial_gradient = m_y.gradient() * m_y.m_state * (1.0 - m_y.m_state);
 			}
 
 		};
@@ -549,7 +548,7 @@ namespace aurora
 		class element_tanh : public element
 		{
 		private:
-			state_gradient_pair* m_x = nullptr;
+			state_gradient_pair_dependency m_x;
 
 		public:
 			state_gradient_pair m_y;
@@ -565,7 +564,7 @@ namespace aurora
 			element_tanh(
 				state_gradient_pair* a_x
 			) :
-				m_x(a_x)
+				m_x(a_x->depend())
 			{
 
 			}
@@ -574,15 +573,14 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = std::tanh(m_x->m_state);
+				m_y.m_state = std::tanh(m_x.m_state);
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x->m_gradient += m_y.m_gradient / std::pow(cosh(m_x->m_state), 2.0);
-				m_y.m_gradient = 0;
+				m_x.m_partial_gradient = m_y.gradient() / std::pow(cosh(m_x.m_state), 2.0);
 			}
 
 		};
@@ -598,7 +596,7 @@ namespace aurora
 		class element_leaky_relu : public element
 		{
 		private:
-			state_gradient_pair* m_x = nullptr;
+			state_gradient_pair_dependency m_x;
 			double m_m = 0;
 
 		public:
@@ -616,7 +614,7 @@ namespace aurora
 				state_gradient_pair* a_x,
 				const double& a_m
 			) :
-				m_x(a_x),
+				m_x(a_x->depend()),
 				m_m(a_m)
 			{
 
@@ -627,18 +625,18 @@ namespace aurora
 			)
 			{
 				m_y.m_state =
-					(m_x->m_state > 0) * m_x->m_state +
-					(m_x->m_state <= 0) * m_m * m_x->m_state;
+					(m_x.m_state > 0) * m_x.m_state +
+					(m_x.m_state <= 0) * m_m * m_x.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x->m_gradient +=
-					(m_x->m_state > 0) * m_y.m_gradient +
-					(m_x->m_state <= 0) * m_y.m_gradient * m_m;
-				m_y.m_gradient = 0;
+				double l_y_gradient = m_y.gradient();
+				m_x.m_partial_gradient =
+					(m_x.m_state > 0) * l_y_gradient +
+					(m_x.m_state <= 0) * l_y_gradient * m_m;
 			}
 
 		};
@@ -710,7 +708,7 @@ namespace aurora
 		class element_running_average : public element
 		{
 		private:
-			state_gradient_pair* m_x = nullptr;
+			state_gradient_pair_dependency m_x;
 			double m_beta = 0;
 			double m_alpha = 0;
 
@@ -729,7 +727,7 @@ namespace aurora
 				state_gradient_pair* a_x,
 				const double& a_beta
 			) :
-				m_x(a_x),
+				m_x(a_x->depend()),
 				m_beta(a_beta),
 				m_alpha(1.0 - a_beta)
 			{
@@ -740,15 +738,14 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = m_beta * m_y.m_state + m_alpha * m_x->m_state;
+				m_y.m_state = m_beta * m_y.m_state + m_alpha * m_x.m_state;
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x->m_gradient += m_alpha * m_y.m_gradient;
-				m_y.m_gradient = 0;
+				m_x.m_partial_gradient = m_alpha * m_y.gradient();
 			}
 
 		};
@@ -763,7 +760,7 @@ namespace aurora
 		class element_log
 		{
 		private:
-			state_gradient_pair* m_x = nullptr;
+			state_gradient_pair_dependency m_x;
 
 		public:
 			state_gradient_pair m_y;
@@ -779,7 +776,7 @@ namespace aurora
 			element_log(
 				state_gradient_pair* a_x
 			) :
-				m_x(a_x)
+				m_x(a_x->depend())
 			{
 
 			}
@@ -788,15 +785,14 @@ namespace aurora
 
 			)
 			{
-				m_y.m_state = std::log(m_x->m_state);
+				m_y.m_state = std::log(m_x.m_state);
 			}
 
 			virtual void bwd(
 
 			)
 			{
-				m_x->m_gradient += m_y.m_gradient / m_x->m_state;
-				m_y.m_gradient = 0;
+				m_x.m_partial_gradient = m_y.gradient() / m_x.m_state;
 			}
 
 		};
