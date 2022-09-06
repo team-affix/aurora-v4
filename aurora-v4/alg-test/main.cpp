@@ -186,7 +186,7 @@ void parabola_test(
 		}
 
 
-		l_cost_momentum = 0.999 * l_cost_momentum + 0.001 * l_cost;
+		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
 
 		for (int i = 0; i < l_parameters.size(); i++)
 		{
@@ -262,7 +262,7 @@ void lstm_test(
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size(), l_y[0][0].size());
-	auto l_error = add(mean_squared_error(l_y[0], pointers(l_desired_y[0])), mean_squared_error(l_y[1], pointers(l_desired_y[1])))->depend();
+	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
@@ -1084,9 +1084,9 @@ void parallel_multiply_test(
 {
 	std::vector<affix_base::threading::persistent_thread> l_threads(12);
 
-	parallel_executor::start(l_threads);
+	parallel_executor::startup(l_threads);
 
-	auto l_x = input(100000);
+	auto l_x = input(10000);
 
 	for (int i = 0; i < l_x.size(); i++)
 		l_x[i].m_state = i;
@@ -1134,7 +1134,7 @@ int main(
 {
 	srand(time(0));
 
-	parabola_test();
+	lstm_test();
 
 	return 0;
 }

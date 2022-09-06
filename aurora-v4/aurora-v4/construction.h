@@ -14,7 +14,7 @@ namespace aurora
 		static std::vector<affix_base::threading::persistent_thread>* s_persistent_threads;
 
 	public:
-		static void start(
+		static void startup(
 			std::vector<affix_base::threading::persistent_thread>& a_persistent_threads
 		)
 		{
@@ -1776,6 +1776,34 @@ namespace aurora
 		return divide(
 			additive_aggregate(additive_aggregate(l_squared_errors)),
 			constant(a_prediction.size() * a_prediction[0].size()));
+	}
+
+	inline state_gradient_pair* mean_squared_error(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_prediction,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_desired
+	)
+	{
+		assert(a_prediction.size() == a_desired.size());
+		assert(a_prediction[0].size() == a_desired[0].size());
+		assert(a_prediction[0][0].size() == a_desired[0][0].size());
+
+		std::vector<state_gradient_pair*> l_squared_errors(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size());
+
+		for (int i = 0; i < a_prediction.size(); i++)
+		{
+			for (int j = 0; j < a_prediction[0].size(); j++)
+			{
+				for (int k = 0; k < a_prediction[0][0].size(); k++)
+				{
+					l_squared_errors[i * a_prediction[0].size() + j * a_prediction[0][0].size() + k] =
+						pow(subtract(a_prediction[i][j][k], a_desired[i][j][k]), constant(2));
+				}
+			}
+		}
+
+		return divide(
+			additive_aggregate(l_squared_errors),
+			constant(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size()));
 	}
 
 }
