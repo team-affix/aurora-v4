@@ -4,6 +4,8 @@
 
 using namespace aurora;
 
+std::vector<affix_base::threading::persistent_thread>* parallel_executor::s_persistent_threads(nullptr);
+
 std::vector<element_vector> element_vector::s_element_vectors;
 
 std::vector<parameter_vector> parameter_vector::s_parameter_vectors;

@@ -2,10 +2,34 @@
 #include "affix-base/pch.h"
 #include "affix-base/ptr.h"
 #include "maths.h"
+#include "affix-base/persistent_thread.h"
 
 namespace aurora
 {
 	class element;
+
+	struct parallel_executor
+	{
+	private:
+		static std::vector<affix_base::threading::persistent_thread>* s_persistent_threads;
+
+	public:
+		static void start(
+			std::vector<affix_base::threading::persistent_thread>& a_persistent_threads
+		)
+		{
+			s_persistent_threads = &a_persistent_threads;
+		}
+
+		static std::vector<affix_base::threading::persistent_thread>& threads(
+
+		)
+		{
+			assert(s_persistent_threads != nullptr);
+			return *s_persistent_threads;
+		}
+
+	};
 
 	struct element_vector : public std::vector<affix_base::data::ptr<element>>
 	{
@@ -800,6 +824,105 @@ namespace aurora
 		return &l_element->m_y;
 	}
 
+	inline void parallel_branch(
+		affix_base::threading::persistent_thread& a_persistent_thread,
+		element_vector&& a_model
+	)
+	{
+		class element_parallel_branch : public element
+		{
+		private:
+			affix_base::threading::persistent_thread& m_persistent_thread;
+			element_vector m_element_vector;
+
+		private:
+			std::function<void()> m_fwd_execute;
+			std::function<void()> m_bwd_execute;
+
+		public:
+			virtual ~element_parallel_branch(
+
+			)
+			{
+
+			}
+
+			element_parallel_branch(
+				affix_base::threading::persistent_thread& a_persistent_thread,
+				element_vector&& a_element_vector
+			) :
+				m_persistent_thread(a_persistent_thread),
+				m_element_vector(a_element_vector)
+			{
+				m_fwd_execute = [&]
+				{
+					m_element_vector.fwd();
+				};
+				m_bwd_execute = [&]
+				{
+					m_element_vector.bwd();
+				};
+			}
+
+			virtual void fwd(
+
+			)
+			{
+				m_persistent_thread.execute(m_fwd_execute);
+			}
+
+			virtual void bwd(
+
+			)
+			{
+				m_persistent_thread.execute(m_bwd_execute);
+			}
+
+		};
+		affix_base::data::ptr<element_parallel_branch> l_element(new element_parallel_branch(a_persistent_thread, std::move(a_model)));
+	}
+	
+	inline void join_threads(
+
+	)
+	{
+		class element_join_threads : public element
+		{
+		public:
+			virtual ~element_join_threads(
+
+			)
+			{
+
+			}
+
+			element_join_threads(
+
+			)
+			{
+
+			}
+
+			virtual void fwd(
+
+			)
+			{
+				for (auto& l_persistent_thread : parallel_executor::threads())
+					l_persistent_thread.join();
+			}
+
+			virtual void bwd(
+
+			)
+			{
+				for (auto& l_persistent_thread : parallel_executor::threads())
+					l_persistent_thread.join();
+			}
+
+		};
+		affix_base::data::ptr<element_join_threads> l_element(new element_join_threads());
+	}
+
 	inline state_gradient_pair* parameter(
 
 	)
@@ -914,6 +1037,42 @@ namespace aurora
 
 	}
 
+	inline state_gradient_pair* additive_aggregate_parallel(
+		const std::vector<state_gradient_pair*>& a_x
+	)
+	{
+		assert(a_x.size() > 0);
+
+		std::vector<affix_base::threading::persistent_thread>& l_persistent_threads = parallel_executor::threads();
+
+		std::vector<std::vector<state_gradient_pair*>> l_x_partitioned(l_persistent_threads.size());
+
+		for (int i = 0; i < a_x.size(); i++)
+		{
+			size_t l_persistent_thread_index = i % l_persistent_threads.size();
+			l_x_partitioned[l_persistent_thread_index].push_back(a_x[i]);
+		}
+
+		std::vector<state_gradient_pair*> l_y_partitioned(l_persistent_threads.size());
+
+		join_threads();
+
+		for (int i = 0; i < l_persistent_threads.size(); i++)
+		{
+			element_vector::start();
+
+			l_y_partitioned[i] = additive_aggregate(l_x_partitioned[i]);
+
+			parallel_branch(l_persistent_threads[i], element_vector::stop());
+
+		}
+
+		join_threads();
+
+		return additive_aggregate(l_y_partitioned);
+
+	}
+
 	inline std::vector<state_gradient_pair*> add(
 		const std::vector<state_gradient_pair*>& a_x_0,
 		const std::vector<state_gradient_pair*>& a_x_1
@@ -990,6 +1149,75 @@ namespace aurora
 
 	}
 
+	inline std::vector<state_gradient_pair*> hadamard(
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<state_gradient_pair*> l_y(a_x_0.size());
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_y[i] = multiply(a_x_0[i], a_x_1[i]);
+		}
+
+		return l_y;
+
+	}
+
+	inline std::vector<state_gradient_pair*> hadamard_parallel(
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<affix_base::threading::persistent_thread>& l_persistent_threads = parallel_executor::threads();
+
+		std::vector<std::vector<state_gradient_pair*>> l_multiply_y(l_persistent_threads.size());
+		std::vector<std::vector<state_gradient_pair*>> l_multiply_x0(l_persistent_threads.size());
+		std::vector<std::vector<state_gradient_pair*>> l_multiply_x1(l_persistent_threads.size());
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			size_t l_thread_index = i % l_persistent_threads.size();
+			l_multiply_y[l_thread_index].push_back(0);
+			l_multiply_x0[l_thread_index].push_back(a_x_0[i]);
+			l_multiply_x1[l_thread_index].push_back(a_x_1[i]);
+		}
+
+		join_threads();
+
+		for (int i = 0; i < l_persistent_threads.size(); i++)
+		{
+			auto& l_y_partition = l_multiply_y[i];
+			auto& l_x0_partition = l_multiply_x0[i];
+			auto& l_x1_partition = l_multiply_x1[i];
+			element_vector::start();
+			for (int j = 0; j < l_y_partition.size(); j++)
+			{
+				l_y_partition[j] = multiply(l_x0_partition[j], l_x1_partition[j]);
+			}
+			parallel_branch(l_persistent_threads[i], element_vector::stop());
+		}
+
+		join_threads();
+
+		std::vector<state_gradient_pair*> l_hadamard_y(a_x_0.size());
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			size_t l_thread_index = i % l_persistent_threads.size();
+			size_t l_partition_element_index = i / l_persistent_threads.size();
+			l_hadamard_y[i] = l_multiply_y[l_thread_index][l_partition_element_index];
+		}
+
+		return l_hadamard_y;
+
+	}
+
 	inline state_gradient_pair* multiply(
 		const std::vector<state_gradient_pair*>& a_x_0,
 		const std::vector<state_gradient_pair*>& a_x_1
@@ -1005,6 +1233,19 @@ namespace aurora
 		}
 
 		return additive_aggregate(l_multiply_ys);
+
+	}
+
+	inline state_gradient_pair* multiply_parallel(
+		const std::vector<state_gradient_pair*>& a_x_0,
+		const std::vector<state_gradient_pair*>& a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<state_gradient_pair*> l_hadamard_y = hadamard_parallel(a_x_0, a_x_1);
+
+		return additive_aggregate_parallel(l_hadamard_y);
 
 	}
 
@@ -1066,24 +1307,6 @@ namespace aurora
 			l_result[i] = l_result_row;
 		}
 		return l_result;
-	}
-
-	inline std::vector<state_gradient_pair*> hadamard(
-		const std::vector<state_gradient_pair*>& a_x_0,
-		const std::vector<state_gradient_pair*>& a_x_1
-	)
-	{
-		assert(a_x_0.size() == a_x_1.size());
-
-		std::vector<state_gradient_pair*> l_y(a_x_0.size());
-
-		for (int i = 0; i < a_x_0.size(); i++)
-		{
-			l_y[i] = multiply(a_x_0[i], a_x_1[i]);
-		}
-
-		return l_y;
-
 	}
 
 	inline state_gradient_pair* bias(

@@ -3,6 +3,7 @@
 #include "affix-base/stopwatch.h"
 #include "affix-base/vector_extensions.h"
 #include "cryptopp/osrng.h"
+#include "affix-base/persistent_thread.h"
 
 using namespace aurora;
 
@@ -117,41 +118,35 @@ void parabola_test(
 
 )
 {
-	std::vector<state_gradient_pair> l_x(1);
+	auto l_x = input(10, 1);
 
 	element_vector::start();
 	parameter_vector::start();
 	
-	auto l_y = pointers(l_x);
-	l_y = weight_junction(l_y, 20);
-	l_y = bias(l_y);
-	l_y = leaky_relu(l_y, 0.3);
-	l_y = weight_junction(l_y, 1);
-	l_y = bias(l_y);
-	l_y = leaky_relu(l_y, 0.3);
+	std::vector<std::vector<state_gradient_pair*>> l_y(l_x.size());
 
-	auto l_desired_y = input(l_y.size());
+	size_t l_next_parameter_index = parameter_vector::next_index();
+
+	for (int i = 0; i < l_y.size(); i++)
+	{
+		parameter_vector::next_index(l_next_parameter_index);
+		auto l_tnn_y = pointers(l_x[i]);
+		l_tnn_y = weight_junction(l_tnn_y, 20);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = weight_junction(l_tnn_y, 1);
+		l_tnn_y = bias(l_tnn_y);
+		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_y[i] = l_tnn_y;
+	}
+
+	auto l_desired_y = input(l_y.size(), l_y[0].size());
 	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
 	std::default_random_engine l_dre(25);
-
-	auto l_cycle = [&](std::vector<double>& a_x, std::vector<double>& a_y)
-	{
-		set_state(pointers(l_x), a_x);
-		set_state(pointers(l_desired_y), a_y);
-
-		l_model.fwd();
-
-		l_error.m_partial_gradient = 1;
-
-		l_model.bwd();
-
-		return l_error.m_state;
-
-	};
 
 	std::uniform_real_distribution<double> l_ts_urd(-10, 10);
 
@@ -163,22 +158,35 @@ void parabola_test(
 	{
 		double l_cost = 0;
 
-		for (int i = 0; i < 10; i++)
+		std::vector<std::vector<double>> l_ts_x;
+		std::vector<std::vector<double>> l_ts_y;
+
+		for (int i = 0; i < l_x.size(); i++)
 		{
-			double l_ts_x = l_ts_urd(l_dre);
-			double l_ts_y = l_ts_x * l_ts_x;
-
-			std::vector<double> l_ts_x_vector = { l_ts_x };
-			std::vector<double> l_ts_y_vector = { l_ts_y };
-
-			l_cost += l_cycle(l_ts_x_vector, l_ts_y_vector);
-
-			if (epoch % CHECKPOINT_INTERVAL == 0)
-				std::cout << "INPUT: " << l_ts_x << ", PREDICTION: " << l_y[0]->m_state << ", DESIRED: " << l_ts_y << std::endl;
-
+			l_ts_x.push_back({ l_ts_urd(l_dre) });
+			l_ts_y.push_back({ l_ts_x.back()[0] * l_ts_x.back()[0] });
 		}
 
-		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
+		set_state(pointers(l_x), l_ts_x);
+		set_state(pointers(l_desired_y), l_ts_y);
+
+		l_model.fwd();
+
+		l_error.m_partial_gradient = 1;
+		l_cost = l_error.m_state;
+
+		l_model.bwd();
+
+		if (epoch % CHECKPOINT_INTERVAL == 0)
+		{
+			for (int i = 0; i < l_y.size(); i++)
+			{
+				std::cout << "INPUT: " << l_ts_x[i][0] << ", PREDICTION: " << l_y[i][0]->m_state << ", DESIRED: " << l_ts_y[i][0] << std::endl;
+			}
+		}
+
+
+		l_cost_momentum = 0.999 * l_cost_momentum + 0.001 * l_cost;
 
 		for (int i = 0; i < l_parameters.size(); i++)
 		{
@@ -226,26 +234,35 @@ void lstm_test(
 	const size_t l_tnn_h0_units = 3;
 	const size_t l_tnn_y_units = 1;
 
-	auto l_x = input(4, 2);
+	auto l_x = input(2, 4, 2);
 
-	auto l_lstm_0 = lstm(pointers(l_x), l_lstm_y_units);
+	std::vector<std::vector<std::vector<state_gradient_pair*>>> l_y;
 
-	std::vector<std::vector<state_gradient_pair*>> l_y;
+	size_t l_model_begin_next_parameter_index = parameter_vector::next_index();
 
-	for (int i = 0; i < l_lstm_0.size(); i++)
+	for (int i = 0; i < l_x.size(); i++)
 	{
-		auto l_tnn_y = l_lstm_0[i];
-		l_tnn_y = weight_junction(l_tnn_y, l_tnn_h0_units);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
-		l_tnn_y = weight_junction(l_tnn_y, l_tnn_y_units);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
-		l_y.push_back(l_tnn_y);
+		parameter_vector::next_index(l_model_begin_next_parameter_index);
+		auto l_lstm_y = lstm(pointers(l_x[i]), l_lstm_y_units);
+		size_t l_tnn_begin_next_parameter_index = parameter_vector::next_index();
+		std::vector<std::vector<state_gradient_pair*>> l_tnn_ys;
+		for (int j = 0; j < l_lstm_y.size(); j++)
+		{
+			parameter_vector::next_index(l_tnn_begin_next_parameter_index);
+			auto l_tnn_y = l_lstm_y[j];
+			l_tnn_y = weight_junction(l_tnn_y, l_tnn_h0_units);
+			l_tnn_y = bias(l_tnn_y);
+			l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+			l_tnn_y = weight_junction(l_tnn_y, l_tnn_y_units);
+			l_tnn_y = bias(l_tnn_y);
+			l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+			l_tnn_ys.push_back(l_tnn_y);
+		}
+		l_y.push_back(l_tnn_ys);
 	}
 
-	auto l_desired_y = input(l_y.size(), l_y[0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
+	auto l_desired_y = input(l_y.size(), l_y[0].size(), l_y[0][0].size());
+	auto l_error = add(mean_squared_error(l_y[0], pointers(l_desired_y[0])), mean_squared_error(l_y[1], pointers(l_desired_y[1])))->depend();
 
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
@@ -290,28 +307,24 @@ void lstm_test(
 	{
 		double l_cost = 0;
 
-		for (int i = 0; i < l_training_set_xs.size(); i++)
+		set_state(pointers(l_x), l_training_set_xs);
+		set_state(pointers(l_desired_y), l_training_set_ys);
+
+		// Carry forward
+		l_model.fwd();
+
+		// Signal output
+		l_cost += l_error.m_state;
+		l_error.m_partial_gradient = 1;
+
+		// Carry backward
+		l_model.bwd();
+
+		if (epoch % CHECKPOINT == 0)
 		{
-			set_state(pointers(l_x), l_training_set_xs[i]);
-			set_state(pointers(l_desired_y), l_training_set_ys[i]);
-			
-			// Carry forward
-			l_model.fwd();
-
-			// Signal output
-			l_cost += l_error.m_state;
-			l_error.m_partial_gradient = 1;
-
-			// Carry backward
-			l_model.bwd();
-
-			if (epoch % CHECKPOINT == 0)
-			{
-				for (int i = 0; i < l_y.size(); i++)
-					std::cout << "PREDICTION: " << l_y[i][0]->m_state << std::endl;
-				std::cout << std::endl;
-			}
-
+			for (int i = 0; i < l_y.size(); i++)
+				std::cout << "PREDICTION: \n" << to_string(get_state(l_y)) << std::endl;
+			std::cout << std::endl;
 		}
 
 		l_optimizer.update();
@@ -1065,13 +1078,63 @@ void cnn_test(
 
 }
 
+void parallel_multiply_test(
+
+)
+{
+	std::vector<affix_base::threading::persistent_thread> l_threads(12);
+
+	parallel_executor::start(l_threads);
+
+	auto l_x = input(100000);
+
+	for (int i = 0; i < l_x.size(); i++)
+		l_x[i].m_state = i;
+
+	element_vector::start();
+
+	auto l_y = multiply(pointers(l_x), pointers(l_x));
+
+	element_vector l_single_thread_element_vector = element_vector::stop();
+
+
+	element_vector::start();
+	
+	auto l_y_parallel = multiply_parallel(pointers(l_x), pointers(l_x));
+
+	element_vector l_parallel_element_vector = element_vector::stop();
+
+	size_t ITERATIONS = 1000;
+
+	affix_base::timing::stopwatch l_stopwatch;
+
+	l_stopwatch.start();
+
+	for (int i = 0; i < ITERATIONS; i++)
+	{
+		l_parallel_element_vector.fwd();
+	}
+
+	std::cout << l_stopwatch.duration_milliseconds() << std::endl;
+
+	l_stopwatch.start();
+
+	for (int i = 0; i < ITERATIONS; i++)
+	{
+		l_single_thread_element_vector.fwd();
+	}
+
+	std::cout << l_stopwatch.duration_milliseconds() << std::endl;
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	tnn_test();
+	parabola_test();
 
 	return 0;
 }
