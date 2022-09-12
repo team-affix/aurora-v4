@@ -1167,6 +1167,42 @@ namespace aurora
 
 	}
 
+	inline std::vector<std::vector<state_gradient_pair*>> hadamard(
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
+		const std::vector<std::vector<state_gradient_pair*>>& a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<std::vector<state_gradient_pair*>> l_y(a_x_0.size());
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_y[i] = hadamard(a_x_0[i], a_x_1[i]);
+		}
+
+		return l_y;
+
+	}
+
+	inline std::vector<std::vector<std::vector<state_gradient_pair*>>> hadamard(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x_0,
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x_1
+	)
+	{
+		assert(a_x_0.size() == a_x_1.size());
+
+		std::vector<std::vector<std::vector<state_gradient_pair*>>> l_y(a_x_0.size());
+
+		for (int i = 0; i < a_x_0.size(); i++)
+		{
+			l_y[i] = hadamard(a_x_0[i], a_x_1[i]);
+		}
+
+		return l_y;
+
+	}
+
 	inline std::vector<state_gradient_pair*> hadamard_parallel(
 		const std::vector<state_gradient_pair*>& a_x_0,
 		const std::vector<state_gradient_pair*>& a_x_1
@@ -1321,6 +1357,32 @@ namespace aurora
 	)
 	{
 		std::vector<state_gradient_pair*> l_result(a_x.size());
+
+		for (int i = 0; i < a_x.size(); i++)
+			l_result[i] = bias(a_x[i]);
+
+		return l_result;
+
+	}
+
+	inline std::vector<std::vector<state_gradient_pair*>> bias(
+		const std::vector<std::vector<state_gradient_pair*>>& a_x
+	)
+	{
+		std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+
+		for (int i = 0; i < a_x.size(); i++)
+			l_result[i] = bias(a_x[i]);
+
+		return l_result;
+
+	}
+
+	inline std::vector<std::vector<std::vector<state_gradient_pair*>>> bias(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x
+	)
+	{
+		std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result(a_x.size());
 
 		for (int i = 0; i < a_x.size(); i++)
 			l_result[i] = bias(a_x[i]);
