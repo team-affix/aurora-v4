@@ -6,14 +6,19 @@ namespace aurora
 {
 	class optimizer
 	{
+	private:
+		bool m_normalize_gradients = false;
+
 	public:
 		std::vector<state_gradient_pair*> m_values;
 
 	public:
 		optimizer(
-			const std::vector<state_gradient_pair*>& a_values
+			const std::vector<state_gradient_pair*>& a_values,
+			const bool& a_normalize_gradients
 		) :
-			m_values(a_values.begin(), a_values.end())
+			m_values(a_values.begin(), a_values.end()),
+			m_normalize_gradients(a_normalize_gradients)
 		{
 
 		}
@@ -26,19 +31,23 @@ namespace aurora
 		}
 
 	protected:
-		std::vector<double> normalized_gradients(
+		std::vector<double> useful_gradients(
 
 		)
 		{
-			double l_normalization_denominator = 0;
-
 			std::vector<double> l_gradients = get_gradient(m_values);
 
-			for (auto& l_gradient : l_gradients)
-				l_normalization_denominator += std::abs(l_gradient);
+			if (m_normalize_gradients)
+			{
+				double l_normalization_denominator = 0;
 
-			for (auto& l_gradient : l_gradients)
-				l_gradient /= l_normalization_denominator;
+				for (auto& l_gradient : l_gradients)
+					l_normalization_denominator += std::abs(l_gradient);
+
+				for (auto& l_gradient : l_gradients)
+					l_gradient /= l_normalization_denominator;
+
+			}
 
 			return l_gradients;
 
@@ -54,9 +63,10 @@ namespace aurora
 	public:
 		gradient_descent(
 			const std::vector<state_gradient_pair*>& a_values,
+			const bool& a_normalize_gradients,
 			const double& a_learn_rate
 		) :
-			optimizer(a_values),
+			optimizer(a_values, a_normalize_gradients),
 			m_learn_rate(a_learn_rate)
 		{
 
@@ -66,7 +76,7 @@ namespace aurora
 
 		)
 		{
-			std::vector<double> l_gradients = normalized_gradients();
+			std::vector<double> l_gradients = useful_gradients();
 			for (int i = 0; i < m_values.size(); i++)
 			{
 				m_values[i]->m_state -= m_learn_rate * l_gradients[i];
@@ -86,10 +96,11 @@ namespace aurora
 	public:
 		gradient_descent_with_momentum(
 			const std::vector<state_gradient_pair*>& a_values,
+			const bool& a_normalize_gradients,
 			const double& a_learn_rate,
 			const double& a_beta
 		) :
-			optimizer(a_values),
+			optimizer(a_values, a_normalize_gradients),
 			m_learn_rate(a_learn_rate),
 			m_beta(a_beta),
 			m_alpha(1.0 - a_beta),
@@ -102,7 +113,7 @@ namespace aurora
 
 		)
 		{
-			std::vector<double> l_gradients = normalized_gradients();
+			std::vector<double> l_gradients = useful_gradients();
 			for (int i = 0; i < m_values.size(); i++)
 			{
 				auto& l_value = m_values[i];

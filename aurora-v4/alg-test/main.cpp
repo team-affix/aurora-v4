@@ -267,7 +267,7 @@ void lstm_test(
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameters, 0.02);
+	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
 	std::vector<std::vector<std::vector<double>>> l_training_set_xs =
 	{
@@ -661,7 +661,7 @@ void pablo_tnn_example(
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameters, 0.02);
+	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
 	std::vector<std::vector<double>> l_tsx =
 	{
@@ -737,7 +737,7 @@ void reward_structure_modeling(
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameters, 0.02);
+	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
 	struct training_set
 	{
@@ -829,7 +829,7 @@ void loss_modeling_test_0(
 	auto l_loss_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameters, 0.02);
+	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(28);
@@ -876,7 +876,7 @@ void loss_modeling_test_0(
 
 	std::cout << std::endl << std::endl << "GENERATING TASK PREDICTION: " << std::endl;
 
-	gradient_descent l_task_prediction_optimizer(pointers(l_task_prediction), 0.2);
+	gradient_descent l_task_prediction_optimizer(pointers(l_task_prediction), true, 0.2);
 	 
 	double l_task_desired_y = 0;
 
@@ -908,7 +908,7 @@ void loss_modeling_test_0(
 
 	std::cout << std::endl << std::endl << "GENERATING TASK X: " << std::endl;
 
-	gradient_descent l_task_x_optimizer(pointers(l_task_x), 0.2);
+	gradient_descent l_task_x_optimizer(pointers(l_task_x), true, 0.2);
 
 	l_task_prediction[0].m_state = 10000;
 	l_loss_model_desired_y[0].m_state = 0;
@@ -982,7 +982,7 @@ void tnn_test_2(
 	element_vector l_elements = element_vector::stop();
 	parameter_vector l_parameters = parameter_vector::stop(-1, 1);
 
-	gradient_descent l_optimizer(l_parameters, 0.02);
+	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
 	const int CHECKPOINT = 100000;
 
