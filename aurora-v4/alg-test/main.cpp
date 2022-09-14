@@ -34,8 +34,13 @@ void tnn_test(
 		l_y.push_back(l_y_element);
 	}
 	
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
-	
+	std::vector<state_gradient_pair*> l_cross_entropy_losses;
+
+	for (int i = 0; i < l_y.size(); i++)
+		l_cross_entropy_losses.push_back(cross_entropy(l_y[i][0], &l_desired_y[i][0]));
+
+	auto l_error = additive_aggregate(l_cross_entropy_losses)->depend();
+
 	auto l_model = element_vector::stop();
 	auto l_parameters = parameter_vector::stop();
 
@@ -1134,7 +1139,7 @@ int main(
 {
 	srand(time(0));
 
-	lstm_test();
+	tnn_test();
 
 	return 0;
 }

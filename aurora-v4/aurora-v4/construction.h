@@ -781,7 +781,7 @@ namespace aurora
 		state_gradient_pair* a_x
 	)
 	{
-		class element_log
+		class element_log : public element
 		{
 		private:
 			state_gradient_pair_dependency m_x;
@@ -1867,5 +1867,17 @@ namespace aurora
 			additive_aggregate(l_squared_errors),
 			constant(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size()));
 	}
+
+	inline state_gradient_pair* cross_entropy(
+		state_gradient_pair* a_prediction,
+		state_gradient_pair* a_desired
+	)
+	{
+		auto l_first_term = multiply(a_desired, aurora::log(a_prediction));
+		auto l_second_term = multiply(subtract(constant(1), a_desired), aurora::log(subtract(constant(1), a_prediction)));
+		auto l_negated_sum = multiply(constant(-1), add(l_first_term, l_second_term));
+		return l_negated_sum;
+	}
+
 
 }
