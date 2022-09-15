@@ -240,6 +240,43 @@ namespace aurora
 		}
 	}
 
+	inline void randomly_modulate_state(
+		const std::vector<state_gradient_pair*>& a_x,
+		const double& a_minimum_random_value,
+		const double& a_maximum_random_value
+	)
+	{
+		std::uniform_real_distribution<double> l_urd(a_minimum_random_value, a_maximum_random_value);
+		for (auto& l_value : a_x)
+		{
+			l_value->m_state += l_urd(i_default_random_engine);
+		}
+	}
+
+	inline void randomly_modulate_state(
+		const std::vector<std::vector<state_gradient_pair*>>& a_x,
+		const double& a_minimum_random_value,
+		const double& a_maximum_random_value
+	)
+	{
+		for (auto& l_value : a_x)
+		{
+			randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
+		}
+	}
+
+	inline void randomly_modulate_state(
+		const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
+		const double& a_minimum_random_value,
+		const double& a_maximum_random_value
+	)
+	{
+		for (auto& l_value : a_x)
+		{
+			randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
+		}
+	}
+
 	inline std::vector<state_gradient_pair> input(
 		const size_t& a_size
 	)
