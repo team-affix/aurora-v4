@@ -1,5 +1,5 @@
 #pragma once
 #include "affix-base/pch.h"
-#include "maths.h"
-#include "construction.h"
-#include "optimizers.h"
+#include "fundamentals.h"
+#include "latent.h"
+#include "oneshot.h"

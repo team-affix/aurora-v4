@@ -6,6 +6,7 @@
 #include "affix-base/persistent_thread.h"
 
 using namespace aurora;
+using namespace aurora::latent;
 
 void tnn_test(
 
@@ -202,29 +203,6 @@ void parabola_test(
 			std::cout << "    LOSS FOR ABOVE EPOCH: " << l_cost_momentum << std::endl;
 
 	}
-
-}
-
-void branch_test(
-
-)
-{
-	element_vector::start();
-
-	state_gradient_pair l_x_0 = { 1.5 };
-	state_gradient_pair l_x_1 = { 2 };
-
-
-	// Start a new model for the branch
-	element_vector::start();
-
-	state_gradient_pair* l_multiplied = multiply(&l_x_0, &l_x_1);
-
-	bool* l_branch_enabled = branch(element_vector::stop(), true);
-	
-	element_vector l_model = element_vector::stop();
-
-	l_model.fwd();
 
 }
 
@@ -1083,53 +1061,35 @@ void cnn_test(
 
 }
 
-void parallel_multiply_test(
+void oneshot_tnn_test(
 
 )
 {
-	std::vector<affix_base::threading::persistent_thread> l_threads(12);
+	std::vector<affix_base::threading::persistent_thread> l_threads(std::thread::hardware_concurrency() / 2);
+	std::vector<std::function<void()>> l_functions(l_threads.size());
+	std::vector<std::vector<double>> l_x(l_threads.size());
+	std::vector<std::vector<double>> l_y(l_threads.size());
+	std::vector<oneshot::parameter_vector> l_parameter_vectors;
 
-	parallel_executor::startup(l_threads);
+	oneshot::parameter_vector l_parameters(-1, 1);
 
-	auto l_x = input(10000);
-
-	for (int i = 0; i < l_x.size(); i++)
-		l_x[i].m_state = i;
-
-	element_vector::start();
-
-	auto l_y = multiply(pointers(l_x), pointers(l_x));
-
-	element_vector l_single_thread_element_vector = element_vector::stop();
-
-
-	element_vector::start();
-	
-	auto l_y_parallel = multiply_parallel(pointers(l_x), pointers(l_x));
-
-	element_vector l_parallel_element_vector = element_vector::stop();
-
-	size_t ITERATIONS = 1000;
-
-	affix_base::timing::stopwatch l_stopwatch;
-
-	l_stopwatch.start();
-
-	for (int i = 0; i < ITERATIONS; i++)
+	std::function<std::vector<double>(oneshot::parameter_vector&, const std::vector<double>&)> l_carry_forward = 
+		[](oneshot::parameter_vector& a_parameter_vector, const std::vector<double>& a_x)
 	{
-		l_parallel_element_vector.fwd();
-	}
+		auto l_y = a_x;
 
-	std::cout << l_stopwatch.duration_milliseconds() << std::endl;
+		l_y = oneshot::multiply(a_parameter_vector.next(5, l_y.size()), l_y);
+		l_y = oneshot::add(l_y, a_parameter_vector.next(5));
+		l_y = oneshot::leaky_relu(l_y, 0.3);
+		l_y = oneshot::multiply(a_parameter_vector.next(1, l_y.size()), l_y);
+		l_y = oneshot::add(l_y, a_parameter_vector.next(1));
+		l_y = oneshot::sigmoid(l_y);
 
-	l_stopwatch.start();
+		return l_y;
 
-	for (int i = 0; i < ITERATIONS; i++)
-	{
-		l_single_thread_element_vector.fwd();
-	}
+	};
 
-	std::cout << l_stopwatch.duration_milliseconds() << std::endl;
+	auto l_dry_fire = l_carry_forward(l_parameters, { 0, 0 });
 
 }
 
@@ -1139,7 +1099,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	oneshot_tnn_test();
 
 	return 0;
 }

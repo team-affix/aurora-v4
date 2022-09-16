@@ -18,21 +18,21 @@
     <ClInclude Include="aurora.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="maths.h">
+    <ClInclude Include="latent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="construction.h">
+    <ClInclude Include="oneshot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="optimizers.h">
+    <ClInclude Include="fundamentals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="lstm.cpp">
+    <ClCompile Include="latent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="construction.cpp">
+    <ClCompile Include="onehot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

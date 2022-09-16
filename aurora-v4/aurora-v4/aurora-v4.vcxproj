@@ -157,13 +157,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aurora.h" />
-    <ClInclude Include="maths.h" />
-    <ClInclude Include="construction.h" />
-    <ClInclude Include="optimizers.h" />
+    <ClInclude Include="fundamentals.h" />
+    <ClInclude Include="latent.h" />
+    <ClInclude Include="oneshot.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="construction.cpp" />
-    <ClCompile Include="lstm.cpp" />
+    <ClCompile Include="latent.cpp" />
+    <ClCompile Include="onehot.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
