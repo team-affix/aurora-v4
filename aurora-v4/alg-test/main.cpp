@@ -1061,35 +1061,125 @@ void cnn_test(
 
 }
 
+void oneshot_matrix_multiply_test(
+
+)
+{
+	std::vector<std::vector<double>> l_matrix = 
+	{
+		{2, 3, 4},
+		{5, 6, 7}
+	};
+
+	std::vector<double> l_weights = { 3, 4, 5 };
+
+	std::vector<double> l_result = oneshot::multiply(l_matrix, l_weights);
+
+}
+
 void oneshot_tnn_test(
 
 )
 {
-	std::vector<affix_base::threading::persistent_thread> l_threads(std::thread::hardware_concurrency() / 2);
-	std::vector<std::function<void()>> l_functions(l_threads.size());
-	std::vector<std::vector<double>> l_x(l_threads.size());
-	std::vector<std::vector<double>> l_y(l_threads.size());
-	std::vector<oneshot::parameter_vector> l_parameter_vectors;
-
-	oneshot::parameter_vector l_parameters(-1, 1);
-
-	std::function<std::vector<double>(oneshot::parameter_vector&, const std::vector<double>&)> l_carry_forward = 
-		[](oneshot::parameter_vector& a_parameter_vector, const std::vector<double>& a_x)
+	std::vector<std::vector<double>> l_x = 
 	{
-		auto l_y = a_x;
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
 
-		l_y = oneshot::multiply(a_parameter_vector.next(5, l_y.size()), l_y);
-		l_y = oneshot::add(l_y, a_parameter_vector.next(5));
-		l_y = oneshot::leaky_relu(l_y, 0.3);
-		l_y = oneshot::multiply(a_parameter_vector.next(1, l_y.size()), l_y);
-		l_y = oneshot::add(l_y, a_parameter_vector.next(1));
-		l_y = oneshot::sigmoid(l_y);
+	std::vector<std::vector<double>> l_y =
+	{
+		{0},
+		{1},
+		{1},
+		{0}
+	};
 
-		return l_y;
+	oneshot::parameter_vector l_parameter_vector(-1, 1);
+
+	auto l_carry_forward = 
+		[&l_parameter_vector, &l_x]
+	{
+		std::vector<std::vector<double>> l_result = l_x;
+
+		for (int i = 0; i < l_x.size(); i++)
+		{
+			l_parameter_vector.next_index(0);
+			l_result[i] = oneshot::multiply(l_parameter_vector.next(5, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(5));
+			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
+			l_result[i] = oneshot::multiply(l_parameter_vector.next(1, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(1));
+			l_result[i] = oneshot::sigmoid(l_result[i]);
+		}
+
+		return l_result;
 
 	};
 
-	auto l_dry_fire = l_carry_forward(l_parameters, { 0, 0 });
+	auto l_dry_fire = l_carry_forward();
+
+	std::vector<double> l_current_parameters;
+	std::vector<double> l_approximate_gradients(l_parameter_vector.size());
+	std::vector<double> l_approximate_gradient_momenta(l_parameter_vector.size());
+
+	size_t l_gradient_approximation_iterations_per_epoch = 10;
+
+	std::uniform_real_distribution<double> l_urd(-0.0001, 0.0001);
+
+	double l_current_loss = 0;
+
+	for (int epoch = 0; true; epoch++)
+	{
+		// First, compute current loss.
+		l_current_loss = oneshot::mean_squared_error(l_carry_forward(), l_y);
+
+		std::cout << l_current_loss << std::endl;
+
+		// Save the current parameter_vector state
+		l_current_parameters = l_parameter_vector;
+
+		// Try to approximate the gradients on parameters
+		for (int i = 0; i < l_gradient_approximation_iterations_per_epoch; i++)
+		{
+			// Modulate the parameters randomly
+			for (int j = 0; j < l_current_parameters.size(); j++)
+			{
+				l_parameter_vector[j] = l_current_parameters[j] + l_urd(i_default_random_engine);
+			}
+			
+			// Calculate the loss on the model given this new parameter vector
+			double l_trial_loss = oneshot::mean_squared_error(l_carry_forward(), l_y);
+
+			// Add partial gradients to the total approximate gradients
+			for (int j = 0; j < l_approximate_gradients.size(); j++)
+			{
+				l_approximate_gradients[j] += (l_trial_loss - l_current_loss) / (l_parameter_vector[j] - l_current_parameters[j]);
+			}
+
+		}
+
+		// Update the gradient momenta
+		for (int i = 0; i < l_parameter_vector.size(); i++)
+		{
+			l_approximate_gradient_momenta[i] = 0.99 * l_approximate_gradient_momenta[i] + 0.01 * l_approximate_gradients[i];
+		}
+
+		// Clear the approximate gradients
+		for (int j = 0; j < l_approximate_gradients.size(); j++)
+		{
+			l_approximate_gradients[j] = 0;
+		}
+
+		// Update the parameter vector
+		for (int i = 0; i < l_parameter_vector.size(); i++)
+		{
+			l_parameter_vector[i] = l_current_parameters[i] - 0.002 * l_approximate_gradient_momenta[i];
+		}
+
+	}
 
 }
 

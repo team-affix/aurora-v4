@@ -6,10 +6,9 @@ namespace aurora
 {
 	namespace oneshot
 	{
-		class parameter_vector
+		class parameter_vector : public std::vector<double>
 		{
 		private:
-			std::vector<double> m_parameters;
 			size_t m_next_index = 0;
 			std::uniform_real_distribution<double> m_uniform_real_distribution;
 
@@ -38,33 +37,19 @@ namespace aurora
 				m_next_index = a_next_index;
 			}
 
-			const std::vector<double>& parameters(
-
-			)
-			{
-				return m_parameters;
-			}
-
-			void parameters(
-				const std::vector<double>& a_parameters
-			)
-			{
-				m_parameters = a_parameters;
-			}
-
 			double next(
 
 			)
 			{
-				if (m_next_index == m_parameters.size())
+				if (m_next_index == size())
 				{
-					m_parameters.push_back(m_uniform_real_distribution(i_default_random_engine));
+					push_back(m_uniform_real_distribution(i_default_random_engine));
 					m_next_index++;
-					return m_parameters.back();
+					return back();
 				}
-				else if (m_next_index < m_parameters.size())
+				else if (m_next_index < size())
 				{
-					double l_result = m_parameters[m_next_index];
+					double l_result = at(m_next_index);
 					m_next_index++;
 					return l_result;
 				}
@@ -534,6 +519,46 @@ namespace aurora
 			// Compute output to lstm timestep
 			a_hx = hadamard(tanh(a_cx), l_output_gate_y);
 
+		}
+
+		double mean_squared_error(
+			const double& a_prediction,
+			const double& a_desired
+		)
+		{
+			double l_error = a_prediction - a_desired;
+			return l_error * l_error;
+		}
+
+		double mean_squared_error(
+			const std::vector<double>& a_prediction,
+			const std::vector<double>& a_desired
+		)
+		{
+			double l_sum = 0;
+			for (int i = 0; i < a_prediction.size(); i++)
+			{
+				double l_error = a_prediction[i] - a_desired[i];
+				l_sum += l_error * l_error;
+			}
+			return l_sum / (double)a_prediction.size();
+		}
+
+		double mean_squared_error(
+			const std::vector<std::vector<double>>& a_prediction,
+			const std::vector<std::vector<double>>& a_desired
+		)
+		{
+			double l_sum = 0;
+			for (int i = 0; i < a_prediction.size(); i++)
+			{
+				for (int j = 0; j < a_prediction[0].size(); j++)
+				{
+					double l_error = a_prediction[i][j] - a_desired[i][j];
+					l_sum += l_error * l_error;
+				}
+			}
+			return l_sum / (double)a_prediction.size() / (double)a_prediction[0].size();
 		}
 
 	}
