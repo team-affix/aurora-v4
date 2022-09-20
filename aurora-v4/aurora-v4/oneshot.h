@@ -440,17 +440,27 @@ namespace aurora
 			return l_result;
 		}
 
+		inline double magnitude(
+			const std::vector<double>& a_x
+		)
+		{
+			double l_sum = 0;
+			for (int i = 0; i < a_x.size(); i++)
+				l_sum += a_x[i] * a_x[i];
+			return std::sqrt(l_sum);
+		}
+
 		inline std::vector<double> normalize(
 			const std::vector<double>& a_x
 		)
 		{
 			std::vector<double> l_result(a_x.size());
 
-			double l_sum = additive_aggregate(a_x);
+			double l_magnitude = magnitude(a_x);
 
 			for (int i = 0; i < a_x.size(); i++)
 			{
-				l_result[i] = a_x[i] / l_sum;
+				l_result[i] = a_x[i] / l_magnitude;
 			}
 
 			return l_result;
@@ -470,7 +480,7 @@ namespace aurora
 			return l_result;
 		}
 
-		void lstm_timestep(
+		inline void lstm_timestep(
 			const std::vector<double>& a_x,
 			std::vector<double>& a_hx,
 			std::vector<double>& a_cx,
@@ -521,7 +531,7 @@ namespace aurora
 
 		}
 
-		double mean_squared_error(
+		inline double mean_squared_error(
 			const double& a_prediction,
 			const double& a_desired
 		)
@@ -530,7 +540,7 @@ namespace aurora
 			return l_error * l_error;
 		}
 
-		double mean_squared_error(
+		inline double mean_squared_error(
 			const std::vector<double>& a_prediction,
 			const std::vector<double>& a_desired
 		)
@@ -544,7 +554,7 @@ namespace aurora
 			return l_sum / (double)a_prediction.size();
 		}
 
-		double mean_squared_error(
+		inline double mean_squared_error(
 			const std::vector<std::vector<double>>& a_prediction,
 			const std::vector<std::vector<double>>& a_desired
 		)

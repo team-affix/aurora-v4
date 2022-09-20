@@ -1107,8 +1107,8 @@ void oneshot_tnn_test(
 		for (int i = 0; i < l_x.size(); i++)
 		{
 			l_parameter_vector.next_index(0);
-			l_result[i] = oneshot::multiply(l_parameter_vector.next(5, l_result[i].size()), l_result[i]);
-			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(5));
+			l_result[i] = oneshot::multiply(l_parameter_vector.next(20, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(20));
 			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
 			l_result[i] = oneshot::multiply(l_parameter_vector.next(1, l_result[i].size()), l_result[i]);
 			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(1));
@@ -1121,64 +1121,53 @@ void oneshot_tnn_test(
 
 	auto l_dry_fire = l_carry_forward();
 
-	std::vector<double> l_current_parameters;
-	std::vector<double> l_approximate_gradients(l_parameter_vector.size());
-	std::vector<double> l_approximate_gradient_momenta(l_parameter_vector.size());
+	std::vector<double> l_gradients(l_parameter_vector.size());
+	std::vector<double> l_updates(l_parameter_vector.size());
+	
+	std::uniform_real_distribution<double> l_urd(-1, 1);
 
-	size_t l_gradient_approximation_iterations_per_epoch = 10;
+	for (int i = 0; i < l_gradients.size(); i++)
+		l_gradients[i] = l_urd(i_default_random_engine);
 
-	std::uniform_real_distribution<double> l_urd(-0.0001, 0.0001);
+	double l_previous_reward = 1.0;
 
-	double l_current_loss = 0;
+	double l_gradient_beta = 0.99;
+	double l_proportional_change_in_reward_beta = 0.99;
+	double l_learn_rate = 0.0002;
+
+	std::uniform_real_distribution<double> l_rcv(-1, 1);
+
+	double l_proportional_change_in_reward_momentum = 0;
 
 	for (int epoch = 0; true; epoch++)
 	{
-		// First, compute current loss.
-		l_current_loss = oneshot::mean_squared_error(l_carry_forward(), l_y);
+		l_updates = oneshot::normalize(l_gradients);
 
-		std::cout << l_current_loss << std::endl;
-
-		// Save the current parameter_vector state
-		l_current_parameters = l_parameter_vector;
-
-		// Try to approximate the gradients on parameters
-		for (int i = 0; i < l_gradient_approximation_iterations_per_epoch; i++)
+		for (int i = 0; i < l_gradients.size(); i++)
 		{
-			// Modulate the parameters randomly
-			for (int j = 0; j < l_current_parameters.size(); j++)
-			{
-				l_parameter_vector[j] = l_current_parameters[j] + l_urd(i_default_random_engine);
-			}
-			
-			// Calculate the loss on the model given this new parameter vector
-			double l_trial_loss = oneshot::mean_squared_error(l_carry_forward(), l_y);
-
-			// Add partial gradients to the total approximate gradients
-			for (int j = 0; j < l_approximate_gradients.size(); j++)
-			{
-				l_approximate_gradients[j] += (l_trial_loss - l_current_loss) / (l_parameter_vector[j] - l_current_parameters[j]);
-			}
-
+			l_updates[i] *= l_learn_rate;
+			double l_random_acceptance = 1.0 / (l_proportional_change_in_reward_momentum * l_proportional_change_in_reward_momentum + 1);
+			l_updates[i] += l_learn_rate * l_random_acceptance * l_rcv(i_default_random_engine);
+			l_parameter_vector[i] += l_updates[i];
 		}
 
-		// Update the gradient momenta
-		for (int i = 0; i < l_parameter_vector.size(); i++)
-		{
-			l_approximate_gradient_momenta[i] = 0.99 * l_approximate_gradient_momenta[i] + 0.01 * l_approximate_gradients[i];
-		}
+		double l_current_reward = 1.0 / oneshot::mean_squared_error(l_carry_forward(), l_y);
+		double l_change_in_reward = l_current_reward - l_previous_reward;
 
-		// Clear the approximate gradients
-		for (int j = 0; j < l_approximate_gradients.size(); j++)
-		{
-			l_approximate_gradients[j] = 0;
-		}
+		double l_proportional_change_in_reward = l_change_in_reward / l_previous_reward;
+		l_proportional_change_in_reward_momentum =
+			l_proportional_change_in_reward_beta * l_proportional_change_in_reward_momentum +
+			(1.0 - l_proportional_change_in_reward_beta) * l_proportional_change_in_reward;
 
-		// Update the parameter vector
-		for (int i = 0; i < l_parameter_vector.size(); i++)
+		l_previous_reward = l_current_reward;
+		
+		for (int i = 0; i < l_gradients.size(); i++)
 		{
-			l_parameter_vector[i] = l_current_parameters[i] - 0.002 * l_approximate_gradient_momenta[i];
+			double l_instantaneous_gradient_approximation = l_change_in_reward * l_updates[i] / oneshot::magnitude(l_updates);
+			l_gradients[i] = l_gradient_beta * l_gradients[i] + (1.0 - l_gradient_beta) * l_instantaneous_gradient_approximation;
 		}
-
+		if (epoch % 100 == 0)
+			std::cout << l_current_reward << std::endl;
 	}
 
 }

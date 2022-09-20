@@ -3,7 +3,7 @@
 
 namespace aurora
 {
-	inline std::default_random_engine i_default_random_engine(28);
+	inline std::default_random_engine i_default_random_engine(29);
 
 	inline std::string to_string(
 		const std::vector<double>& a_vector
