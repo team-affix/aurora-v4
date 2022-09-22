@@ -22,6 +22,16 @@ namespace aurora
 
 			}
 
+			parameter_vector& operator=(
+				const std::vector<double>& a_vector
+			)
+			{
+				assert(size() == a_vector.size());
+				for (int i = 0; i < size(); i++)
+					at(i) = a_vector[i];
+				return *this;
+			}
+
 		public:
 			size_t next_index(
 
@@ -569,6 +579,62 @@ namespace aurora
 				}
 			}
 			return l_sum / (double)a_prediction.size() / (double)a_prediction[0].size();
+		}
+
+		double random(
+			const double& a_minimum,
+			const double& a_maximum
+		)
+		{
+			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
+			return l_urd(i_default_random_engine);
+		}
+
+		std::vector<double> make(
+			const size_t& a_size
+		)
+		{
+			std::vector<double> l_result(a_size);
+			return l_result;
+		}
+
+		std::vector<std::vector<double>> make(
+			const size_t& a_rows,
+			const size_t& a_cols
+		)
+		{
+			std::vector<std::vector<double>> l_result(a_rows);
+			for (int i = 0; i < l_result.size(); i++)
+				l_result[i] = make(a_cols);
+			return l_result;
+		}
+
+		std::vector<double> random(
+			const size_t& a_size,
+			const double& a_minimum,
+			const double& a_maximum
+		)
+		{
+			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
+			std::vector<double> l_result(a_size);
+			for (int i = 0; i < a_size; i++)
+				l_result[i] = l_urd(i_default_random_engine);
+			return l_result;
+		}
+
+		std::vector<std::vector<double>> random(
+			const size_t& a_rows,
+			const size_t& a_cols,
+			const double& a_minimum,
+			const double& a_maximum
+		)
+		{
+			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
+			std::vector<std::vector<double>> l_result = make(a_rows, a_cols);
+			for (int i = 0; i < a_rows; i++)
+				for (int j = 0; j < a_cols; j++)
+					l_result[i][j] = l_urd(i_default_random_engine);
+			return l_result;
 		}
 
 	}

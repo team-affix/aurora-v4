@@ -4,6 +4,7 @@
 #include "affix-base/vector_extensions.h"
 #include "cryptopp/osrng.h"
 #include "affix-base/persistent_thread.h"
+#include <Windows.h>
 
 using namespace aurora;
 using namespace aurora::latent;
@@ -1107,8 +1108,8 @@ void oneshot_tnn_test(
 		for (int i = 0; i < l_x.size(); i++)
 		{
 			l_parameter_vector.next_index(0);
-			l_result[i] = oneshot::multiply(l_parameter_vector.next(20, l_result[i].size()), l_result[i]);
-			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(20));
+			l_result[i] = oneshot::multiply(l_parameter_vector.next(200, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(200));
 			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
 			l_result[i] = oneshot::multiply(l_parameter_vector.next(1, l_result[i].size()), l_result[i]);
 			l_result[i] = oneshot::add(l_result[i], l_parameter_vector.next(1));
@@ -1122,8 +1123,7 @@ void oneshot_tnn_test(
 	auto l_dry_fire = l_carry_forward();
 
 	std::vector<double> l_gradients(l_parameter_vector.size());
-	std::vector<double> l_updates(l_parameter_vector.size());
-	
+
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 
 	for (int i = 0; i < l_gradients.size(); i++)
@@ -1131,44 +1131,242 @@ void oneshot_tnn_test(
 
 	double l_previous_reward = 1.0;
 
-	double l_gradient_beta = 0.99;
-	double l_proportional_change_in_reward_beta = 0.99;
+	double l_beta = 0;
 	double l_learn_rate = 0.0002;
 
-	std::uniform_real_distribution<double> l_rcv(-1, 1);
+	std::uniform_real_distribution<double> l_rcv(-0.001, 0.001);
 
-	double l_proportional_change_in_reward_momentum = 0;
+	double l_performance_momentum = 1.0;
 
 	for (int epoch = 0; true; epoch++)
 	{
-		l_updates = oneshot::normalize(l_gradients);
+		std::vector<double> l_updates = oneshot::normalize(l_gradients);
 
 		for (int i = 0; i < l_gradients.size(); i++)
 		{
 			l_updates[i] *= l_learn_rate;
-			double l_random_acceptance = 1.0 / (l_proportional_change_in_reward_momentum * l_proportional_change_in_reward_momentum + 1);
-			l_updates[i] += l_learn_rate * l_random_acceptance * l_rcv(i_default_random_engine);
+			l_updates[i] += l_learn_rate / (std::abs(l_performance_momentum) + l_learn_rate) * l_rcv(i_default_random_engine);
 			l_parameter_vector[i] += l_updates[i];
 		}
 
 		double l_current_reward = 1.0 / oneshot::mean_squared_error(l_carry_forward(), l_y);
 		double l_change_in_reward = l_current_reward - l_previous_reward;
 
-		double l_proportional_change_in_reward = l_change_in_reward / l_previous_reward;
-		l_proportional_change_in_reward_momentum =
-			l_proportional_change_in_reward_beta * l_proportional_change_in_reward_momentum +
-			(1.0 - l_proportional_change_in_reward_beta) * l_proportional_change_in_reward;
+		l_performance_momentum =
+			l_beta * l_performance_momentum +
+			(1.0 - l_beta) * l_change_in_reward;
 
 		l_previous_reward = l_current_reward;
 		
 		for (int i = 0; i < l_gradients.size(); i++)
 		{
-			double l_instantaneous_gradient_approximation = l_change_in_reward * l_updates[i] / oneshot::magnitude(l_updates);
-			l_gradients[i] = l_gradient_beta * l_gradients[i] + (1.0 - l_gradient_beta) * l_instantaneous_gradient_approximation;
+			double l_instantaneous_gradient_approximation = l_change_in_reward * l_updates[i] / std::pow(oneshot::magnitude(l_updates), 2.0);
+			l_gradients[i] = l_beta * l_gradients[i] + (1.0 - l_beta) * l_instantaneous_gradient_approximation;
 		}
+
 		if (epoch % 100 == 0)
 			std::cout << l_current_reward << std::endl;
+
 	}
+
+}
+
+//void oneshot_tnn_acceleration_test(
+//
+//)
+//{
+//	std::vector<std::vector<double>> l_x =
+//	{
+//		{0, 0},
+//		{0, 1},
+//		{1, 0},
+//		{1, 1}
+//	};
+//
+//	std::vector<std::vector<double>> l_y =
+//	{
+//		{0},
+//		{1},
+//		{1},
+//		{0}
+//	};
+//
+//	oneshot::parameter_vector l_position(-1, 1);
+//
+//	auto l_carry_forward =
+//		[&l_position, &l_x]
+//	{
+//		std::vector<std::vector<double>> l_result = l_x;
+//
+//		for (int i = 0; i < l_x.size(); i++)
+//		{
+//			l_position.next_index(0);
+//			l_result[i] = oneshot::multiply(l_position.next(100, l_result[i].size()), l_result[i]);
+//			l_result[i] = oneshot::add(l_result[i], l_position.next(100));
+//			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
+//			l_result[i] = oneshot::multiply(l_position.next(1, l_result[i].size()), l_result[i]);
+//			l_result[i] = oneshot::add(l_result[i], l_position.next(1));
+//			l_result[i] = oneshot::sigmoid(l_result[i]);
+//		}
+//
+//		return l_result;
+//
+//	};
+//
+//	auto l_dry_fire = l_carry_forward();
+//
+//	std::uniform_real_distribution<double> l_velocity_urd(-0.00001, 0.00001);
+//	std::vector<double> l_velocity(l_position.size());
+//	for (int i = 0; i < l_velocity.size(); i++)
+//		l_velocity[i] = l_velocity_urd(i_default_random_engine);
+//
+//	std::uniform_real_distribution<double> l_acceleration_urd(-0.0001, 0.0001);
+//	std::vector<double> l_acceleration(l_position.size());
+//	for (int i = 0; i < l_acceleration.size(); i++)
+//		l_acceleration[i] = l_acceleration_urd(i_default_random_engine);
+//
+//	std::uniform_real_distribution<double> l_random_velocity_change(-0.001, 0.001);
+//
+//	double l_beta = 0.99;
+//	double l_alpha = 0.002;
+//
+//	double l_previous_reward = 0;
+//	double l_previous_change_in_reward = 0;
+//
+//	for (int l_epoch = 0; true; l_epoch++)
+//	{
+//		std::vector<double> l_velocity_update = oneshot::multiply(oneshot::normalize(l_acceleration), l_alpha);
+//		/*for (int i = 0; i < l_velocity_update.size(); i++)
+//			l_velocity_update[i] += l_alpha * l_random_velocity_change(i_default_random_engine);*/
+//		l_velocity = oneshot::add(l_velocity, l_velocity_update);
+//		l_position = oneshot::add(l_position, l_velocity);
+//		double l_reward = 1.0 / oneshot::mean_squared_error(l_carry_forward(), l_y);
+//		double l_change_in_reward = l_reward - l_previous_reward;
+//		double l_change_in_change_in_reward = l_change_in_reward - l_previous_change_in_reward;
+//		l_previous_reward = l_reward;
+//		l_previous_change_in_reward = l_change_in_reward;
+//		double l_velocity_update_magnitude_squared = std::pow(oneshot::magnitude(l_velocity_update), 2);
+//		for (int i = 0; i < l_acceleration.size(); i++)
+//		{
+//			double l_instant_acceleration = l_change_in_change_in_reward * l_velocity_update[i] / l_velocity_update_magnitude_squared;
+//			// Construct a running average for the acceleration
+//			l_acceleration[i] = l_beta * l_acceleration[i] + (1 - l_beta) * l_instant_acceleration;
+//		}
+//		std::cout << l_reward << std::endl;
+//		Sleep(100);
+//	}
+//
+//
+//}
+
+void particle_swarm_optimization_example(
+
+)
+{
+	std::vector<std::vector<double>> l_x =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
+
+	std::vector<std::vector<double>> l_y =
+	{
+		{0},
+		{1},
+		{1},
+		{0}
+	};
+
+	auto l_carry_forward =
+		[&l_x](oneshot::parameter_vector& a_parmeter_vector)
+	{
+		std::vector<std::vector<double>> l_result = l_x;
+
+		for (int i = 0; i < l_x.size(); i++)
+		{
+			a_parmeter_vector.next_index(0);
+			l_result[i] = oneshot::multiply(a_parmeter_vector.next(200, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(200));
+			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
+			l_result[i] = oneshot::multiply(a_parmeter_vector.next(1, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(1));
+			l_result[i] = oneshot::sigmoid(l_result[i]);
+		}
+
+		return l_result;
+
+	};
+
+	// Initialize particle positions
+	std::vector<oneshot::parameter_vector> l_particle_positions;
+	for (int i = 0; i < 100; i++)
+	{
+		l_particle_positions.push_back(oneshot::parameter_vector(-1, 1));
+		l_carry_forward(l_particle_positions.back()); // Dry fire the particle's parameter vector
+	}
+
+	// Initialize particle velocities
+	std::vector<std::vector<double>> l_particle_velocities = oneshot::make(
+		l_particle_positions.size(),
+		l_particle_positions[0].size()
+	);
+
+	// Define hyperparameters
+	double l_w = 0.9;
+	double l_c1 = 0.4;
+	double l_c2 = 0.6;
+
+	std::vector<std::vector<double>> l_p_best = oneshot::make(l_particle_positions.size(), l_particle_positions[0].size());
+	std::vector<double> l_p_best_losses(l_particle_positions.size());
+	for (int i = 0; i < l_p_best_losses.size(); i++)
+		l_p_best_losses[i] = 9999999999999999;
+
+	std::vector<double> l_g_best(l_particle_positions[0].size());
+	double l_g_best_loss = 9999999999999999;
+
+	// Train
+	for (int epoch = 0; true; epoch++)
+	{
+		// Evaluate the loss at each particle's position
+		for (int i = 0; i < l_particle_positions.size(); i++)
+		{
+			double l_loss = oneshot::mean_squared_error(l_carry_forward(l_particle_positions[i]), l_y);
+			if (l_loss < l_p_best_losses[i])
+			{
+				l_p_best[i] = l_particle_positions[i];
+				l_p_best_losses[i] = l_loss;
+			}
+			if (l_loss < l_g_best_loss)
+			{
+				l_g_best = l_particle_positions[i];
+				l_g_best_loss = l_loss;
+			}
+		}
+
+		// Update the velocities of all particles
+		for (int i = 0; i < l_particle_positions.size(); i++)
+		{
+			std::vector<double> l_weighted_particle_velocity = oneshot::multiply(l_particle_velocities[i], l_w);
+			std::vector<double> l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_p_best[i], l_particle_positions[i]), l_c1), oneshot::random(0, 1));
+			std::vector<double> l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_g_best, l_particle_positions[i]), l_c2), oneshot::random(0, 1));
+			l_particle_velocities[i] = oneshot::add(oneshot::add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
+		}
+
+		// Update the positions of all particles
+		for (int i = 0; i < l_particle_positions.size(); i++)
+		{
+			l_particle_positions[i] = oneshot::add(l_particle_positions[i], l_particle_velocities[i]);
+		}
+
+		std::cout << l_g_best_loss << std::endl;
+
+	}
+
+	
+
+
 
 }
 
@@ -1178,7 +1376,7 @@ int main(
 {
 	srand(time(0));
 
-	oneshot_tnn_test();
+	particle_swarm_optimization_example();
 
 	return 0;
 }
