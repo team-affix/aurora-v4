@@ -1287,8 +1287,8 @@ void particle_swarm_optimization_example(
 		for (int i = 0; i < l_x.size(); i++)
 		{
 			a_parmeter_vector.next_index(0);
-			l_result[i] = oneshot::multiply(a_parmeter_vector.next(200, l_result[i].size()), l_result[i]);
-			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(200));
+			l_result[i] = oneshot::multiply(a_parmeter_vector.next(1000, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(1000));
 			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
 			l_result[i] = oneshot::multiply(a_parmeter_vector.next(1, l_result[i].size()), l_result[i]);
 			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(1));

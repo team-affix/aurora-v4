@@ -24,7 +24,7 @@ namespace aurora
 
 			parameter_vector& operator=(
 				const std::vector<double>& a_vector
-			)
+				)
 			{
 				assert(size() == a_vector.size());
 				for (int i = 0; i < size(); i++)
@@ -636,6 +636,36 @@ namespace aurora
 					l_result[i][j] = l_urd(i_default_random_engine);
 			return l_result;
 		}
+
+		class particle
+		{
+		private:
+			parameter_vector& m_position;
+			std::vector<double> m_velocity;
+			std::vector<double> m_best_position;
+			double m_best_reward = 0;
+
+		public:
+			particle(
+				parameter_vector& a_parameter_vector,
+				const double& a_initial_reward
+			) :
+				m_position(a_parameter_vector),
+				m_velocity(a_parameter_vector.size()),
+				m_best_position(a_parameter_vector),
+				m_best_reward(a_initial_reward)
+			{
+
+			}
+		};
+
+		class particle_swarm
+		{
+		private:
+			std::vector<particle> m_particles;
+
+
+		};
 
 	}
 
