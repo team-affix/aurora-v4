@@ -637,33 +637,106 @@ namespace aurora
 			return l_result;
 		}
 
-		class particle
+		class particle_optimizer
 		{
-		private:
+		public:
 			parameter_vector& m_position;
-			std::vector<double> m_velocity;
 			std::vector<double> m_best_position;
-			double m_best_reward = 0;
+			std::vector<double> m_velocity;
+			double m_best_reward = -INFINITY;
 
 		public:
-			particle(
-				parameter_vector& a_parameter_vector,
-				const double& a_initial_reward
+			particle_optimizer(
+				parameter_vector& a_parameter_vector
 			) :
 				m_position(a_parameter_vector),
-				m_velocity(a_parameter_vector.size()),
-				m_best_position(a_parameter_vector),
-				m_best_reward(a_initial_reward)
+				m_best_position(a_parameter_vector.size()),
+				m_velocity(a_parameter_vector.size())
 			{
 
 			}
+
+		public:
+			void update(
+				const double& a_w,
+				const double& a_c1,
+				const double& a_c2,
+				const double& a_reward,
+				const std::vector<double>& a_global_best_position
+			)
+			{
+				if (a_reward > m_best_reward)
+				{
+					m_best_position = m_position;
+					m_best_reward = a_reward;
+				}
+				std::vector<double> l_weighted_particle_velocity = oneshot::multiply(m_velocity, a_w);
+				std::vector<double> l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(m_best_position, m_position), a_c1), oneshot::random(0, 1));
+				std::vector<double> l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(a_global_best_position, m_position), a_c2), oneshot::random(0, 1));
+				m_velocity = oneshot::add(oneshot::add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
+				m_position = oneshot::add(m_position, m_velocity);
+			}
+
 		};
 
-		class particle_swarm
+		class particle_swarm_optimizer
 		{
 		private:
-			std::vector<particle> m_particles;
+			std::vector<particle_optimizer> m_particle_optimizers;
+			double m_w = 0;
+			double m_c1 = 0;
+			double m_c2 = 0;
+			double m_global_best_reward = -INFINITY;
+			std::vector<double> m_global_best_position;
 
+		public:
+			particle_swarm_optimizer(
+				const std::vector<particle_optimizer>& a_particle_optimizers,
+				const double& a_w,
+				const double& a_c1,
+				const double& a_c2
+			) :
+				m_particle_optimizers(a_particle_optimizers),
+				m_w(a_w),
+				m_c1(a_c1),
+				m_c2(a_c2)
+			{
+
+			}
+
+			void update(
+				const std::vector<double>& a_particle_rewards
+			)
+			{
+				// Get the global best position if it has improved
+				for (int i = 0; i < a_particle_rewards.size(); i++)
+				{
+					if (a_particle_rewards[i] > m_global_best_reward)
+					{
+						m_global_best_reward = a_particle_rewards[i];
+						m_global_best_position = m_particle_optimizers[i].m_position;
+					}
+				}
+				// Update all particle positions
+				for (int i = 0; i < m_particle_optimizers.size(); i++)
+				{
+					m_particle_optimizers[i].update(m_w, m_c1, m_c2, a_particle_rewards[i], m_global_best_position);
+				}
+			}
+
+			double global_best_reward(
+
+			)
+			{
+				return m_global_best_reward;
+			}
+
+			std::vector<double> global_best_position(
+
+			)
+			{
+				return m_global_best_position;
+			}
 
 		};
 

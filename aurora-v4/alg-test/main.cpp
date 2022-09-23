@@ -1370,13 +1370,92 @@ void particle_swarm_optimization_example(
 
 }
 
+void particle_swarm_optimization_class_example(
+
+)
+{
+	std::vector<std::vector<double>> l_x =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
+
+	std::vector<std::vector<double>> l_y =
+	{
+		{0},
+		{1},
+		{1},
+		{0}
+	};
+
+	auto l_carry_forward =
+		[&l_x](oneshot::parameter_vector& a_parmeter_vector)
+	{
+		std::vector<std::vector<double>> l_result = l_x;
+
+		for (int i = 0; i < l_x.size(); i++)
+		{
+			a_parmeter_vector.next_index(0);
+			l_result[i] = oneshot::multiply(a_parmeter_vector.next(1000, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(1000));
+			l_result[i] = oneshot::leaky_relu(l_result[i], 0.3);
+			l_result[i] = oneshot::multiply(a_parmeter_vector.next(1, l_result[i].size()), l_result[i]);
+			l_result[i] = oneshot::add(l_result[i], a_parmeter_vector.next(1));
+			l_result[i] = oneshot::sigmoid(l_result[i]);
+		}
+
+		return l_result;
+
+	};
+
+	// Initialize particle positions
+	std::vector<oneshot::parameter_vector> l_particle_positions;
+	for (int i = 0; i < 100; i++)
+	{
+		l_particle_positions.push_back(oneshot::parameter_vector(-1, 1));
+		l_carry_forward(l_particle_positions.back()); // Dry fire the particle's parameter vector
+	}
+
+	// Initialize particle velocities
+	std::vector<std::vector<double>> l_particle_velocities = oneshot::make(
+		l_particle_positions.size(),
+		l_particle_positions[0].size()
+	);
+
+	// Define hyperparameters
+	double l_w = 0.9;
+	double l_c1 = 0.4;
+	double l_c2 = 0.6;
+
+	std::vector<oneshot::particle_optimizer> l_particles;
+	for (int i = 0; i < l_particle_positions.size(); i++)
+		l_particles.push_back(oneshot::particle_optimizer(l_particle_positions[i]));
+
+	oneshot::particle_swarm_optimizer l_swarm_optimizer(l_particles, l_w, l_c1, l_c2);
+
+	std::vector<double> l_particle_rewards(l_particles.size());
+
+	// Train
+	for (int epoch = 0; true; epoch++)
+	{
+		for (int i = 0; i < l_particles.size(); i++)
+			l_particle_rewards[i] = 1.0 / (oneshot::mean_squared_error(l_carry_forward(l_particle_positions[i]), l_y) + 0.00001);
+		l_swarm_optimizer.update(l_particle_rewards);
+		std::cout << l_swarm_optimizer.global_best_reward() << std::endl;
+	}
+
+}
+
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	particle_swarm_optimization_example();
+	particle_swarm_optimization_class_example();
 
 	return 0;
 }
