@@ -1412,22 +1412,17 @@ void particle_swarm_optimization_class_example(
 
 	// Initialize particle positions
 	std::vector<oneshot::parameter_vector> l_particle_positions;
+
 	for (int i = 0; i < 100; i++)
 	{
 		l_particle_positions.push_back(oneshot::parameter_vector(-1, 1));
 		l_carry_forward(l_particle_positions.back()); // Dry fire the particle's parameter vector
 	}
 
-	// Initialize particle velocities
-	std::vector<std::vector<double>> l_particle_velocities = oneshot::make(
-		l_particle_positions.size(),
-		l_particle_positions[0].size()
-	);
-
 	// Define hyperparameters
 	double l_w = 0.9;
-	double l_c1 = 0.4;
-	double l_c2 = 0.6;
+	double l_c1 = 0.2;
+	double l_c2 = 0.8;
 
 	std::vector<oneshot::particle_optimizer> l_particles;
 	for (int i = 0; i < l_particle_positions.size(); i++)
@@ -1447,7 +1442,6 @@ void particle_swarm_optimization_class_example(
 	}
 
 }
-
 
 int main(
 

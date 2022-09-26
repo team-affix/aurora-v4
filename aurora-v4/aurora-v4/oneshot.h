@@ -581,7 +581,7 @@ namespace aurora
 			return l_sum / (double)a_prediction.size() / (double)a_prediction[0].size();
 		}
 
-		double random(
+		inline double random(
 			const double& a_minimum,
 			const double& a_maximum
 		)
@@ -590,7 +590,7 @@ namespace aurora
 			return l_urd(i_default_random_engine);
 		}
 
-		std::vector<double> make(
+		inline std::vector<double> make(
 			const size_t& a_size
 		)
 		{
@@ -598,7 +598,7 @@ namespace aurora
 			return l_result;
 		}
 
-		std::vector<std::vector<double>> make(
+		inline std::vector<std::vector<double>> make(
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
@@ -609,7 +609,7 @@ namespace aurora
 			return l_result;
 		}
 
-		std::vector<double> random(
+		inline std::vector<double> random(
 			const size_t& a_size,
 			const double& a_minimum,
 			const double& a_maximum
@@ -622,7 +622,7 @@ namespace aurora
 			return l_result;
 		}
 
-		std::vector<std::vector<double>> random(
+		inline std::vector<std::vector<double>> random(
 			const size_t& a_rows,
 			const size_t& a_cols,
 			const double& a_minimum,
@@ -635,6 +635,172 @@ namespace aurora
 				for (int j = 0; j < a_cols; j++)
 					l_result[i][j] = l_urd(i_default_random_engine);
 			return l_result;
+		}
+
+		inline std::vector<double> flatten(
+			const std::vector<std::vector<double>>& a_x
+		)
+		{
+			std::vector<double> l_result(a_x.size() * a_x[0].size());
+
+			for (int i = 0; i < a_x.size(); i++)
+			{
+				for (int j = 0; j < a_x[0].size(); j++)
+				{
+					l_result[i * a_x[0].size() + j] = a_x[i][j];
+				}
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<double> flatten(
+			const std::vector<std::vector<std::vector<double>>>& a_x
+		)
+		{
+			std::vector<double> l_result(a_x.size() * a_x[0].size() * a_x[0][0].size());
+
+			for (int i = 0; i < a_x.size(); i++)
+			{
+				for (int j = 0; j < a_x[0].size(); j++)
+				{
+					for (int k = 0; k < a_x[0][0].size(); k++)
+					{
+						l_result[i * a_x[0].size() + j * a_x[0][0].size() + k] = a_x[i][j][k];
+					}
+				}
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<double> convolve(
+			const std::vector<std::vector<double>>& a_x,
+			const std::vector<std::vector<double>>& a_filter,
+			const size_t& a_stride
+		)
+		{
+			// Since the first dimension is considered to be height of the filter, we reserve the first dimension as
+			// being non-spacial, and hence we use only the [0].size() as the width of our matrix.
+
+			int l_right_most_position = a_x[0].size() - a_filter[0].size();
+
+			assert(l_right_most_position >= 0);
+
+			size_t l_convolution_count = (l_right_most_position / a_stride) + 1;
+
+			std::vector<double> l_result(l_convolution_count);
+
+			for (int i = 0; i < l_convolution_count; i++)
+			{
+				l_result[i] = multiply(
+					flatten(
+						a_filter
+					),
+					flatten(
+						range(a_x, 0, i * a_stride, a_filter.size(), a_filter[0].size())
+					)
+				);
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<std::vector<double>> convolve(
+			const std::vector<std::vector<std::vector<double>>>& a_x,
+			const std::vector<std::vector<std::vector<double>>>& a_filter,
+			const size_t& a_stride
+		)
+		{
+			// Since the first dimension is considered to be depth of the filter, we reserve the first dimension as
+			// being non-spacial, and hence we use only the [0].size() and [0][0].size() as the 
+			// height and width of our matrices, respectively.
+
+			int l_bottom_most_position = a_x[0].size() - a_filter[0].size();
+			int l_right_most_position = a_x[0][0].size() - a_filter[0][0].size();
+
+			assert(l_bottom_most_position >= 0 && l_right_most_position >= 0);
+
+			size_t l_vertical_convolution_count = (l_bottom_most_position / a_stride) + 1;
+			size_t l_horizontal_convolution_count = (l_right_most_position / a_stride) + 1;
+
+			std::vector<std::vector<double>> l_result(l_vertical_convolution_count);
+
+			for (int i = 0; i < l_vertical_convolution_count; i++)
+			{
+				std::vector<double> l_result_row(l_horizontal_convolution_count);
+				for (int j = 0; j < l_horizontal_convolution_count; j++)
+				{
+					l_result_row[j] = multiply(
+						flatten(
+							a_filter
+						),
+						flatten(
+							range(a_x, 0, i * a_stride, j * a_stride, a_filter.size(), a_filter[0].size(), a_filter[0][0].size())
+						)
+					);
+				}
+				l_result[i] = l_result_row;
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<double> average_pool(
+			const std::vector<double>& a_x,
+			const size_t& a_bin_width,
+			const size_t& a_stride = 1
+		)
+		{
+			size_t l_right_most_index = a_x.size() - a_bin_width;
+
+			size_t l_pool_size = (l_right_most_index / a_stride) + 1;
+
+			std::vector<double> l_result(l_pool_size);
+
+			for (int i = 0; i < l_pool_size; i++)
+			{
+				l_result[i] = average(range(a_x, i * a_stride, a_bin_width));
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<std::vector<double>> average_pool(
+			const std::vector<std::vector<double>>& a_x,
+			const size_t& a_bin_height,
+			const size_t& a_bin_width,
+			const size_t& a_stride = 1
+		)
+		{
+			size_t l_top_most_index = a_x.size() - a_bin_height;
+			size_t l_right_most_index = a_x[0].size() - a_bin_width;
+
+			size_t l_pool_height = (l_top_most_index / a_stride) + 1;
+			size_t l_pool_width = (l_right_most_index / a_stride) + 1;
+
+			std::vector<std::vector<double>> l_result(l_pool_height);
+
+			for (int i = 0; i < l_pool_height; i++)
+			{
+				std::vector<double> l_result_row(l_pool_width);
+
+				for (int j = 0; j < l_pool_width; j++)
+				{
+					l_result_row[j] = average(flatten(range(a_x, i * a_stride, j * a_stride, a_bin_height, a_bin_width)));
+				}
+
+				l_result[i] = l_result_row;
+
+			}
+
+			return l_result;
+
 		}
 
 		class particle_optimizer
