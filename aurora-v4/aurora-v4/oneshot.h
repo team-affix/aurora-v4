@@ -205,6 +205,42 @@ namespace aurora
 
 		}
 
+		inline std::vector<std::vector<double>> add(
+			const std::vector<std::vector<double>>& a_x_0,
+			const std::vector<std::vector<double>>& a_x_1
+		)
+		{
+			assert(a_x_0.size() == a_x_1.size());
+
+			std::vector<std::vector<double>> l_result(a_x_0.size());
+
+			for (int i = 0; i < a_x_0.size(); i++)
+			{
+				l_result[i] = add(a_x_0[i], a_x_1[i]);
+			}
+
+			return l_result;
+
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> add(
+			const std::vector<std::vector<std::vector<double>>>& a_x_0,
+			const std::vector<std::vector<std::vector<double>>>& a_x_1
+		)
+		{
+			assert(a_x_0.size() == a_x_1.size());
+
+			std::vector<std::vector<std::vector<double>>> l_result(a_x_0.size());
+
+			for (int i = 0; i < a_x_0.size(); i++)
+			{
+				l_result[i] = add(a_x_0[i], a_x_1[i]);
+			}
+
+			return l_result;
+
+		}
+
 		inline std::vector<double> subtract(
 			const std::vector<double>& a_x_0,
 			const std::vector<double>& a_x_1
@@ -215,6 +251,38 @@ namespace aurora
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_y[i] = a_x_0[i] - a_x_1[i];
+			}
+
+			return l_y;
+
+		}
+
+		inline std::vector<std::vector<double>> subtract(
+			const std::vector<std::vector<double>>& a_x_0,
+			const std::vector<std::vector<double>>& a_x_1
+		)
+		{
+			std::vector<std::vector<double>> l_y(a_x_0.size());
+
+			for (int i = 0; i < a_x_0.size(); i++)
+			{
+				l_y[i] = subtract(a_x_0[i], a_x_1[i]);
+			}
+
+			return l_y;
+
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> subtract(
+			const std::vector<std::vector<std::vector<double>>>& a_x_0,
+			const std::vector<std::vector<std::vector<double>>>& a_x_1
+		)
+		{
+			std::vector<std::vector<std::vector<double>>> l_y(a_x_0.size());
+
+			for (int i = 0; i < a_x_0.size(); i++)
+			{
+				l_y[i] = subtract(a_x_0[i], a_x_1[i]);
 			}
 
 			return l_y;
@@ -457,6 +525,37 @@ namespace aurora
 		)
 		{
 			std::vector<std::vector<double>> l_result(a_x.size());
+			for (int i = 0; i < a_x.size(); i++)
+				l_result[i] = leaky_relu(a_x[i], a_m);
+			return l_result;
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> sigmoid(
+			const std::vector<std::vector<std::vector<double>>>& a_x
+		)
+		{
+			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
+			for (int i = 0; i < a_x.size(); i++)
+				l_result[i] = sigmoid(a_x[i]);
+			return l_result;
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> tanh(
+			const std::vector<std::vector<std::vector<double>>>& a_x
+		)
+		{
+			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
+			for (int i = 0; i < a_x.size(); i++)
+				l_result[i] = tanh(a_x[i]);
+			return l_result;
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> leaky_relu(
+			const std::vector<std::vector<std::vector<double>>>& a_x,
+			const double& a_m
+		)
+		{
+			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
