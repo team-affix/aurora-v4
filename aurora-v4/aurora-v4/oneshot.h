@@ -692,6 +692,17 @@ namespace aurora
 			return l_sum / (double)a_prediction.size() / (double)a_prediction[0].size();
 		}
 
+		inline double cross_entropy(
+			const double& a_prediction,
+			const double& a_desired
+		)
+		{
+			auto l_first_term = a_desired * log(a_prediction);
+			auto l_second_term = (1.0 - a_desired) * log(1.0 - a_prediction);
+			auto l_negated_sum = -1 * (l_first_term + l_second_term);
+			return l_negated_sum;
+		}
+
 		inline double random(
 			const double& a_minimum,
 			const double& a_maximum

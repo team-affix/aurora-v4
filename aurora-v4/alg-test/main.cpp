@@ -1445,7 +1445,14 @@ int main(
 {
 	srand(time(0));
 
-	particle_swarm_optimization_class_example();
+	double l_test_0 = aurora::oneshot::cross_entropy(0, 1);
+	double l_test_1 = aurora::oneshot::cross_entropy(1, 0);
+	double l_test_2 = aurora::oneshot::cross_entropy(0.1, 1);
+	double l_test_3 = aurora::oneshot::cross_entropy(0.5, 1);
+	double l_test_4 = aurora::oneshot::cross_entropy(0.01, 0);
+	double l_test_5 = aurora::oneshot::cross_entropy(0.99, 1);
+
+	//particle_swarm_optimization_class_example();
 
 	return 0;
 }
