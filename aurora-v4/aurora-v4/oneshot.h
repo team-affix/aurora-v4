@@ -90,6 +90,18 @@ namespace aurora
 				return l_result;
 			}
 
+			std::vector<std::vector<std::vector<double>>> next(
+				const size_t& a_depth,
+				const size_t& a_rows,
+				const size_t& a_cols
+			)
+			{
+				std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+				for (int i = 0; i < a_depth; i++)
+					l_result[i] = next(a_rows, a_cols);
+				return l_result;
+			}
+
 		};
 
 		inline double sigmoid(

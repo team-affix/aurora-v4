@@ -1364,10 +1364,6 @@ void particle_swarm_optimization_example(
 
 	}
 
-	
-
-
-
 }
 
 void particle_swarm_optimization_class_example(
