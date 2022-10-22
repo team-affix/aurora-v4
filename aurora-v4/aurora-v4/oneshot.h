@@ -731,6 +731,18 @@ namespace aurora
 			return l_result;
 		}
 
+		inline std::vector<std::vector<std::vector<double>>> make(
+			const size_t& a_depth,
+			const size_t& a_rows,
+			const size_t& a_cols
+		)
+		{
+			std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+			for (int i = 0; i < l_result.size(); i++)
+				l_result[i] = make(a_rows, a_cols);
+			return l_result;
+		}
+
 		inline std::vector<double> random(
 			const size_t& a_size,
 			const double& a_minimum,
@@ -759,6 +771,23 @@ namespace aurora
 			return l_result;
 		}
 
+		inline std::vector<std::vector<std::vector<double>>> random(
+			const size_t& a_depth,
+			const size_t& a_rows,
+			const size_t& a_cols,
+			const double& a_minimum,
+			const double& a_maximum
+		)
+		{
+			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
+			std::vector<std::vector<std::vector<double>>> l_result = make(a_depth, a_rows, a_cols);
+			for (int i = 0; i < a_depth; i++)
+				for (int j = 0; j < a_rows; j++)
+					for (int k = 0; k < a_cols; k++)
+					l_result[i][j][k] = l_urd(i_default_random_engine);
+			return l_result;
+		}
+
 		inline std::vector<double> flatten(
 			const std::vector<std::vector<double>>& a_x
 		)
@@ -783,19 +812,58 @@ namespace aurora
 		{
 			std::vector<double> l_result(a_x.size() * a_x[0].size() * a_x[0][0].size());
 
+			size_t l_number_of_elements_in_matrix = a_x[0].size() * a_x[0][0].size();
+			size_t l_number_of_elements_in_row = a_x[0][0].size();
+
 			for (int i = 0; i < a_x.size(); i++)
 			{
 				for (int j = 0; j < a_x[0].size(); j++)
 				{
 					for (int k = 0; k < a_x[0][0].size(); k++)
 					{
-						l_result[i * a_x[0].size() + j * a_x[0][0].size() + k] = a_x[i][j][k];
+						l_result[i * l_number_of_elements_in_matrix + j * l_number_of_elements_in_row + k] = a_x[i][j][k];
 					}
 				}
 			}
 
 			return l_result;
 
+		}
+
+		inline std::vector<std::vector<double>> partition(
+			const std::vector<double>& a_x,
+			const size_t& a_rows,
+			const size_t& a_cols
+		)
+		{
+			// Make sure that there are a valid number of elements in the input to make a matrix
+			// of these dimensions.
+			assert(a_x.size() == a_rows * a_cols);
+			std::vector<std::vector<double>> l_result = make(a_rows, a_cols);
+			for (int i = 0; i < a_x.size(); i++)
+			{
+				l_result[i / a_cols][i % a_cols] = a_x[i];
+			}
+			return l_result;
+		}
+
+		inline std::vector<std::vector<std::vector<double>>> partition(
+			const std::vector<double>& a_x,
+			const size_t& a_depth,
+			const size_t& a_rows,
+			const size_t& a_cols
+		)
+		{
+			size_t l_number_of_elements_in_matrix = a_rows * a_cols;
+			// Make sure the the size of the input makes sense given what we're trying to make.
+			assert(a_x.size() == a_depth * l_number_of_elements_in_matrix);
+			std::vector<std::vector<double>> l_matrix_partition = partition(a_x, a_depth, l_number_of_elements_in_matrix);
+			std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+			for (int i = 0; i < l_result.size(); i++)
+			{
+				l_result[i] = partition(l_matrix_partition[i], a_rows, a_cols);
+			}
+			return l_result;
 		}
 
 		inline std::vector<double> convolve(

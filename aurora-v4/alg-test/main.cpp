@@ -1439,18 +1439,31 @@ void particle_swarm_optimization_class_example(
 
 }
 
+void oneshot_partition_test(
+
+)
+{
+	auto l_tensor = oneshot::random(10, 10, 10, 0, 1);
+	auto l_flattened_0 = oneshot::flatten(l_tensor);
+	auto l_tensor_recovered = oneshot::partition(l_flattened_0, l_tensor.size(), l_tensor[0].size(), l_tensor[0][0].size());
+
+	assert(l_tensor_recovered == l_tensor);
+
+	auto l_matrix = oneshot::random(10, 10, 0, 1);
+	auto l_flattened_1 = oneshot::flatten(l_matrix);
+	auto l_matrix_recovered = oneshot::partition(l_flattened_1, l_tensor.size(), l_tensor[0].size());
+
+	assert(l_matrix_recovered == l_matrix);
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	double l_test_0 = aurora::oneshot::cross_entropy(0, 1);
-	double l_test_1 = aurora::oneshot::cross_entropy(1, 0);
-	double l_test_2 = aurora::oneshot::cross_entropy(0.1, 1);
-	double l_test_3 = aurora::oneshot::cross_entropy(0.5, 1);
-	double l_test_4 = aurora::oneshot::cross_entropy(0.01, 0);
-	double l_test_5 = aurora::oneshot::cross_entropy(0.99, 1);
+	oneshot_partition_test();
 
 	//particle_swarm_optimization_class_example();
 
