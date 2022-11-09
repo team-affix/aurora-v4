@@ -1098,7 +1098,8 @@ void oneshot_tnn_test(
 		{0}
 	};
 
-	oneshot::parameter_vector l_parameter_vector(-1, 1);
+	oneshot::parameter_vector_builder l_parameter_vector_builder(-1, 1);
+	oneshot::parameter_vector& l_parameter_vector(l_parameter_vector_builder);
 
 	auto l_carry_forward = 
 		[&l_parameter_vector, &l_x]
@@ -1303,8 +1304,9 @@ void particle_swarm_optimization_example(
 	std::vector<oneshot::parameter_vector> l_particle_positions;
 	for (int i = 0; i < 100; i++)
 	{
-		l_particle_positions.push_back(oneshot::parameter_vector(-1, 1));
-		l_carry_forward(l_particle_positions.back()); // Dry fire the particle's parameter vector
+		oneshot::parameter_vector_builder l_builder(-1, 1);
+		l_carry_forward(l_builder); // Dry fire the particle's parameter vector
+		l_particle_positions.push_back(l_builder);
 	}
 
 	// Initialize particle velocities
@@ -1411,8 +1413,9 @@ void particle_swarm_optimization_class_example(
 
 	for (int i = 0; i < 100; i++)
 	{
-		l_particle_positions.push_back(oneshot::parameter_vector(-1, 1));
-		l_carry_forward(l_particle_positions.back()); // Dry fire the particle's parameter vector
+		oneshot::parameter_vector_builder l_builder(-1, 1);
+		l_carry_forward(l_builder); // Dry fire the particle's parameter vector
+		l_particle_positions.push_back(l_builder);
 	}
 
 	// Define hyperparameters
@@ -1457,15 +1460,151 @@ void oneshot_partition_test(
 
 }
 
+void scalar_multiplication_modeling_using_matrices(
+
+)
+{
+	element_vector::start();
+	parameter_vector::start();
+
+	auto l_x = input(4);
+
+	auto l_m = bias(weight_junction(pointers(l_x), 20));
+	l_m = bias(weight_junction(l_m, 20));
+	auto l_y = bias(weight_junction(l_m, 1));
+
+	auto l_desired = input(1);
+	auto l_loss = mean_squared_error(l_y, pointers(l_desired))->depend();
+
+	parameter_vector l_parameter_vector = parameter_vector::stop(-1, 1);
+	element_vector l_element_vector = element_vector::stop();
+
+	gradient_descent_with_momentum l_optimizer(l_parameter_vector, true, 0.2, 0.9);
+
+	std::vector<std::vector<double>> l_ts_x =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1},
+	};
+
+	std::vector<std::vector<double>> l_ts_y =
+	{
+		{0},
+		{1},
+		{1},
+		{1}
+	};
+
+	for (int epoch = 0; true; epoch++)
+	{
+		double l_epoch_cost = 0;
+		for (int i = 0; i < l_ts_x.size(); i++)
+		{
+			set_state(pointers(l_x), l_ts_x[i]);
+			set_state(pointers(l_desired), l_ts_y[i]);
+			l_element_vector.fwd();
+			l_loss.m_partial_gradient = 1;
+			l_element_vector.bwd();
+			l_epoch_cost += l_loss.m_state;
+		}
+		l_optimizer.update();
+
+		if (l_epoch_cost <= 0.3)
+			printf("123");
+
+		if (epoch % 10000 == 0)
+			std::cout << l_epoch_cost << std::endl;
+	}
+
+}
+
+void test_pso(
+
+)
+{
+	std::vector<std::vector<double>> l_tsx =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
+
+	std::vector<std::vector<double>> l_tsy =
+	{
+		{0},
+		{1},
+		{1},
+		{0}
+	};
+
+	auto l_get_reward = [](
+		aurora::oneshot::parameter_vector& a_parameter_vector,
+		const std::vector<std::vector<double>>& a_x,
+		const std::vector<std::vector<double>>& a_y
+	)
+	{
+		std::vector<std::vector<double>> l_y(a_x);
+		for (int i = 0; i < a_x.size(); i++)
+		{
+			a_parameter_vector.next_index(0);
+			l_y[i] = oneshot::multiply(a_parameter_vector.next(5, 2), l_y[i]);
+			l_y[i] = oneshot::add(l_y[i], a_parameter_vector.next(5));
+			l_y[i] = oneshot::tanh(l_y[i]);
+			l_y[i] = oneshot::multiply(a_parameter_vector.next(1, 5), l_y[i]);
+			l_y[i] = oneshot::add(l_y[i], a_parameter_vector.next(1));
+			l_y[i] = oneshot::tanh(l_y[i]);
+		}
+		return 1.0 / (oneshot::mean_squared_error(l_y, a_y) + 1E-10);
+	};
+
+	// Vector of particle independent variable positions
+	std::vector<aurora::oneshot::parameter_vector> l_parameter_vectors;
+	std::vector<aurora::oneshot::particle_optimizer> l_particle_optimizers;
+
+	// Initialize the particle positions
+	for (int i = 0; i < 50; i++)
+	{
+		oneshot::parameter_vector_builder l_builder(-7, 7);
+		l_get_reward(l_builder, l_tsx, l_tsy);
+		l_parameter_vectors.push_back(l_builder);
+	}
+
+	for (int i = 0; i < l_parameter_vectors.size(); i++)
+		l_particle_optimizers.push_back(aurora::oneshot::particle_optimizer(l_parameter_vectors[i]));
+
+	// Initialize the swarm optimizer.
+	aurora::oneshot::particle_swarm_optimizer l_particle_swarm_optimizer(l_particle_optimizers, 0.9, 0.2, 0.8);
+
+	// Construct a vector of the rewards associated with each parameter vector.
+	std::vector<double> l_rewards(l_parameter_vectors.size());
+
+	for (int l_epoch = 0; true; l_epoch++)
+	{
+		for (int i = 0; i < l_parameter_vectors.size(); i++)
+		{
+			l_rewards[i] = l_get_reward(
+				l_parameter_vectors[i],
+				l_tsx,
+				l_tsy
+			);
+		}
+		l_particle_swarm_optimizer.update(l_rewards);
+		if (l_epoch % 10 == 0)
+			std::cout << l_particle_swarm_optimizer.global_best_reward() << std::endl;
+	}
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	oneshot_partition_test();
-
-	//particle_swarm_optimization_class_example();
+	particle_swarm_optimization_example();
 
 	return 0;
 }

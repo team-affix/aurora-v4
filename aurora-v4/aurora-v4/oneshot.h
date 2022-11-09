@@ -8,28 +8,23 @@ namespace aurora
 	{
 		class parameter_vector : public std::vector<double>
 		{
-		private:
+		protected:
 			size_t m_next_index = 0;
-			std::uniform_real_distribution<double> m_uniform_real_distribution;
 
 		public:
 			parameter_vector(
-				const double& a_minimum_parameter_value,
-				const double& a_maximum_parameter_value
-			) :
-				m_uniform_real_distribution(a_minimum_parameter_value, a_maximum_parameter_value)
+
+			)
 			{
 
 			}
 
-			parameter_vector& operator=(
-				const std::vector<double>& a_vector
-				)
+			parameter_vector(
+				const std::vector<double>& a_parameter_vector
+			) :
+				std::vector<double>(a_parameter_vector)
 			{
-				assert(size() == a_vector.size());
-				for (int i = 0; i < size(); i++)
-					at(i) = a_vector[i];
-				return *this;
+
 			}
 
 		public:
@@ -47,26 +42,13 @@ namespace aurora
 				m_next_index = a_next_index;
 			}
 
-			double next(
+			virtual double next(
 
 			)
 			{
-				if (m_next_index == size())
-				{
-					push_back(m_uniform_real_distribution(i_default_random_engine));
-					m_next_index++;
-					return back();
-				}
-				else if (m_next_index < size())
-				{
-					double l_result = at(m_next_index);
-					m_next_index++;
-					return l_result;
-				}
-				else
-				{
-					throw std::exception("Error: m_next_index was larger than the size of the parameter vector.");
-				}
+				double l_result = at(m_next_index);
+				m_next_index++;
+				return l_result;
 			}
 
 			std::vector<double> next(
@@ -103,6 +85,55 @@ namespace aurora
 			}
 
 		};
+
+		class parameter_vector_builder : public parameter_vector
+		{
+		protected:
+			std::uniform_real_distribution<double> m_uniform_real_distribution;
+
+		public:
+			parameter_vector_builder(
+				const double& a_minimum_parameter_value,
+				const double& a_maximum_parameter_value
+			) :
+				m_uniform_real_distribution(a_minimum_parameter_value, a_maximum_parameter_value)
+			{
+
+			}
+
+			parameter_vector_builder& operator=(
+				const std::vector<double>& a_vector
+			)
+			{
+				assert(size() == a_vector.size());
+				for (int i = 0; i < size(); i++)
+					at(i) = a_vector[i];
+				return *this;
+			}
+
+			virtual double next(
+
+			)
+			{
+				if (m_next_index == size())
+				{
+					push_back(m_uniform_real_distribution(i_default_random_engine));
+					m_next_index++;
+					return back();
+				}
+				else if (m_next_index < size())
+				{
+					return parameter_vector::next();
+				}
+				else
+				{
+					throw std::exception("Error: m_next_index was larger than the size of the parameter vector.");
+				}
+			}
+
+
+		};
+
 
 		inline double sigmoid(
 			const double& a_x
