@@ -1,6 +1,7 @@
 #pragma once
 #include "affix-base/pch.h"
 #include "fundamentals.h"
+#include "affix-base/byte_buffer.h"
 
 namespace aurora
 {
@@ -133,7 +134,6 @@ namespace aurora
 
 
 		};
-
 
 		inline double sigmoid(
 			const double& a_x
@@ -1028,6 +1028,8 @@ namespace aurora
 		{
 		public:
 			parameter_vector& m_position;
+
+		private:
 			std::vector<double> m_best_position;
 			std::vector<double> m_velocity;
 			double m_best_reward = -INFINITY;
@@ -1039,6 +1041,20 @@ namespace aurora
 				m_position(a_parameter_vector),
 				m_best_position(a_parameter_vector.size()),
 				m_velocity(a_parameter_vector.size())
+			{
+
+			}
+
+			particle_optimizer(
+				parameter_vector& a_parameter_vector,
+				const std::vector<double>& a_best_position,
+				const std::vector<double>& a_velocity,
+				const double& a_best_reward
+			) :
+				m_position(a_parameter_vector),
+				m_best_position(a_best_position),
+				m_velocity(a_velocity),
+				m_best_reward(a_best_reward)
 			{
 
 			}
@@ -1062,6 +1078,30 @@ namespace aurora
 				std::vector<double> l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(a_global_best_position, m_position), a_c2), oneshot::random(0, 1));
 				m_velocity = oneshot::add(oneshot::add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
 				m_position = oneshot::add(m_position, m_velocity);
+			}
+
+			bool serialize(
+				affix_base::data::byte_buffer& a_byte_buffer
+			) const
+			{
+				return a_byte_buffer.push_back(
+					(std::vector<double>&)m_position,
+					m_best_position,
+					m_velocity,
+					m_best_reward
+				);
+			}
+
+			bool deserialize(
+				affix_base::data::byte_buffer& a_byte_buffer
+			)
+			{
+				return a_byte_buffer.pop_front(
+					(std::vector<double>&)m_position,
+					m_best_position,
+					m_velocity,
+					m_best_reward
+				);
 			}
 
 		};
@@ -1123,6 +1163,34 @@ namespace aurora
 			)
 			{
 				return m_global_best_position;
+			}
+
+			bool serialize(
+				affix_base::data::byte_buffer& a_byte_buffer
+			) const
+			{
+				for (const particle_optimizer& l_particle_optimizer : m_particle_optimizers)
+					if (!a_byte_buffer.push_back(l_particle_optimizer))
+						return false;
+				if (!a_byte_buffer.push_back(m_global_best_reward))
+					return false;
+				if (!a_byte_buffer.push_back(m_global_best_position))
+					return false;
+				return true;
+			}
+
+			bool deserialize(
+				affix_base::data::byte_buffer& a_byte_buffer
+			)
+			{
+				for (particle_optimizer& l_particle_optimizer : m_particle_optimizers)
+					if (!a_byte_buffer.pop_front(l_particle_optimizer))
+						return false;
+				if (!a_byte_buffer.pop_front(m_global_best_reward))
+					return false;
+				if (!a_byte_buffer.pop_front(m_global_best_position))
+					return false;
+				return true;
 			}
 
 		};

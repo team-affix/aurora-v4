@@ -1598,13 +1598,26 @@ void test_pso(
 
 }
 
+void oneshot_convolve_test(
+
+)
+{
+	auto l_x = oneshot::random(3, 100, 100, 0, 1);
+	auto l_filter = oneshot::random(3, 10, 10, 0, 1);
+	auto l_convolved = oneshot::convolve(l_x, l_filter, 1);
+	auto l_convolved_first_element =
+		oneshot::multiply(
+			oneshot::flatten(oneshot::range(l_x, 0, 0, 0, 3, 10, 10)),
+			oneshot::flatten(l_filter));
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	particle_swarm_optimization_example();
+	test_pso();
 
 	return 0;
 }
