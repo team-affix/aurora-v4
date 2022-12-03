@@ -128,7 +128,7 @@ namespace aurora
 				}
 				else
 				{
-					throw std::exception("Error: m_next_index was larger than the size of the parameter vector.");
+					throw std::runtime_error("Error: m_next_index was larger than the size of the parameter vector.");
 				}
 			}
 

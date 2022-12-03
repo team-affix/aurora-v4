@@ -4,7 +4,6 @@
 #include "affix-base/vector_extensions.h"
 #include "cryptopp/osrng.h"
 #include "affix-base/persistent_thread.h"
-#include <Windows.h>
 
 using namespace aurora;
 using namespace aurora::latent;
@@ -1617,7 +1616,7 @@ int main(
 {
 	srand(time(0));
 
-	test_pso();
+	cnn_test();
 
 	return 0;
 }

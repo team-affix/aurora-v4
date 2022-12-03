@@ -298,7 +298,7 @@ namespace aurora
 			)
 			{
 				if (s_element_vectors.size() == 0)
-					throw std::exception("Error: there are currently no element vectors being constructed.");
+					throw std::runtime_error("Error: there are currently no element vectors being constructed.");
 				return s_element_vectors.back();
 			}
 
@@ -350,7 +350,7 @@ namespace aurora
 			)
 			{
 				if (s_parameter_vectors.size() == 0)
-					throw std::exception("Error: there are currently no parameter vectors being constructed.");
+					throw std::runtime_error("Error: there are currently no parameter vectors being constructed.");
 				return s_parameter_vectors.back();
 			}
 
@@ -392,7 +392,7 @@ namespace aurora
 			{
 				parameter_vector& l_current_parameter_vector = current_parameter_vector();
 				if (a_next_index > l_current_parameter_vector.size())
-					throw std::exception("Error: a_parameter_index was out of legal bounds given s_parameter_vector's size.");
+					throw std::runtime_error("Error: a_parameter_index was out of legal bounds given s_parameter_vector's size.");
 				l_current_parameter_vector.m_next_index = a_next_index;
 			}
 

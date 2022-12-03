@@ -1,0 +1,26 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Make project",
+            "command": "make",
+            "args": [
+                "-C",
+                "../../" // There are two backdirs since from any c++ CODE itself, we have to go back
+                         // 2 directories to get to the makefile.
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Makes affix-base and its dependencies, and then aurora."
+        }
+    ],
+    "version": "2.0.0"
+}
