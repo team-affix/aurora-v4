@@ -9,6 +9,9 @@
 *.user
 *.userosscache
 *.sln.docstates
+aurora-v4/alg-test/main
+*.o
+*.a
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

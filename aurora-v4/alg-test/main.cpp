@@ -1616,7 +1616,7 @@ int main(
 {
 	srand(time(0));
 
-	cnn_test();
+	oneshot_tnn_test();
 
 	return 0;
 }
