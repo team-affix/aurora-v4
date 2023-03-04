@@ -1,0 +1,21 @@
+B = main
+
+S = main.cpp
+S += ../aurora-v4/latent.cpp
+S += ../aurora-v4/oneshot.cpp
+
+H = ../aurora-v4/aurora.h
+H += ../aurora-v4/fundamentals.h
+H += ../aurora-v4/latent.h
+H += ../aurora-v4/oneshot.h
+
+F = -std=c++20 -O2 -I"../"
+
+all: $B
+
+$B: $S $H
+	g++ $F $S -o $B
+
+clean:
+	rm -rf $B
+

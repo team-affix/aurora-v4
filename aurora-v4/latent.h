@@ -1,7 +1,10 @@
-#pragma once
-#include "affix-base/pch.h"
-#include "affix-base/ptr.h"
-#include "affix-base/persistent_thread.h"
+#ifndef LATENT_H
+#define LATENT_H
+
+#include <vector>
+#include <memory>
+#include <assert.h>
+#include <stdexcept>
 #include "fundamentals.h"
 
 namespace aurora
@@ -18,7 +21,7 @@ namespace aurora
 		{
 			double m_state = 0;
 
-			std::vector<affix_base::data::ptr<double>> m_partial_gradients;
+			std::vector<std::shared_ptr<double>> m_partial_gradients;
 
 			state_gradient_pair(
 
@@ -51,7 +54,7 @@ namespace aurora
 
 			)
 			{
-				m_partial_gradients.push_back(new double(0));
+				m_partial_gradients.push_back(std::shared_ptr<double>(new double(0)));
 				return state_gradient_pair_dependency{ m_state, *m_partial_gradients.back() };
 			}
 
@@ -280,7 +283,7 @@ namespace aurora
 
 		class element;
 
-		struct element_vector : public std::vector<affix_base::data::ptr<element>>
+		struct element_vector : public std::vector<std::shared_ptr<element>>
 		{
 		private:
 			static std::vector<element_vector> s_element_vectors;
@@ -312,7 +315,7 @@ namespace aurora
 			);
 
 			static void insert(
-				const affix_base::data::ptr<element>& a_element
+				const std::shared_ptr<element>& a_element
 			)
 			{
 				current_element_vector().push_back(a_element);
@@ -329,7 +332,7 @@ namespace aurora
 
 		};
 
-		struct parameter_vector : public std::vector<affix_base::data::ptr<state_gradient_pair>>
+		struct parameter_vector : public std::vector<std::shared_ptr<state_gradient_pair>>
 		{
 		private:
 			static std::vector<parameter_vector> s_parameter_vectors;
@@ -410,15 +413,15 @@ namespace aurora
 				parameter_vector& l_current_parameter_vector = current_parameter_vector();
 				if (l_current_parameter_vector.m_next_index == l_current_parameter_vector.size())
 				{
-					l_current_parameter_vector.push_back(new state_gradient_pair());
+					l_current_parameter_vector.push_back(std::shared_ptr<state_gradient_pair>(new state_gradient_pair()));
 					l_current_parameter_vector.m_next_index++;
-					return l_current_parameter_vector.back();
+					return l_current_parameter_vector.back().get();
 				}
 				else
 				{
-					affix_base::data::ptr<state_gradient_pair> l_result = l_current_parameter_vector.at(l_current_parameter_vector.m_next_index);
+					std::shared_ptr<state_gradient_pair> l_result = l_current_parameter_vector.at(l_current_parameter_vector.m_next_index);
 					l_current_parameter_vector.m_next_index++;
-					return l_result;
+					return l_result.get();
 				}
 			}
 
@@ -429,7 +432,7 @@ namespace aurora
 				std::vector<state_gradient_pair*> l_result(size());
 
 				for (int i = 0; i < size(); i++)
-					l_result[i] = at(i);
+					l_result[i] = at(i).get();
 
 				return l_result;
 
@@ -451,7 +454,7 @@ namespace aurora
 
 			)
 			{
-				element_vector::insert(this);
+				element_vector::insert(std::shared_ptr<element>(this));
 			}
 
 			element(
@@ -505,7 +508,7 @@ namespace aurora
 
 			};
 
-			affix_base::data::ptr<element_constant> l_element(new element_constant(a_state));
+			std::shared_ptr<element_constant> l_element(new element_constant(a_state));
 			return &l_element->m_y;
 		}
 
@@ -558,7 +561,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_add> l_element(new element_add(a_x_0, a_x_1));
+			std::shared_ptr<element_add> l_element(new element_add(a_x_0, a_x_1));
 			return &l_element->m_y;
 		}
 
@@ -611,7 +614,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_subtract> l_element(new element_subtract(a_x_0, a_x_1));
+			std::shared_ptr<element_subtract> l_element(new element_subtract(a_x_0, a_x_1));
 			return &l_element->m_y;
 		}
 
@@ -664,7 +667,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_multiply> l_element(new element_multiply(a_x_0, a_x_1));
+			std::shared_ptr<element_multiply> l_element(new element_multiply(a_x_0, a_x_1));
 			return &l_element->m_y;
 		}
 
@@ -717,7 +720,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_divide> l_element(new element_divide(a_x_0, a_x_1));
+			std::shared_ptr<element_divide> l_element(new element_divide(a_x_0, a_x_1));
 			return &l_element->m_y;
 		}
 
@@ -770,7 +773,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_pow> l_element(new element_pow(a_x_0, a_x_1));
+			std::shared_ptr<element_pow> l_element(new element_pow(a_x_0, a_x_1));
 			return &l_element->m_y;
 		}
 
@@ -810,7 +813,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_sigmoid> l_element(new element_sigmoid(a_x));
+			std::shared_ptr<element_sigmoid> l_element(new element_sigmoid(a_x));
 			return &l_element->m_y;
 		}
 
@@ -857,7 +860,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_tanh> l_element(new element_tanh(a_x));
+			std::shared_ptr<element_tanh> l_element(new element_tanh(a_x));
 			return &l_element->m_y;
 		}
 
@@ -913,7 +916,7 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_leaky_relu> l_element(new element_leaky_relu(a_x, a_m));
+			std::shared_ptr<element_leaky_relu> l_element(new element_leaky_relu(a_x, a_m));
 			return &l_element->m_y;
 		}
 
@@ -960,111 +963,8 @@ namespace aurora
 				}
 
 			};
-			affix_base::data::ptr<element_log> l_element(new element_log(a_x));
+			std::shared_ptr<element_log> l_element(new element_log(a_x));
 			return &l_element->m_y;
-		}
-
-		inline void parallel_branch(
-			affix_base::threading::persistent_thread& a_persistent_thread,
-			element_vector&& a_model
-		)
-		{
-			class element_parallel_branch : public element
-			{
-			private:
-				affix_base::threading::persistent_thread& m_persistent_thread;
-				element_vector m_element_vector;
-
-			private:
-				std::function<void()> m_fwd_execute;
-				std::function<void()> m_bwd_execute;
-
-			public:
-				virtual ~element_parallel_branch(
-
-				)
-				{
-
-				}
-
-				element_parallel_branch(
-					affix_base::threading::persistent_thread& a_persistent_thread,
-					element_vector&& a_element_vector
-				) :
-					m_persistent_thread(a_persistent_thread),
-					m_element_vector(a_element_vector)
-				{
-					m_fwd_execute = [&]
-					{
-						m_element_vector.fwd();
-					};
-					m_bwd_execute = [&]
-					{
-						m_element_vector.bwd();
-					};
-				}
-
-				virtual void fwd(
-
-				)
-				{
-					m_persistent_thread.execute(m_fwd_execute);
-				}
-
-				virtual void bwd(
-
-				)
-				{
-					m_persistent_thread.execute(m_bwd_execute);
-				}
-
-			};
-			affix_base::data::ptr<element_parallel_branch> l_element(new element_parallel_branch(a_persistent_thread, std::move(a_model)));
-		}
-	
-		inline void join_threads(
-			std::vector<affix_base::threading::persistent_thread>& a_threads
-		)
-		{
-			class element_join_threads : public element
-			{
-			private:
-				std::vector<affix_base::threading::persistent_thread>& m_threads;
-
-			public:
-				virtual ~element_join_threads(
-
-				)
-				{
-
-				}
-
-				element_join_threads(
-					std::vector<affix_base::threading::persistent_thread>& a_threads
-				) :
-					m_threads(a_threads)
-				{
-
-				}
-
-				virtual void fwd(
-
-				)
-				{
-					for (auto& l_persistent_thread : m_threads)
-						l_persistent_thread.join();
-				}
-
-				virtual void bwd(
-
-				)
-				{
-					for (auto& l_persistent_thread : m_threads)
-						l_persistent_thread.join();
-				}
-
-			};
-			affix_base::data::ptr<element_join_threads> l_element(new element_join_threads(a_threads));
 		}
 
 		inline state_gradient_pair* parameter(
@@ -2011,3 +1911,5 @@ namespace aurora
 
 	}
 }
+
+#endif

@@ -1,7 +1,11 @@
-#pragma once
-#include "affix-base/pch.h"
+#ifndef ONESHOT_H
+#define ONESHOT_H
+
+#include <vector>
+#include <random>
+#include <assert.h>
+#include <stdexcept>
 #include "fundamentals.h"
-#include "affix-base/byte_buffer.h"
 
 namespace aurora
 {
@@ -132,7 +136,6 @@ namespace aurora
 				}
 			}
 
-
 		};
 
 		inline double sigmoid(
@@ -153,7 +156,7 @@ namespace aurora
 				return a_m * a_x;
 		}
 
-		std::vector<double> range(
+		inline std::vector<double> range(
 			const std::vector<double>& a_x,
 			const size_t& a_start_index,
 			const size_t& a_size
@@ -1080,30 +1083,6 @@ namespace aurora
 				m_position = oneshot::add(m_position, m_velocity);
 			}
 
-			bool serialize(
-				affix_base::data::byte_buffer& a_byte_buffer
-			) const
-			{
-				return a_byte_buffer.push_back(
-					(std::vector<double>&)m_position,
-					m_best_position,
-					m_velocity,
-					m_best_reward
-				);
-			}
-
-			bool deserialize(
-				affix_base::data::byte_buffer& a_byte_buffer
-			)
-			{
-				return a_byte_buffer.pop_front(
-					(std::vector<double>&)m_position,
-					m_best_position,
-					m_velocity,
-					m_best_reward
-				);
-			}
-
 		};
 
 		class particle_swarm_optimizer
@@ -1165,36 +1144,10 @@ namespace aurora
 				return m_global_best_position;
 			}
 
-			bool serialize(
-				affix_base::data::byte_buffer& a_byte_buffer
-			) const
-			{
-				for (const particle_optimizer& l_particle_optimizer : m_particle_optimizers)
-					if (!a_byte_buffer.push_back(l_particle_optimizer))
-						return false;
-				if (!a_byte_buffer.push_back(m_global_best_reward))
-					return false;
-				if (!a_byte_buffer.push_back(m_global_best_position))
-					return false;
-				return true;
-			}
-
-			bool deserialize(
-				affix_base::data::byte_buffer& a_byte_buffer
-			)
-			{
-				for (particle_optimizer& l_particle_optimizer : m_particle_optimizers)
-					if (!a_byte_buffer.pop_front(l_particle_optimizer))
-						return false;
-				if (!a_byte_buffer.pop_front(m_global_best_reward))
-					return false;
-				if (!a_byte_buffer.pop_front(m_global_best_position))
-					return false;
-				return true;
-			}
-
 		};
 
 	}
 
 }
+
+#endif

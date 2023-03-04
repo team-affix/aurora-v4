@@ -1,5 +1,9 @@
-#pragma once
-#include "affix-base/pch.h"
+#ifndef FUNDAMENTALS_H
+#define FUNDAMENTALS_H
+
+#include <vector>
+#include <random>
+#include <string>
 
 namespace aurora
 {
@@ -36,3 +40,5 @@ namespace aurora
 	}
 
 }
+
+#endif

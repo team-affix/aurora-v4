@@ -1,12 +1,19 @@
 #include "aurora-v4/aurora.h"
+#include <assert.h>
 #include <iostream>
-#include "affix-base/stopwatch.h"
-#include "affix-base/vector_extensions.h"
-#include "cryptopp/osrng.h"
-#include "affix-base/persistent_thread.h"
+#include <chrono>
+#include <stdexcept>
 
 using namespace aurora;
 using namespace aurora::latent;
+
+// Returns the number of milliseconds elapsed since the start.
+long long duration_ms(
+    const std::chrono::high_resolution_clock::time_point& a_start
+)
+{
+    return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - a_start)).count();
+}
 
 void tnn_test(
 
@@ -71,9 +78,7 @@ void tnn_test(
 		{0}
 	};
 
-	affix_base::timing::stopwatch l_stopwatch;
-
-	l_stopwatch.start();
+    std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
 	for (int epoch = 0; epoch < 1000000; epoch++)
 	{
@@ -108,7 +113,10 @@ void tnn_test(
 
 	}
 
-	std::cout << std::endl << "PERIOD OF TRAINING (ms): " << l_stopwatch.duration_milliseconds() << std::endl;
+	std::cout 
+        << std::endl << "PERIOD OF TRAINING (ms): " 
+        << duration_ms(l_start)
+        << std::endl;
 
 }
 
@@ -517,8 +525,7 @@ void large_memory_usage_test(
 
 	std::vector<state_gradient_pair> l_x(1000);
 
-	affix_base::timing::stopwatch l_stopwatch;
-	l_stopwatch.start();
+    std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
 	{
 		auto l_y = pointers(l_x);
@@ -529,28 +536,27 @@ void large_memory_usage_test(
 		element_vector l_model = element_vector::stop();
 		auto l_parameters = parameter_vector::stop();
 
-		std::cout << "MODEL CREATED: " << l_model.size() << " elements; " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
-		l_stopwatch.start();
+		std::cout << "MODEL CREATED: " << l_model.size() << " elements; " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
 
 		std::uniform_real_distribution<double> l_urd(-1, 1);
 		std::default_random_engine l_dre(25);
 
 		for (auto& l_parameter : l_parameters)
 			l_parameter->m_state = l_urd(l_dre);
-		std::cout << "PARAMETERS INITIALIZED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
-		l_stopwatch.start();
+		std::cout << "PARAMETERS INITIALIZED: " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
 
 		l_model.fwd();
-		std::cout << "FORWARD COMPLETED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
-		l_stopwatch.start();
+		std::cout << "FORWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
 
 		l_model.bwd();
-		std::cout << "BACKWARD COMPLETED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
-		l_stopwatch.start();
+		std::cout << "BACKWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
 	}
 
-	std::cout << "DECONSTRUCTED: " << l_stopwatch.duration_milliseconds() << " ms" << std::endl;
-
+	std::cout << "DECONSTRUCTED: " << duration_ms(l_start) << " ms" << std::endl;
 
 }
 
