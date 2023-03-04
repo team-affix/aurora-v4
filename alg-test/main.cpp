@@ -1622,7 +1622,7 @@ int main(
 {
 	srand(time(0));
 
-	oneshot_tnn_test();
+	tnn_test();
 
 	return 0;
 }

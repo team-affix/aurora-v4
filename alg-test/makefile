@@ -9,7 +9,7 @@ H += ../aurora-v4/fundamentals.h
 H += ../aurora-v4/latent.h
 H += ../aurora-v4/oneshot.h
 
-F = -std=c++20 -O2 -I"../"
+F = -g -std=c++20 -I"../"
 
 all: $B
 
