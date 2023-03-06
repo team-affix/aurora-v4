@@ -1622,7 +1622,7 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	test_pso();
 
 	return 0;
 }

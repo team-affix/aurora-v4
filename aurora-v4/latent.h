@@ -450,12 +450,12 @@ namespace aurora
 
 			}
 
-			element(
+            element(
 
-			)
-			{
-				element_vector::insert(std::shared_ptr<element>(this));
-			}
+            )
+            {
+
+            }
 
 			element(
 				const element&
@@ -509,7 +509,10 @@ namespace aurora
 			};
 
 			std::shared_ptr<element_constant> l_element(new element_constant(a_state));
-			return &l_element->m_y;
+			
+            element_vector::insert(l_element);
+
+            return &l_element->m_y;
 		}
 
 		inline state_gradient_pair* add(
@@ -562,6 +565,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_add> l_element(new element_add(a_x_0, a_x_1));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -615,6 +621,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_subtract> l_element(new element_subtract(a_x_0, a_x_1));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -668,6 +677,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_multiply> l_element(new element_multiply(a_x_0, a_x_1));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -721,6 +733,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_divide> l_element(new element_divide(a_x_0, a_x_1));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -774,6 +789,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_pow> l_element(new element_pow(a_x_0, a_x_1));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -814,6 +832,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_sigmoid> l_element(new element_sigmoid(a_x));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -861,6 +882,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_tanh> l_element(new element_tanh(a_x));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -917,6 +941,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_leaky_relu> l_element(new element_leaky_relu(a_x, a_m));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
@@ -964,6 +991,9 @@ namespace aurora
 
 			};
 			std::shared_ptr<element_log> l_element(new element_log(a_x));
+			
+            element_vector::insert(l_element);
+
 			return &l_element->m_y;
 		}
 
