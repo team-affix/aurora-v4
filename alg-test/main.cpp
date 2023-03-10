@@ -1756,6 +1756,27 @@ void sife_concurrent_feature_extraction_0(
 
 }
 
+void image_triangulation()
+{
+    element_vector::start();
+    parameter_vector::start();
+
+    sgp_vector l_x;
+    auto l_y = pointers(l_x);
+
+    for (size_t s : {10, 20, 4})
+    {
+        l_y = weight_junction(l_y, s);
+        l_y = bias(l_y);
+        l_y = leaky_relu(l_y, 0.3);
+    }
+
+    element_vector l_elements = element_vector::stop();
+    parameter_vector l_params = parameter_vector::stop(-1, 1);
+        
+
+}
+
 int main(
 
 )
