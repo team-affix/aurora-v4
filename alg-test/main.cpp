@@ -25,7 +25,7 @@ void tnn_test(
 	auto l_x = input(4, 2);
 	auto l_desired_y = input(4, 1);
 
-	std::vector<std::vector<state_gradient_pair*>> l_y;
+	sgp_ptr_matrix l_y;
 
 	size_t l_next_parameter_index = parameter_vector::next_index();
 
@@ -42,7 +42,7 @@ void tnn_test(
 		l_y.push_back(l_y_element);
 	}
 	
-	std::vector<state_gradient_pair*> l_cross_entropy_losses;
+	sgp_ptr_vector l_cross_entropy_losses;
 
 	for (int i = 0; i < l_y.size(); i++)
 		l_cross_entropy_losses.push_back(cross_entropy(l_y[i][0], &l_desired_y[i][0]));
@@ -62,7 +62,7 @@ void tnn_test(
 
 	const int CHECKPOINT = 100000;
 
-	std::vector<std::vector<double>> l_ts_x =
+	state_matrix l_ts_x =
 	{
 		{0, 0},
 		{0, 1},
@@ -70,7 +70,7 @@ void tnn_test(
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_ts_y =
+	state_matrix l_ts_y =
 	{
 		{0},
 		{1},
@@ -137,7 +137,7 @@ void parabola_test(
 	element_vector::start();
 	parameter_vector::start();
 	
-	std::vector<std::vector<state_gradient_pair*>> l_y(l_x.size());
+	sgp_ptr_matrix l_y(l_x.size());
 
 	size_t l_next_parameter_index = parameter_vector::next_index();
 
@@ -172,8 +172,8 @@ void parabola_test(
 	{
 		double l_cost = 0;
 
-		std::vector<std::vector<double>> l_ts_x;
-		std::vector<std::vector<double>> l_ts_y;
+		state_matrix l_ts_x;
+		state_matrix l_ts_y;
 
 		for (int i = 0; i < l_x.size(); i++)
 		{
@@ -227,7 +227,7 @@ void lstm_test(
 
 	auto l_x = input(2, 4, 2);
 
-	std::vector<std::vector<std::vector<state_gradient_pair*>>> l_y;
+	sgp_ptr_cuboid l_y;
 
 	size_t l_model_begin_next_parameter_index = parameter_vector::next_index();
 
@@ -236,7 +236,7 @@ void lstm_test(
 		parameter_vector::next_index(l_model_begin_next_parameter_index);
 		auto l_lstm_y = lstm(pointers(l_x[i]), l_lstm_y_units);
 		size_t l_tnn_begin_next_parameter_index = parameter_vector::next_index();
-		std::vector<std::vector<state_gradient_pair*>> l_tnn_ys;
+		sgp_ptr_matrix l_tnn_ys;
 		for (int j = 0; j < l_lstm_y.size(); j++)
 		{
 			parameter_vector::next_index(l_tnn_begin_next_parameter_index);
@@ -260,7 +260,7 @@ void lstm_test(
 
 	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
-	std::vector<std::vector<std::vector<double>>> l_training_set_xs =
+	state_cuboid l_training_set_xs =
 	{
 		{
 			{0, 0},
@@ -276,7 +276,7 @@ void lstm_test(
 		},
 	};
 
-	std::vector<std::vector<std::vector<double>>> l_training_set_ys =
+	state_cuboid l_training_set_ys =
 	{
 		{
 			{0},
@@ -340,7 +340,7 @@ void lstm_stacked_test(
 	auto l_lstm_1 = lstm(l_lstm_0, 20);
 	auto l_lstm_2 = lstm(l_lstm_1, 1);
 
-	std::vector<std::vector<state_gradient_pair*>> l_y;
+	sgp_ptr_matrix l_y;
 
 	for (int i = 0; i < l_lstm_2.size(); i++)
 	{
@@ -368,7 +368,7 @@ void lstm_stacked_test(
 		l_parameter->m_state = l_urd(l_dre);
 	}
 
-	std::vector<std::vector<std::vector<double>>> l_training_set_xs =
+	state_cuboid l_training_set_xs =
 	{
 		{
 			{0, 0},
@@ -384,7 +384,7 @@ void lstm_stacked_test(
 		},
 	};
 
-	std::vector<std::vector<std::vector<double>>> l_training_set_ys =
+	state_cuboid l_training_set_ys =
 	{
 		{
 			{0},
@@ -435,7 +435,7 @@ void matrix_vector_multiply_test(
 {
 	element_vector::start();
 
-	std::vector<std::vector<state_gradient_pair>> l_x_0
+	sgp_matrix l_x_0
 	{
 		{1, 2},
 		{3, 4},
@@ -443,7 +443,7 @@ void matrix_vector_multiply_test(
 		{7, 8}
 	};
 
-	std::vector<state_gradient_pair> l_x_1
+	sgp_vector l_x_1
 	{
 		2,
 		3
@@ -463,8 +463,8 @@ void cosine_similarity_test(
 {
 	element_vector::start();
 
-	std::vector<state_gradient_pair> l_x_0{ 0, 1, 0, 0 };
-	std::vector<state_gradient_pair> l_x_1{ 0, -1, 0, 0 };
+	sgp_vector l_x_0{ 0, 1, 0, 0 };
+	sgp_vector l_x_1{ 0, -1, 0, 0 };
 
 	auto l_y = cosine_similarity(pointers(l_x_0), pointers(l_x_1));
 
@@ -478,7 +478,7 @@ void similarity_interpolate_test(
 
 )
 {
-	std::vector<std::vector<state_gradient_pair>> l_tsx =
+	sgp_matrix l_tsx =
 	{
 		{0, 0},
 		{0, 1},
@@ -487,7 +487,7 @@ void similarity_interpolate_test(
 		{1, 0.75}
 	};
 
-	std::vector<std::vector<state_gradient_pair>> l_tsy =
+	sgp_matrix l_tsy =
 	{
 		{0},
 		{1},
@@ -523,7 +523,7 @@ void large_memory_usage_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	std::vector<state_gradient_pair> l_x(1000);
+	sgp_vector l_x(1000);
 
     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
@@ -560,15 +560,15 @@ void large_memory_usage_test(
 
 }
 
-std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_predict(
-	std::vector<std::vector<state_gradient_pair*>> a_x,
+sgp_ptr_cuboid in_sequence_stock_predict(
+	sgp_ptr_matrix a_x,
 	const std::vector<size_t>& a_lstm_y_sizes,
 	const std::vector<size_t>& a_layer_y_sizes,
 	const size_t& a_time_slots_to_predict_per_timestep,
 	const size_t& a_time_slot_prediction_size
 )
 {
-	std::vector<std::vector<state_gradient_pair*>> l_y_raw = a_x;
+	sgp_ptr_matrix l_y_raw = a_x;
 
 	for (int i = 0; i < a_lstm_y_sizes.size(); i++)
 		l_y_raw = lstm(l_y_raw, a_lstm_y_sizes[i]);
@@ -585,7 +585,7 @@ std::vector<std::vector<std::vector<state_gradient_pair*>>> in_sequence_stock_pr
 		}
 	}
 
-	std::vector<std::vector<std::vector<state_gradient_pair*>>> l_future_hour_predictions;
+	sgp_ptr_cuboid l_future_hour_predictions;
 
 	for (int i = 0; i < l_y_raw.size(); i++)
 	{
@@ -604,7 +604,7 @@ void issp_test(
 	element_vector::start();
 	parameter_vector::start();
 
-	std::vector<std::vector<state_gradient_pair>> l_x = input(100, 4);
+	sgp_matrix l_x = input(100, 4);
 
 	auto l_y = in_sequence_stock_predict(
 		pointers(l_x),
@@ -631,9 +631,9 @@ void pablo_tnn_example(
 	parameter_vector::start();
 
 	// Write model building code here
-	std::vector<state_gradient_pair> l_x = { 0, 0 };
+	sgp_vector l_x = { 0, 0 };
 
-	std::vector<state_gradient_pair*> l_y = pointers(l_x);
+	sgp_ptr_vector l_y = pointers(l_x);
 
 	l_y = weight_junction(l_y, 5);
 	l_y = bias(l_y);
@@ -652,7 +652,7 @@ void pablo_tnn_example(
 
 	gradient_descent l_optimizer(l_parameters, true, 0.02);
 
-	std::vector<std::vector<double>> l_tsx =
+	state_matrix l_tsx =
 	{
 		{ 0, 0 },
 		{ 0, 1 },
@@ -660,7 +660,7 @@ void pablo_tnn_example(
 		{ 1, 1 },
 	};
 
-	std::vector<std::vector<double>> l_tsy =
+	state_matrix l_tsy =
 	{
 		{ 0 },
 		{ 1 },
@@ -703,7 +703,7 @@ void reward_structure_modeling(
 
 )
 {
-	std::vector<state_gradient_pair> l_x(3);
+	sgp_vector l_x(3);
 
 	// INPUTS:
 	// PERCEIVED CHEAPNESS OF THE ITEM
@@ -730,7 +730,7 @@ void reward_structure_modeling(
 
 	struct training_set
 	{
-		std::vector<double> m_x;
+		state_vector m_x;
 		double m_y;
 	};
 
@@ -790,9 +790,9 @@ void loss_modeling_test_0(
 
 )
 {
-	std::vector<state_gradient_pair> l_task_x(10);
-	std::vector<state_gradient_pair> l_task_prediction(1);
-	std::vector<state_gradient_pair> l_loss_model_desired_y(1);
+	sgp_vector l_task_x(10);
+	sgp_vector l_task_prediction(1);
+	sgp_vector l_loss_model_desired_y(1);
 
 	element_vector::start();
 	parameter_vector::start();
@@ -935,14 +935,14 @@ void tnn_test_2(
 
 )
 {
-	std::vector<std::vector<double>> l_tsx =
+	state_matrix l_tsx =
 	{
 		{0, 0},
 		{0, 1},
 		{1, 0},
 		{1, 1},
 	};
-	std::vector<std::vector<double>> l_tsy =
+	state_matrix l_tsy =
 	{
 		{0},
 		{1},
@@ -1071,15 +1071,15 @@ void oneshot_matrix_multiply_test(
 
 )
 {
-	std::vector<std::vector<double>> l_matrix = 
+	state_matrix l_matrix = 
 	{
 		{2, 3, 4},
 		{5, 6, 7}
 	};
 
-	std::vector<double> l_weights = { 3, 4, 5 };
+	state_vector l_weights = { 3, 4, 5 };
 
-	std::vector<double> l_result = oneshot::multiply(l_matrix, l_weights);
+	state_vector l_result = oneshot::multiply(l_matrix, l_weights);
 
 }
 
@@ -1087,7 +1087,7 @@ void oneshot_tnn_test(
 
 )
 {
-	std::vector<std::vector<double>> l_x = 
+	state_matrix l_x = 
 	{
 		{0, 0},
 		{0, 1},
@@ -1095,7 +1095,7 @@ void oneshot_tnn_test(
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_y =
+	state_matrix l_y =
 	{
 		{0},
 		{1},
@@ -1109,7 +1109,7 @@ void oneshot_tnn_test(
 	auto l_carry_forward = 
 		[&l_parameter_vector, &l_x]
 	{
-		std::vector<std::vector<double>> l_result = l_x;
+		state_matrix l_result = l_x;
 
 		for (int i = 0; i < l_x.size(); i++)
 		{
@@ -1128,7 +1128,7 @@ void oneshot_tnn_test(
 
 	auto l_dry_fire = l_carry_forward();
 
-	std::vector<double> l_gradients(l_parameter_vector.size());
+	state_vector l_gradients(l_parameter_vector.size());
 
 	std::uniform_real_distribution<double> l_urd(-1, 1);
 
@@ -1146,7 +1146,7 @@ void oneshot_tnn_test(
 
 	for (int epoch = 0; true; epoch++)
 	{
-		std::vector<double> l_updates = oneshot::normalize(l_gradients);
+		state_vector l_updates = oneshot::normalize(l_gradients);
 
 		for (int i = 0; i < l_gradients.size(); i++)
 		{
@@ -1181,7 +1181,7 @@ void oneshot_tnn_test(
 //
 //)
 //{
-//	std::vector<std::vector<double>> l_x =
+//	state_matrix l_x =
 //	{
 //		{0, 0},
 //		{0, 1},
@@ -1189,7 +1189,7 @@ void oneshot_tnn_test(
 //		{1, 1}
 //	};
 //
-//	std::vector<std::vector<double>> l_y =
+//	state_matrix l_y =
 //	{
 //		{0},
 //		{1},
@@ -1202,7 +1202,7 @@ void oneshot_tnn_test(
 //	auto l_carry_forward =
 //		[&l_position, &l_x]
 //	{
-//		std::vector<std::vector<double>> l_result = l_x;
+//		state_matrix l_result = l_x;
 //
 //		for (int i = 0; i < l_x.size(); i++)
 //		{
@@ -1222,12 +1222,12 @@ void oneshot_tnn_test(
 //	auto l_dry_fire = l_carry_forward();
 //
 //	std::uniform_real_distribution<double> l_velocity_urd(-0.00001, 0.00001);
-//	std::vector<double> l_velocity(l_position.size());
+//	state_vector l_velocity(l_position.size());
 //	for (int i = 0; i < l_velocity.size(); i++)
 //		l_velocity[i] = l_velocity_urd(i_default_random_engine);
 //
 //	std::uniform_real_distribution<double> l_acceleration_urd(-0.0001, 0.0001);
-//	std::vector<double> l_acceleration(l_position.size());
+//	state_vector l_acceleration(l_position.size());
 //	for (int i = 0; i < l_acceleration.size(); i++)
 //		l_acceleration[i] = l_acceleration_urd(i_default_random_engine);
 //
@@ -1241,7 +1241,7 @@ void oneshot_tnn_test(
 //
 //	for (int l_epoch = 0; true; l_epoch++)
 //	{
-//		std::vector<double> l_velocity_update = oneshot::multiply(oneshot::normalize(l_acceleration), l_alpha);
+//		state_vector l_velocity_update = oneshot::multiply(oneshot::normalize(l_acceleration), l_alpha);
 //		/*for (int i = 0; i < l_velocity_update.size(); i++)
 //			l_velocity_update[i] += l_alpha * l_random_velocity_change(i_default_random_engine);*/
 //		l_velocity = oneshot::add(l_velocity, l_velocity_update);
@@ -1269,7 +1269,7 @@ void particle_swarm_optimization_example(
 
 )
 {
-	std::vector<std::vector<double>> l_x =
+	state_matrix l_x =
 	{
 		{0, 0},
 		{0, 1},
@@ -1277,7 +1277,7 @@ void particle_swarm_optimization_example(
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_y =
+	state_matrix l_y =
 	{
 		{0},
 		{1},
@@ -1288,7 +1288,7 @@ void particle_swarm_optimization_example(
 	auto l_carry_forward =
 		[&l_x](oneshot::parameter_vector& a_parmeter_vector)
 	{
-		std::vector<std::vector<double>> l_result = l_x;
+		state_matrix l_result = l_x;
 
 		for (int i = 0; i < l_x.size(); i++)
 		{
@@ -1315,7 +1315,7 @@ void particle_swarm_optimization_example(
 	}
 
 	// Initialize particle velocities
-	std::vector<std::vector<double>> l_particle_velocities = oneshot::make(
+	state_matrix l_particle_velocities = oneshot::make(
 		l_particle_positions.size(),
 		l_particle_positions[0].size()
 	);
@@ -1325,12 +1325,12 @@ void particle_swarm_optimization_example(
 	double l_c1 = 0.4;
 	double l_c2 = 0.6;
 
-	std::vector<std::vector<double>> l_p_best = oneshot::make(l_particle_positions.size(), l_particle_positions[0].size());
-	std::vector<double> l_p_best_losses(l_particle_positions.size());
+	state_matrix l_p_best = oneshot::make(l_particle_positions.size(), l_particle_positions[0].size());
+	state_vector l_p_best_losses(l_particle_positions.size());
 	for (int i = 0; i < l_p_best_losses.size(); i++)
 		l_p_best_losses[i] = 9999999999999999;
 
-	std::vector<double> l_g_best(l_particle_positions[0].size());
+	state_vector l_g_best(l_particle_positions[0].size());
 	double l_g_best_loss = 9999999999999999;
 
 	// Train
@@ -1355,9 +1355,9 @@ void particle_swarm_optimization_example(
 		// Update the velocities of all particles
 		for (int i = 0; i < l_particle_positions.size(); i++)
 		{
-			std::vector<double> l_weighted_particle_velocity = oneshot::multiply(l_particle_velocities[i], l_w);
-			std::vector<double> l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_p_best[i], l_particle_positions[i]), l_c1), oneshot::random(0, 1));
-			std::vector<double> l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_g_best, l_particle_positions[i]), l_c2), oneshot::random(0, 1));
+			state_vector l_weighted_particle_velocity = oneshot::multiply(l_particle_velocities[i], l_w);
+			state_vector l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_p_best[i], l_particle_positions[i]), l_c1), oneshot::random(0, 1));
+			state_vector l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(l_g_best, l_particle_positions[i]), l_c2), oneshot::random(0, 1));
 			l_particle_velocities[i] = oneshot::add(oneshot::add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
 		}
 
@@ -1377,7 +1377,7 @@ void particle_swarm_optimization_class_example(
 
 )
 {
-	std::vector<std::vector<double>> l_x =
+	state_matrix l_x =
 	{
 		{0, 0},
 		{0, 1},
@@ -1385,7 +1385,7 @@ void particle_swarm_optimization_class_example(
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_y =
+	state_matrix l_y =
 	{
 		{0},
 		{1},
@@ -1396,7 +1396,7 @@ void particle_swarm_optimization_class_example(
 	auto l_carry_forward =
 		[&l_x](oneshot::parameter_vector& a_parmeter_vector)
 	{
-		std::vector<std::vector<double>> l_result = l_x;
+		state_matrix l_result = l_x;
 
 		for (int i = 0; i < l_x.size(); i++)
 		{
@@ -1434,7 +1434,7 @@ void particle_swarm_optimization_class_example(
 
 	oneshot::particle_swarm_optimizer l_swarm_optimizer(l_particles, l_w, l_c1, l_c2);
 
-	std::vector<double> l_particle_rewards(l_particles.size());
+	state_vector l_particle_rewards(l_particles.size());
 
 	// Train
 	for (int epoch = 0; true; epoch++)
@@ -1486,7 +1486,7 @@ void scalar_multiplication_modeling_using_matrices(
 
 	gradient_descent_with_momentum l_optimizer(l_parameter_vector, true, 0.2, 0.9);
 
-	std::vector<std::vector<double>> l_ts_x =
+	state_matrix l_ts_x =
 	{
 		{0, 0},
 		{0, 1},
@@ -1494,7 +1494,7 @@ void scalar_multiplication_modeling_using_matrices(
 		{1, 1},
 	};
 
-	std::vector<std::vector<double>> l_ts_y =
+	state_matrix l_ts_y =
 	{
 		{0},
 		{1},
@@ -1529,7 +1529,7 @@ void test_pso(
 
 )
 {
-	std::vector<std::vector<double>> l_tsx =
+	state_matrix l_tsx =
 	{
 		{0, 0},
 		{0, 1},
@@ -1537,7 +1537,7 @@ void test_pso(
 		{1, 1}
 	};
 
-	std::vector<std::vector<double>> l_tsy =
+	state_matrix l_tsy =
 	{
 		{0},
 		{1},
@@ -1547,11 +1547,11 @@ void test_pso(
 
 	auto l_get_reward = [](
 		aurora::oneshot::parameter_vector& a_parameter_vector,
-		const std::vector<std::vector<double>>& a_x,
-		const std::vector<std::vector<double>>& a_y
+		const state_matrix& a_x,
+		const state_matrix& a_y
 	)
 	{
-		std::vector<std::vector<double>> l_y(a_x);
+		state_matrix l_y(a_x);
 		for (int i = 0; i < a_x.size(); i++)
 		{
 			a_parameter_vector.next_index(0);
@@ -1584,7 +1584,7 @@ void test_pso(
 	aurora::oneshot::particle_swarm_optimizer l_particle_swarm_optimizer(l_particle_optimizers, 0.9, 0.2, 0.8);
 
 	// Construct a vector of the rewards associated with each parameter vector.
-	std::vector<double> l_rewards(l_parameter_vectors.size());
+	state_vector l_rewards(l_parameter_vectors.size());
 
 	for (int l_epoch = 0; true; l_epoch++)
 	{
@@ -1616,13 +1616,153 @@ void oneshot_convolve_test(
 			oneshot::flatten(l_filter));
 }
 
+void sife_concurrent_feature_extraction_0(
+
+)
+{
+    state_matrix l_ts_x;
+    state_matrix l_ts_y;
+
+    const size_t INPUT_WIDTH = 10;
+    const size_t FEATURE_VECTOR_WIDTH = 10;
+    const size_t IMAGE_WIDTH = 100;
+    const std::vector<size_t> FEATURE_MODEL_DIMS = { 20, FEATURE_VECTOR_WIDTH };
+    const std::vector<size_t> CHASING_MODEL_DIMS=  { 20, 2 };
+
+    ////////////////////////////////////////////////////////
+    // First, create the f model. (Maps from Q1 to F) //////
+    ////////////////////////////////////////////////////////
+
+    element_vector::start();
+    parameter_vector::start();
+    
+    auto l_f_x = input(INPUT_WIDTH);
+    
+    auto l_f_y = pointers(l_f_x);
+
+    for (size_t l_layer_size : FEATURE_MODEL_DIMS)
+    {
+        l_f_y = weight_junction(l_f_y, l_layer_size);
+        l_f_y = bias(l_f_y);
+        l_f_y = leaky_relu(l_f_y, 0.3);
+    }
+
+    element_vector l_f = element_vector::stop();
+    parameter_vector l_f_params = parameter_vector::stop(-1, 1);
+    
+
+    ////////////////////////////////////////////////////////
+    // Next, create the g model. (Maps from Q2 to F) //////
+    ////////////////////////////////////////////////////////
+    
+    element_vector::start();
+    parameter_vector::start();
+
+    auto l_g_x = input(IMAGE_WIDTH);
+
+    auto l_g_y = pointers(l_g_x);
+
+    for (size_t l_layer_size : FEATURE_MODEL_DIMS)
+    {
+        l_g_y = weight_junction(l_g_y, l_layer_size);
+        l_g_y = bias(l_g_y);
+        l_g_y = leaky_relu(l_g_y, 0.3);
+    }
+
+    element_vector l_g = element_vector::stop();
+    parameter_vector l_g_params = parameter_vector::stop(-1, 1);
+
+
+    ////////////////////////////////////////////////////////
+    // Next, define the characteristic loss. ///////////////
+    ////////////////////////////////////////////////////////
+
+    element_vector::start();
+
+    auto l_characteristic_loss_y = mean_squared_error(l_f_y, l_g_y)->depend();
+
+    element_vector l_characteristic_loss = element_vector::stop();
+
+
+    ////////////////////////////////////////////////////////
+    // Next, define the chasing models. ////////////////////
+    ////////////////////////////////////////////////////////
+
+    element_vector::start();
+    parameter_vector::start();
+
+    sgp_ptr_matrix l_h_y(FEATURE_VECTOR_WIDTH);
+
+    // DEFINE THE INPUT MATRIX TO THE CHASING MODELS
+    for (int i = 0; i < FEATURE_VECTOR_WIDTH; i++)
+    {
+        for (int j = 0; j < FEATURE_VECTOR_WIDTH; j++)
+        {
+            if (i == j)
+                continue;
+            
+            l_h_y[i].push_back(l_f_y[j]);
+            l_h_y[i].push_back(l_g_y[j]);
+
+        }
+    }
+
+    for (auto& l_h_y_row : l_h_y)
+    {
+        for (size_t l_layer_size : CHASING_MODEL_DIMS)
+        {
+            l_h_y_row = weight_junction(l_h_y_row, l_layer_size);
+            l_h_y_row = bias(l_h_y_row);
+            l_h_y_row = leaky_relu(l_h_y_row, 0.3);
+        }
+    }
+
+    // F0^ G0^
+    // F1^ G1^
+    // F2^ G2^
+    // F3^ G3^
+
+    auto l_f_prediction = flatten(range(l_h_y, 0, 0, l_h_y.size(), 1));
+    auto l_g_prediction = flatten(range(l_h_y, 0, 1, l_h_y.size(), 1));
+
+    auto l_independence_loss = average({
+        mean_squared_error(l_f_prediction, l_f_y),
+        mean_squared_error(l_g_prediction, l_g_y)
+    })->depend();
+
+    element_vector l_h = element_vector::stop();
+    parameter_vector l_h_params = parameter_vector::stop(-1, 1);
+
+
+    ////////////////////////////////////////////////////////
+    // Next, we will define the optimizers. ////////////////
+    ////////////////////////////////////////////////////////
+    gradient_descent_with_momentum l_feature_optimizer(concat(l_f_params, l_g_params), true, 0.02, 0.9);
+    gradient_descent_with_momentum l_chasing_optimizer(l_h_params, true, 0.02, 0.9);
+    
+    
+    ////////////////////////////////////////////////////////
+    // Next, we will define the training loop. /////////////
+    ////////////////////////////////////////////////////////
+
+    for (int l_epoch = 0; true; l_epoch++)
+    {
+        
+    }
+    
+
+
+
+
+}
+
 int main(
 
 )
 {
 	srand(time(0));
 
-	test_pso();
+	tnn_test();
 
 	return 0;
 }

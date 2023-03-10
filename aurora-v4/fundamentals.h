@@ -7,10 +7,16 @@
 
 namespace aurora
 {
+    /// Defining some typedefs for improving the readability of code
+    /// and user-friendliness.
+    typedef std::vector<double>       state_vector;
+    typedef std::vector<state_vector> state_matrix;
+    typedef std::vector<state_matrix> state_cuboid;
+
 	inline std::default_random_engine i_default_random_engine(29);
 
 	inline std::string to_string(
-		const std::vector<double>& a_vector
+		const state_vector& a_vector
 	)
 	{
 		std::string l_result;
@@ -20,7 +26,7 @@ namespace aurora
 	}
 
 	inline std::string to_string(
-		const std::vector<std::vector<double>>& a_matrix
+		const state_matrix& a_matrix
 	)
 	{
 		std::string l_result;
@@ -30,7 +36,7 @@ namespace aurora
 	}
 
 	inline std::string to_string(
-		const std::vector<std::vector<std::vector<double>>>& a_tensor
+		const state_cuboid& a_tensor
 	)
 	{
 		std::string l_result;

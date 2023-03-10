@@ -41,17 +41,17 @@ void element_vector::bwd(
 struct lstm_timestep
 {
 public:
-	std::vector<state_gradient_pair*> m_cy;
-	std::vector<state_gradient_pair*> m_y;
+	sgp_ptr_vector m_cy;
+	sgp_ptr_vector m_y;
 
 public:
 	lstm_timestep(
-		std::vector<state_gradient_pair*> a_x,
-		std::vector<state_gradient_pair*> a_cx,
-		std::vector<state_gradient_pair*> a_hx
+		sgp_ptr_vector a_x,
+		sgp_ptr_vector a_cx,
+		sgp_ptr_vector a_hx
 	)
 	{
-		std::vector<state_gradient_pair*> l_hx_x_concat = concat(a_hx, a_x);
+		sgp_ptr_vector l_hx_x_concat = concat(a_hx, a_x);
 
 		// Construct gates
 
@@ -73,19 +73,19 @@ public:
 
 
 		// Forget parts of the cell state
-		std::vector<state_gradient_pair*> l_cell_state_after_forget = hadamard(a_cx, l_forget_gate);
+		sgp_ptr_vector l_cell_state_after_forget = hadamard(a_cx, l_forget_gate);
 
 		// Calculate the input to the cell state
-		std::vector<state_gradient_pair*> l_limited_input = hadamard(l_input_gate, l_input_limit_gate);
+		sgp_ptr_vector l_limited_input = hadamard(l_input_gate, l_input_limit_gate);
 
 		// Write the input to the cell state
-		std::vector<state_gradient_pair*> l_cell_state_after_input = add(l_cell_state_after_forget, l_limited_input);
+		sgp_ptr_vector l_cell_state_after_input = add(l_cell_state_after_forget, l_limited_input);
 
 		// Cell state is now finalized, save it as the cell state output
 		m_cy = l_cell_state_after_input;
 
 		// Do a temporary step to compute tanh(cy)
-		std::vector<state_gradient_pair*> l_cell_state_after_tanh = tanh(l_cell_state_after_input);
+		sgp_ptr_vector l_cell_state_after_tanh = tanh(l_cell_state_after_input);
 
 		// Compute output to the timestep
 		m_y = hadamard(l_output_gate, l_cell_state_after_tanh);
@@ -94,15 +94,15 @@ public:
 
 };
 
-std::vector<std::vector<state_gradient_pair*>> aurora::latent::lstm(
-	const std::vector<std::vector<state_gradient_pair*>>& a_x,
+sgp_ptr_matrix aurora::latent::lstm(
+	const sgp_ptr_matrix& a_x,
 	const size_t& a_y_size
 )
 {
-	std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+	sgp_ptr_matrix l_result(a_x.size());
 
-	std::vector<state_gradient_pair*> l_cy = parameters(a_y_size);
-	std::vector<state_gradient_pair*> l_hy = parameters(a_y_size);
+	sgp_ptr_vector l_cy = parameters(a_y_size);
+	sgp_ptr_vector l_hy = parameters(a_y_size);
 
 	size_t l_timestep_parameters_start_index = parameter_vector::next_index();
 

@@ -60,69 +60,81 @@ namespace aurora
 
 		};
 
-		inline std::vector<state_gradient_pair*> pointers(
-			std::vector<state_gradient_pair>& a_vector
+        /// @brief Typedefs for improving readability / ease of use of framework.
+        /// These typedefs are for state_gradient_pair types.
+        typedef std::vector<state_gradient_pair> sgp_vector;
+        typedef std::vector<sgp_vector>          sgp_matrix;
+        typedef std::vector<sgp_matrix>          sgp_cuboid;
+
+        /// @brief Typedefs for state_gradient_pair pointer types.
+        typedef std::vector<state_gradient_pair*> sgp_ptr_vector;
+        typedef std::vector<sgp_ptr_vector>       sgp_ptr_matrix;
+        typedef std::vector<sgp_ptr_matrix>       sgp_ptr_cuboid;
+
+
+		inline sgp_ptr_vector pointers(
+			sgp_vector& a_vector
 		)
 		{
-			std::vector<state_gradient_pair*> l_result;
+			sgp_ptr_vector l_result;
 			for (int i = 0; i < a_vector.size(); i++)
 				l_result.push_back(&a_vector[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> pointers(
-			std::vector<std::vector<state_gradient_pair>>& a_matrix
+		inline sgp_ptr_matrix pointers(
+			sgp_matrix& a_matrix
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result;
+			sgp_ptr_matrix l_result;
 			for (int i = 0; i < a_matrix.size(); i++)
 				l_result.push_back(pointers(a_matrix[i]));
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair*>>> pointers(
-			std::vector<std::vector<std::vector<state_gradient_pair>>>& a_tensor
+		inline sgp_ptr_cuboid pointers(
+			sgp_cuboid& a_tensor
 		)
 		{
-			std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result;
+			sgp_ptr_cuboid l_result;
 			for (int i = 0; i < a_tensor.size(); i++)
 				l_result.push_back(pointers(a_tensor[i]));
 			return l_result;
 		}
 
-		inline std::vector<double> get_state(
-			const std::vector<state_gradient_pair*>& a_vector
+		inline state_vector get_state(
+			const sgp_ptr_vector& a_vector
 		)
 		{
-			std::vector<double> l_result(a_vector.size());
+			state_vector l_result(a_vector.size());
 			for (int i = 0; i < a_vector.size(); i++)
 				l_result[i] = a_vector[i]->m_state;
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> get_state(
-			const std::vector<std::vector<state_gradient_pair*>>& a_matrix
+		inline state_matrix get_state(
+			const sgp_ptr_matrix& a_matrix
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_matrix.size());
+			state_matrix l_result(a_matrix.size());
 			for (int i = 0; i < a_matrix.size(); i++)
 				l_result[i] = get_state(a_matrix[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> get_state(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
+		inline state_cuboid get_state(
+			const sgp_ptr_cuboid& a_tensor
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_tensor.size());
+			state_cuboid l_result(a_tensor.size());
 			for (int i = 0; i < a_tensor.size(); i++)
 				l_result[i] = get_state(a_tensor[i]);
 			return l_result;
 		}
 
 		inline void set_state(
-			const std::vector<state_gradient_pair*>& a_destination,
-			const std::vector<double>& a_source
+			const sgp_ptr_vector& a_destination,
+			const state_vector& a_source
 		)
 		{
 			for (int i = 0; i < a_destination.size(); i++)
@@ -130,8 +142,8 @@ namespace aurora
 		}
 
 		inline void set_state(
-			const std::vector<std::vector<state_gradient_pair*>>& a_destination,
-			const std::vector<std::vector<double>>& a_source
+			const sgp_ptr_matrix& a_destination,
+			const state_matrix& a_source
 		)
 		{
 			for (int i = 0; i < a_destination.size(); i++)
@@ -139,46 +151,46 @@ namespace aurora
 		}
 
 		inline void set_state(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_destination,
-			const std::vector<std::vector<std::vector<double>>>& a_source
+			const sgp_ptr_cuboid& a_destination,
+			const state_cuboid& a_source
 		)
 		{
 			for (int i = 0; i < a_destination.size(); i++)
 				set_state(a_destination[i], a_source[i]);
 		}
 
-		inline std::vector<double> get_gradient(
-			const std::vector<state_gradient_pair*>& a_vector
+		inline state_vector get_gradient(
+			const sgp_ptr_vector& a_vector
 		)
 		{
-			std::vector<double> l_result(a_vector.size());
+			state_vector l_result(a_vector.size());
 			for (int i = 0; i < a_vector.size(); i++)
 				l_result[i] = a_vector[i]->gradient();
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> get_gradient(
-			const std::vector<std::vector<state_gradient_pair*>>& a_matrix
+		inline state_matrix get_gradient(
+			const sgp_ptr_matrix& a_matrix
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_matrix.size());
+			state_matrix l_result(a_matrix.size());
 			for (int i = 0; i < a_matrix.size(); i++)
 				l_result[i] = get_state(a_matrix[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> get_gradient(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
+		inline state_cuboid get_gradient(
+			const sgp_ptr_cuboid& a_tensor
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_tensor.size());
+			state_cuboid l_result(a_tensor.size());
 			for (int i = 0; i < a_tensor.size(); i++)
 				l_result[i] = get_state(a_tensor[i]);
 			return l_result;
 		}
 
 		inline void randomize_state(
-			const std::vector<state_gradient_pair*>& a_x,
+			const sgp_ptr_vector& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -191,7 +203,7 @@ namespace aurora
 		}
 
 		inline void randomize_state(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
+			const sgp_ptr_matrix& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -203,7 +215,7 @@ namespace aurora
 		}
 
 		inline void randomize_state(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
+			const sgp_ptr_cuboid& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -215,7 +227,7 @@ namespace aurora
 		}
 
 		inline void randomly_modulate_state(
-			const std::vector<state_gradient_pair*>& a_x,
+			const sgp_ptr_vector& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -228,7 +240,7 @@ namespace aurora
 		}
 
 		inline void randomly_modulate_state(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
+			const sgp_ptr_matrix& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -240,7 +252,7 @@ namespace aurora
 		}
 
 		inline void randomly_modulate_state(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
+			const sgp_ptr_cuboid& a_x,
 			const double& a_minimum_random_value,
 			const double& a_maximum_random_value
 		)
@@ -251,31 +263,31 @@ namespace aurora
 			}
 		}
 
-		inline std::vector<state_gradient_pair> input(
+		inline sgp_vector input(
 			const size_t& a_size
 		)
 		{
-			return std::vector<state_gradient_pair>(a_size);
+			return sgp_vector(a_size);
 		}
 
-		inline std::vector<std::vector<state_gradient_pair>> input(
+		inline sgp_matrix input(
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<state_gradient_pair>> l_result(a_rows);
+			sgp_matrix l_result(a_rows);
 			for (int i = 0; i < a_rows; i++)
 				l_result[i] = input(a_cols);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair>>> input(
+		inline sgp_cuboid input(
 			const size_t& a_depth,
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<std::vector<state_gradient_pair>>> l_result(a_depth);
+			sgp_cuboid l_result(a_depth);
 			for (int i = 0; i < a_depth; i++)
 				l_result[i] = input(a_rows, a_cols);
 			return l_result;
@@ -425,11 +437,11 @@ namespace aurora
 				}
 			}
 
-			operator std::vector<state_gradient_pair*>(
+			operator sgp_ptr_vector(
 
 			)
 			{
-				std::vector<state_gradient_pair*> l_result(size());
+				sgp_ptr_vector l_result(size());
 
 				for (int i = 0; i < size(); i++)
 					l_result[i] = at(i).get();
@@ -1004,46 +1016,46 @@ namespace aurora
 			return parameter_vector::next();
 		}
 
-		inline std::vector<state_gradient_pair*> parameters(
+		inline sgp_ptr_vector parameters(
 			const size_t& a_count
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_count);
+			sgp_ptr_vector l_result(a_count);
 			for (int i = 0; i < a_count; i++)
 				l_result[i] = parameter();
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> parameters(
+		inline sgp_ptr_matrix parameters(
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_rows);
+			sgp_ptr_matrix l_result(a_rows);
 			for (int i = 0; i < a_rows; i++)
 				l_result[i] = parameters(a_cols);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair*>>> parameters(
+		inline sgp_ptr_cuboid parameters(
 			const size_t& a_depth,
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result(a_depth);
+			sgp_ptr_cuboid l_result(a_depth);
 			for (int i = 0; i < a_depth; i++)
 				l_result[i] = parameters(a_rows, a_cols);
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> range(
-			const std::vector<state_gradient_pair*>& a_vector,
+		inline sgp_ptr_vector range(
+			const sgp_ptr_vector& a_vector,
 			const size_t& a_start_index,
 			const size_t& a_size
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_size);
+			sgp_ptr_vector l_result(a_size);
 
 			for (int i = 0; i < a_size; i++)
 			{
@@ -1054,15 +1066,15 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> range(
-			const std::vector<std::vector<state_gradient_pair*>>& a_matrix,
+		inline sgp_ptr_matrix range(
+			const sgp_ptr_matrix& a_matrix,
 			const size_t& a_top_index,
 			const size_t& a_left_index,
 			const size_t& a_height,
 			const size_t& a_width
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_height);
+			sgp_ptr_matrix l_result(a_height);
 
 			for (int i = 0; i < a_height; i++)
 			{
@@ -1073,8 +1085,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair*>>> range(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor,
+		inline sgp_ptr_cuboid range(
+			const sgp_ptr_cuboid& a_tensor,
 			const size_t& a_front_index,
 			const size_t& a_top_index,
 			const size_t& a_left_index,
@@ -1083,7 +1095,7 @@ namespace aurora
 			const size_t& a_width
 		)
 		{
-			std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result(a_depth);
+			sgp_ptr_cuboid l_result(a_depth);
 
 			for (int i = 0; i < a_depth; i++)
 			{
@@ -1095,7 +1107,7 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* additive_aggregate(
-			const std::vector<state_gradient_pair*>& a_x
+			const sgp_ptr_vector& a_x
 		)
 		{
 			assert(a_x.size() > 0);
@@ -1111,13 +1123,13 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> add(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+		inline sgp_ptr_vector add(
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
-			std::vector<state_gradient_pair*> l_result(a_x_0.size());
+			sgp_ptr_vector l_result(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_result[i] = add(a_x_0[i], a_x_1[i]);
@@ -1125,12 +1137,12 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> subtract(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+		inline sgp_ptr_vector subtract(
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
-			std::vector<state_gradient_pair*> l_y(a_x_0.size());
+			sgp_ptr_vector l_y(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_y[i] = subtract(a_x_0[i], a_x_1[i]);
@@ -1138,18 +1150,18 @@ namespace aurora
 			return l_y;
 		}
 
-		inline std::vector<state_gradient_pair*> additive_aggregate(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x
+		inline sgp_ptr_vector additive_aggregate(
+			const sgp_ptr_matrix& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_result = a_x[0];
+			sgp_ptr_vector l_result = a_x[0];
 			for (int i = 1; i < a_x.size(); i++)
 				l_result = add(l_result, a_x[i]);
 			return l_result;
 		}
 
 		inline state_gradient_pair* average(
-			const std::vector<state_gradient_pair*>& a_x
+			const sgp_ptr_vector& a_x
 		)
 		{
 			return divide(
@@ -1157,11 +1169,11 @@ namespace aurora
 				constant(a_x.size()));
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> transpose(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x
+		inline sgp_ptr_matrix transpose(
+			const sgp_ptr_matrix& a_x
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result;
+			sgp_ptr_matrix l_result;
 
 			// Resize the output matrix to have a number of rows equal to the number of 
 			// columns in the input matrix
@@ -1187,14 +1199,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> hadamard(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+		inline sgp_ptr_vector hadamard(
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<state_gradient_pair*> l_y(a_x_0.size());
+			sgp_ptr_vector l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -1205,14 +1217,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> hadamard(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_1
+		inline sgp_ptr_matrix hadamard(
+			const sgp_ptr_matrix& a_x_0,
+			const sgp_ptr_matrix& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<state_gradient_pair*>> l_y(a_x_0.size());
+			sgp_ptr_matrix l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -1223,14 +1235,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair*>>> hadamard(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x_0,
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x_1
+		inline sgp_ptr_cuboid hadamard(
+			const sgp_ptr_cuboid& a_x_0,
+			const sgp_ptr_cuboid& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<std::vector<state_gradient_pair*>>> l_y(a_x_0.size());
+			sgp_ptr_cuboid l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -1242,13 +1254,13 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* multiply(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<state_gradient_pair*> l_multiply_ys(a_x_0.size());
+			sgp_ptr_vector l_multiply_ys(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -1259,12 +1271,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> multiply(
-			const std::vector<state_gradient_pair*>& a_x_0,
+		inline sgp_ptr_vector multiply(
+			const sgp_ptr_vector& a_x_0,
 			state_gradient_pair* a_x_1
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x_0.size());
+			sgp_ptr_vector l_result(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_result[i] = multiply(a_x_0[i], a_x_1);
@@ -1272,14 +1284,14 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> multiply(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+		inline sgp_ptr_vector multiply(
+			const sgp_ptr_matrix& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			assert(a_x_0[0].size() == a_x_1.size());
 			auto l_transpose = transpose(a_x_0);
-			std::vector<std::vector<state_gradient_pair*>> l_scaled_transpose(l_transpose.size());
+			sgp_ptr_matrix l_scaled_transpose(l_transpose.size());
 			for (int i = 0; i < a_x_1.size(); i++)
 			{
 				l_scaled_transpose[i] = multiply(l_transpose[i], a_x_1[i]);
@@ -1287,12 +1299,12 @@ namespace aurora
 			return additive_aggregate(l_scaled_transpose);
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> multiply(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
+		inline sgp_ptr_matrix multiply(
+			const sgp_ptr_matrix& a_x_0,
 			state_gradient_pair* a_x_1
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x_0.size());
+			sgp_ptr_matrix l_result(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_result[i] = multiply(a_x_0[i], a_x_1);
@@ -1300,16 +1312,16 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> multiply(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_0,
-			const std::vector<std::vector<state_gradient_pair*>>& a_x_1
+		inline sgp_ptr_matrix multiply(
+			const sgp_ptr_matrix& a_x_0,
+			const sgp_ptr_matrix& a_x_1
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x_0.size());
-			std::vector<std::vector<state_gradient_pair*>> l_x_1_transpose = transpose(a_x_1);
+			sgp_ptr_matrix l_result(a_x_0.size());
+			sgp_ptr_matrix l_x_1_transpose = transpose(a_x_1);
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
-				std::vector<state_gradient_pair*> l_result_row(a_x_1[0].size());
+				sgp_ptr_vector l_result_row(a_x_1[0].size());
 				for (int j = 0; j < l_x_1_transpose.size(); j++)
 				{
 					l_result_row[j] = multiply(a_x_0[i], l_x_1_transpose[j]);
@@ -1326,11 +1338,11 @@ namespace aurora
 			return add(parameter(), a_x);
 		}
 
-		inline std::vector<state_gradient_pair*> bias(
-			const std::vector<state_gradient_pair*>& a_x
+		inline sgp_ptr_vector bias(
+			const sgp_ptr_vector& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x.size());
+			sgp_ptr_vector l_result(a_x.size());
 
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = bias(a_x[i]);
@@ -1339,11 +1351,11 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> bias(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x
+		inline sgp_ptr_matrix bias(
+			const sgp_ptr_matrix& a_x
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+			sgp_ptr_matrix l_result(a_x.size());
 
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = bias(a_x[i]);
@@ -1352,11 +1364,11 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<state_gradient_pair*>>> bias(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x
+		inline sgp_ptr_cuboid bias(
+			const sgp_ptr_cuboid& a_x
 		)
 		{
-			std::vector<std::vector<std::vector<state_gradient_pair*>>> l_result(a_x.size());
+			sgp_ptr_cuboid l_result(a_x.size());
 
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = bias(a_x[i]);
@@ -1365,81 +1377,81 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> weight_junction(
-			const std::vector<state_gradient_pair*>& a_x,
+		inline sgp_ptr_vector weight_junction(
+			const sgp_ptr_vector& a_x,
 			const size_t& a_y_size
 		)
 		{
 			return multiply(parameters(a_y_size, a_x.size()), a_x);
 		}
 
-		inline std::vector<state_gradient_pair*> sigmoid(
-			const std::vector<state_gradient_pair*>& a_x
+		inline sgp_ptr_vector sigmoid(
+			const sgp_ptr_vector& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x.size());
+			sgp_ptr_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = sigmoid(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> tanh(
-			const std::vector<state_gradient_pair*>& a_x
+		inline sgp_ptr_vector tanh(
+			const sgp_ptr_vector& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x.size());
+			sgp_ptr_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = tanh(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> leaky_relu(
-			const std::vector<state_gradient_pair*>& a_x,
+		inline sgp_ptr_vector leaky_relu(
+			const sgp_ptr_vector& a_x,
 			const double& a_m
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x.size());
+			sgp_ptr_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> sigmoid(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x
+		inline sgp_ptr_matrix sigmoid(
+			const sgp_ptr_matrix& a_x
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+			sgp_ptr_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = sigmoid(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> tanh(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x
+		inline sgp_ptr_matrix tanh(
+			const sgp_ptr_matrix& a_x
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+			sgp_ptr_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = tanh(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> leaky_relu(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
+		inline sgp_ptr_matrix leaky_relu(
+			const sgp_ptr_matrix& a_x,
 			const double& a_m
 		)
 		{
-			std::vector<std::vector<state_gradient_pair*>> l_result(a_x.size());
+			sgp_ptr_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> normalize(
-			const std::vector<state_gradient_pair*>& a_x
+		inline sgp_ptr_vector normalize(
+			const sgp_ptr_vector& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x.size());
+			sgp_ptr_vector l_result(a_x.size());
 
 			state_gradient_pair* l_sum = additive_aggregate(a_x);
 
@@ -1452,13 +1464,13 @@ namespace aurora
 
 		}
 
-		std::vector<std::vector<state_gradient_pair*>> lstm(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
+		sgp_ptr_matrix lstm(
+			const sgp_ptr_matrix& a_x,
 			const size_t& a_y_size
 		);
 
 		inline state_gradient_pair* parameterized_interpolate(
-			const std::vector<state_gradient_pair*>& a_x
+			const sgp_ptr_vector& a_x
 		)
 		{
 			return multiply(
@@ -1468,10 +1480,10 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* vector_magnitude(
-			const std::vector<state_gradient_pair*>& a_x
+			const sgp_ptr_vector& a_x
 		)
 		{
-			std::vector<state_gradient_pair*> l_square_ys(a_x.size());
+			sgp_ptr_vector l_square_ys(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 			{
 				l_square_ys[i] = pow(a_x[i], constant(2));
@@ -1480,8 +1492,8 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* cosine_similarity(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			auto l_multiply = multiply(a_x_0, a_x_1);
@@ -1491,20 +1503,20 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* euclidian_distance(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
 			return vector_magnitude(subtract(a_x_0, a_x_1));
 		}
 
-		inline std::vector<state_gradient_pair*> similarity_interpolate(
-			const std::vector<state_gradient_pair*>& a_query,
-			const std::vector<std::vector<state_gradient_pair*>>& a_keys,
-			const std::vector<std::vector<state_gradient_pair*>>& a_values
+		inline sgp_ptr_vector similarity_interpolate(
+			const sgp_ptr_vector& a_query,
+			const sgp_ptr_matrix& a_keys,
+			const sgp_ptr_matrix& a_values
 		)
 		{
-			std::vector<state_gradient_pair*> l_similarity_ys(a_keys.size()); // Each element between 0 and +inf
+			sgp_ptr_vector l_similarity_ys(a_keys.size()); // Each element between 0 and +inf
 
 			for (int i = 0; i < a_keys.size(); i++)
 			{
@@ -1521,8 +1533,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> partition(
-			const std::vector<state_gradient_pair*>& a_x,
+		inline sgp_ptr_matrix partition(
+			const sgp_ptr_vector& a_x,
 			const size_t& a_bin_size
 		)
 		{
@@ -1530,11 +1542,11 @@ namespace aurora
 
 			size_t l_bins_count = a_x.size() / a_bin_size;
 
-			std::vector<std::vector<state_gradient_pair*>> l_result(l_bins_count);
+			sgp_ptr_matrix l_result(l_bins_count);
 
 			for (int i = 0; i < l_bins_count; i++)
 			{
-				std::vector<state_gradient_pair*> l_bin(a_bin_size);
+				sgp_ptr_vector l_bin(a_bin_size);
 
 				for (int j = 0; j < a_bin_size; j++)
 					l_bin[j] = a_x[a_bin_size * i + j];
@@ -1547,12 +1559,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> concat(
-			const std::vector<state_gradient_pair*>& a_x_0,
-			const std::vector<state_gradient_pair*>& a_x_1
+		inline sgp_ptr_vector concat(
+			const sgp_ptr_vector& a_x_0,
+			const sgp_ptr_vector& a_x_1
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_x_0.size() + a_x_1.size());
+			sgp_ptr_vector l_result(a_x_0.size() + a_x_1.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 				l_result[i] = a_x_0[i];
 			for (int i = 0; i < a_x_1.size(); i++)
@@ -1560,11 +1572,11 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> flatten(
-			const std::vector<std::vector<state_gradient_pair*>>& a_matrix
+		inline sgp_ptr_vector flatten(
+			const sgp_ptr_matrix& a_matrix
 		)
 		{
-			std::vector<state_gradient_pair*> l_result(a_matrix.size() * a_matrix[0].size());
+			sgp_ptr_vector l_result(a_matrix.size() * a_matrix[0].size());
 
 			for (int i = 0; i < a_matrix.size(); i++)
 			{
@@ -1578,22 +1590,22 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> flatten(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_tensor
+		inline sgp_ptr_vector flatten(
+			const sgp_ptr_cuboid& a_tensor
 		)
 		{
-			std::vector<state_gradient_pair*> l_result;
+			sgp_ptr_vector l_result;
 			for (int i = 0; i < a_tensor.size(); i++)
 			{
-				std::vector<state_gradient_pair*> l_flattened_matrix = flatten(a_tensor[i]);
+				sgp_ptr_vector l_flattened_matrix = flatten(a_tensor[i]);
 				l_result.insert(l_result.end(), l_flattened_matrix.begin(), l_flattened_matrix.end());
 			}
 			return l_result;
 		}
 
-		inline std::vector<state_gradient_pair*> convolve(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
-			const std::vector<std::vector<state_gradient_pair*>>& a_filter,
+		inline sgp_ptr_vector convolve(
+			const sgp_ptr_matrix& a_x,
+			const sgp_ptr_matrix& a_filter,
 			const size_t& a_stride = 1
 		)
 		{
@@ -1606,7 +1618,7 @@ namespace aurora
 
 			size_t l_convolution_count = (l_right_most_position / a_stride) + 1;
 
-			std::vector<state_gradient_pair*> l_result(l_convolution_count);
+			sgp_ptr_vector l_result(l_convolution_count);
 
 			for (int i = 0; i < l_convolution_count; i++)
 			{
@@ -1624,9 +1636,9 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> convolve(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_x,
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_filter,
+		inline sgp_ptr_matrix convolve(
+			const sgp_ptr_cuboid& a_x,
+			const sgp_ptr_cuboid& a_filter,
 			const size_t& a_stride = 1
 		)
 		{
@@ -1642,11 +1654,11 @@ namespace aurora
 			size_t l_vertical_convolution_count = (l_bottom_most_position / a_stride) + 1;
 			size_t l_horizontal_convolution_count = (l_right_most_position / a_stride) + 1;
 
-			std::vector<std::vector<state_gradient_pair*>> l_result(l_vertical_convolution_count);
+			sgp_ptr_matrix l_result(l_vertical_convolution_count);
 
 			for (int i = 0; i < l_vertical_convolution_count; i++)
 			{
-				std::vector<state_gradient_pair*> l_result_row(l_horizontal_convolution_count);
+				sgp_ptr_vector l_result_row(l_horizontal_convolution_count);
 				for (int j = 0; j < l_horizontal_convolution_count; j++)
 				{
 					l_result_row[j] = multiply(
@@ -1665,8 +1677,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<state_gradient_pair*> average_pool(
-			const std::vector<state_gradient_pair*>& a_x,
+		inline sgp_ptr_vector average_pool(
+			const sgp_ptr_vector& a_x,
 			const size_t& a_bin_width,
 			const size_t& a_stride = 1
 		)
@@ -1675,7 +1687,7 @@ namespace aurora
 
 			size_t l_pool_size = (l_right_most_index / a_stride) + 1;
 
-			std::vector<state_gradient_pair*> l_result(l_pool_size);
+			sgp_ptr_vector l_result(l_pool_size);
 
 			for (int i = 0; i < l_pool_size; i++)
 			{
@@ -1686,8 +1698,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<state_gradient_pair*>> average_pool(
-			const std::vector<std::vector<state_gradient_pair*>>& a_x,
+		inline sgp_ptr_matrix average_pool(
+			const sgp_ptr_matrix& a_x,
 			const size_t& a_bin_height,
 			const size_t& a_bin_width,
 			const size_t& a_stride = 1
@@ -1699,11 +1711,11 @@ namespace aurora
 			size_t l_pool_height = (l_top_most_index / a_stride) + 1;
 			size_t l_pool_width = (l_right_most_index / a_stride) + 1;
 
-			std::vector<std::vector<state_gradient_pair*>> l_result(l_pool_height);
+			sgp_ptr_matrix l_result(l_pool_height);
 
 			for (int i = 0; i < l_pool_height; i++)
 			{
-				std::vector<state_gradient_pair*> l_result_row(l_pool_width);
+				sgp_ptr_vector l_result_row(l_pool_width);
 
 				for (int j = 0; j < l_pool_width; j++)
 				{
@@ -1728,13 +1740,13 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* mean_squared_error(
-			const std::vector<state_gradient_pair*>& a_prediction,
-			const std::vector<state_gradient_pair*>& a_desired
+			const sgp_ptr_vector& a_prediction,
+			const sgp_ptr_vector& a_desired
 		)
 		{
 			assert(a_prediction.size() == a_desired.size());
 
-			std::vector<state_gradient_pair*> l_squared_errors(a_prediction.size());
+			sgp_ptr_vector l_squared_errors(a_prediction.size());
 
 			for (int i = 0; i < a_prediction.size(); i++)
 			{
@@ -1751,18 +1763,18 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* mean_squared_error(
-			const std::vector<std::vector<state_gradient_pair*>>& a_prediction,
-			const std::vector<std::vector<state_gradient_pair*>>& a_desired
+			const sgp_ptr_matrix& a_prediction,
+			const sgp_ptr_matrix& a_desired
 		)
 		{
 			assert(a_prediction.size() == a_desired.size());
 			assert(a_prediction[0].size() == a_desired[0].size());
 
-			std::vector<std::vector<state_gradient_pair*>> l_squared_errors(a_prediction.size());
+			sgp_ptr_matrix l_squared_errors(a_prediction.size());
 
 			for (int i = 0; i < a_prediction.size(); i++)
 			{
-				std::vector<state_gradient_pair*> l_squared_error_row(a_prediction[0].size());
+				sgp_ptr_vector l_squared_error_row(a_prediction[0].size());
 				for (int j = 0; j < a_prediction[i].size(); j++)
 				{
 					l_squared_error_row[j] =
@@ -1780,15 +1792,15 @@ namespace aurora
 		}
 
 		inline state_gradient_pair* mean_squared_error(
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_prediction,
-			const std::vector<std::vector<std::vector<state_gradient_pair*>>>& a_desired
+			const sgp_ptr_cuboid& a_prediction,
+			const sgp_ptr_cuboid& a_desired
 		)
 		{
 			assert(a_prediction.size() == a_desired.size());
 			assert(a_prediction[0].size() == a_desired[0].size());
 			assert(a_prediction[0][0].size() == a_desired[0][0].size());
 
-			std::vector<state_gradient_pair*> l_squared_errors(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size());
+			sgp_ptr_vector l_squared_errors(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size());
 
 			for (int i = 0; i < a_prediction.size(); i++)
 			{
@@ -1824,11 +1836,11 @@ namespace aurora
 			bool m_normalize_gradients = false;
 
 		public:
-			std::vector<state_gradient_pair*> m_values;
+			sgp_ptr_vector m_values;
 
 		public:
 			optimizer(
-				const std::vector<state_gradient_pair*>& a_values,
+				const sgp_ptr_vector& a_values,
 				const bool& a_normalize_gradients
 			) :
 				m_values(a_values.begin(), a_values.end()),
@@ -1845,11 +1857,11 @@ namespace aurora
 			}
 
 		protected:
-			std::vector<double> useful_gradients(
+			state_vector useful_gradients(
 
 			)
 			{
-				std::vector<double> l_gradients = get_gradient(m_values);
+				state_vector l_gradients = get_gradient(m_values);
 
 				if (m_normalize_gradients)
 				{
@@ -1876,7 +1888,7 @@ namespace aurora
 
 		public:
 			gradient_descent(
-				const std::vector<state_gradient_pair*>& a_values,
+				const sgp_ptr_vector& a_values,
 				const bool& a_normalize_gradients,
 				const double& a_learn_rate
 			) :
@@ -1890,7 +1902,7 @@ namespace aurora
 
 			)
 			{
-				std::vector<double> l_gradients = useful_gradients();
+				state_vector l_gradients = useful_gradients();
 				for (int i = 0; i < m_values.size(); i++)
 				{
 					m_values[i]->m_state -= m_learn_rate * l_gradients[i];
@@ -1905,11 +1917,11 @@ namespace aurora
 			double m_learn_rate = 0;
 			double m_beta = 0;
 			double m_alpha = 0;
-			std::vector<double> m_momenta;
+			state_vector m_momenta;
 
 		public:
 			gradient_descent_with_momentum(
-				const std::vector<state_gradient_pair*>& a_values,
+				const sgp_ptr_vector& a_values,
 				const bool& a_normalize_gradients,
 				const double& a_learn_rate,
 				const double& a_beta
@@ -1927,7 +1939,7 @@ namespace aurora
 
 			)
 			{
-				std::vector<double> l_gradients = useful_gradients();
+				state_vector l_gradients = useful_gradients();
 				for (int i = 0; i < m_values.size(); i++)
 				{
 					auto& l_value = m_values[i];

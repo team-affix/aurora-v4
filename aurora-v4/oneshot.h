@@ -11,7 +11,7 @@ namespace aurora
 {
 	namespace oneshot
 	{
-		class parameter_vector : public std::vector<double>
+		class parameter_vector : public state_vector
 		{
 		protected:
 			size_t m_next_index = 0;
@@ -25,9 +25,9 @@ namespace aurora
 			}
 
 			parameter_vector(
-				const std::vector<double>& a_parameter_vector
+				const state_vector& a_parameter_vector
 			) :
-				std::vector<double>(a_parameter_vector)
+				state_vector(a_parameter_vector)
 			{
 
 			}
@@ -56,34 +56,34 @@ namespace aurora
 				return l_result;
 			}
 
-			std::vector<double> next(
+			state_vector next(
 				const size_t& a_size
 			)
 			{
-				std::vector<double> l_result(a_size);
+				state_vector l_result(a_size);
 				for (int i = 0; i < a_size; i++)
 					l_result[i] = next();
 				return l_result;
 			}
 
-			std::vector<std::vector<double>> next(
+			state_matrix next(
 				const size_t& a_rows,
 				const size_t& a_cols
 			)
 			{
-				std::vector<std::vector<double>> l_result(a_rows);
+				state_matrix l_result(a_rows);
 				for (int i = 0; i < a_rows; i++)
 					l_result[i] = next(a_cols);
 				return l_result;
 			}
 
-			std::vector<std::vector<std::vector<double>>> next(
+			state_cuboid next(
 				const size_t& a_depth,
 				const size_t& a_rows,
 				const size_t& a_cols
 			)
 			{
-				std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+				state_cuboid l_result(a_depth);
 				for (int i = 0; i < a_depth; i++)
 					l_result[i] = next(a_rows, a_cols);
 				return l_result;
@@ -107,7 +107,7 @@ namespace aurora
 			}
 
 			parameter_vector_builder& operator=(
-				const std::vector<double>& a_vector
+				const state_vector& a_vector
 			)
 			{
 				assert(size() == a_vector.size());
@@ -156,25 +156,25 @@ namespace aurora
 				return a_m * a_x;
 		}
 
-		inline std::vector<double> range(
-			const std::vector<double>& a_x,
+		inline state_vector range(
+			const state_vector& a_x,
 			const size_t& a_start_index,
 			const size_t& a_size
 		)
 		{
-			std::vector<double> l_result(a_x.begin() + a_start_index, a_x.begin() + a_start_index + a_size);
+			state_vector l_result(a_x.begin() + a_start_index, a_x.begin() + a_start_index + a_size);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> range(
-			const std::vector<std::vector<double>>& a_matrix,
+		inline state_matrix range(
+			const state_matrix& a_matrix,
 			const size_t& a_top_index,
 			const size_t& a_left_index,
 			const size_t& a_height,
 			const size_t& a_width
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_height);
+			state_matrix l_result(a_height);
 
 			for (int i = 0; i < a_height; i++)
 			{
@@ -185,8 +185,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> range(
-			const std::vector<std::vector<std::vector<double>>>& a_tensor,
+		inline state_cuboid range(
+			const state_cuboid& a_tensor,
 			const size_t& a_front_index,
 			const size_t& a_top_index,
 			const size_t& a_left_index,
@@ -195,7 +195,7 @@ namespace aurora
 			const size_t& a_width
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+			state_cuboid l_result(a_depth);
 
 			for (int i = 0; i < a_depth; i++)
 			{
@@ -207,7 +207,7 @@ namespace aurora
 		}
 
 		inline double additive_aggregate(
-			const std::vector<double>& a_x
+			const state_vector& a_x
 		)
 		{
 			assert(a_x.size() > 0);
@@ -221,14 +221,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> add(
-			const std::vector<double>& a_x_0,
-			const std::vector<double>& a_x_1
+		inline state_vector add(
+			const state_vector& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<double> l_result(a_x_0.size());
+			state_vector l_result(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -239,14 +239,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> add(
-			const std::vector<std::vector<double>>& a_x_0,
-			const std::vector<std::vector<double>>& a_x_1
+		inline state_matrix add(
+			const state_matrix& a_x_0,
+			const state_matrix& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<double>> l_result(a_x_0.size());
+			state_matrix l_result(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -257,14 +257,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> add(
-			const std::vector<std::vector<std::vector<double>>>& a_x_0,
-			const std::vector<std::vector<std::vector<double>>>& a_x_1
+		inline state_cuboid add(
+			const state_cuboid& a_x_0,
+			const state_cuboid& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<std::vector<double>>> l_result(a_x_0.size());
+			state_cuboid l_result(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -275,12 +275,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> subtract(
-			const std::vector<double>& a_x_0,
-			const std::vector<double>& a_x_1
+		inline state_vector subtract(
+			const state_vector& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
-			std::vector<double> l_y(a_x_0.size());
+			state_vector l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -291,12 +291,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> subtract(
-			const std::vector<std::vector<double>>& a_x_0,
-			const std::vector<std::vector<double>>& a_x_1
+		inline state_matrix subtract(
+			const state_matrix& a_x_0,
+			const state_matrix& a_x_1
 		)
 		{
-			std::vector<std::vector<double>> l_y(a_x_0.size());
+			state_matrix l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -307,12 +307,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> subtract(
-			const std::vector<std::vector<std::vector<double>>>& a_x_0,
-			const std::vector<std::vector<std::vector<double>>>& a_x_1
+		inline state_cuboid subtract(
+			const state_cuboid& a_x_0,
+			const state_cuboid& a_x_1
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_y(a_x_0.size());
+			state_cuboid l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -323,28 +323,28 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> additive_aggregate(
-			const std::vector<std::vector<double>>& a_x
+		inline state_vector additive_aggregate(
+			const state_matrix& a_x
 		)
 		{
-			std::vector<double> l_result = a_x[0];
+			state_vector l_result = a_x[0];
 			for (int i = 1; i < a_x.size(); i++)
 				l_result = add(l_result, a_x[i]);
 			return l_result;
 		}
 
 		inline double average(
-			const std::vector<double>& a_x
+			const state_vector& a_x
 		)
 		{
 			return additive_aggregate(a_x) / (double)a_x.size();
 		}
 
-		inline std::vector<std::vector<double>> transpose(
-			const std::vector<std::vector<double>>& a_x
+		inline state_matrix transpose(
+			const state_matrix& a_x
 		)
 		{
-			std::vector<std::vector<double>> l_result;
+			state_matrix l_result;
 
 			// Resize the output matrix to have a number of rows equal to the number of 
 			// columns in the input matrix
@@ -370,14 +370,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> hadamard(
-			const std::vector<double>& a_x_0,
-			const std::vector<double>& a_x_1
+		inline state_vector hadamard(
+			const state_vector& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<double> l_y(a_x_0.size());
+			state_vector l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -388,14 +388,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> hadamard(
-			const std::vector<std::vector<double>>& a_x_0,
-			const std::vector<std::vector<double>>& a_x_1
+		inline state_matrix hadamard(
+			const state_matrix& a_x_0,
+			const state_matrix& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<double>> l_y(a_x_0.size());
+			state_matrix l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -406,14 +406,14 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> hadamard(
-			const std::vector<std::vector<std::vector<double>>>& a_x_0,
-			const std::vector<std::vector<std::vector<double>>>& a_x_1
+		inline state_cuboid hadamard(
+			const state_cuboid& a_x_0,
+			const state_cuboid& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<std::vector<std::vector<double>>> l_y(a_x_0.size());
+			state_cuboid l_y(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -425,13 +425,13 @@ namespace aurora
 		}
 
 		inline double multiply(
-			const std::vector<double>& a_x_0,
-			const std::vector<double>& a_x_1
+			const state_vector& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
 			assert(a_x_0.size() == a_x_1.size());
 
-			std::vector<double> l_multiply_ys(a_x_0.size());
+			state_vector l_multiply_ys(a_x_0.size());
 
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
@@ -442,12 +442,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> multiply(
-			const std::vector<double>& a_x_0,
+		inline state_vector multiply(
+			const state_vector& a_x_0,
 			double a_x_1
 		)
 		{
-			std::vector<double> l_result(a_x_0.size());
+			state_vector l_result(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_result[i] = a_x_0[i] * a_x_1;
@@ -455,14 +455,14 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<double> multiply(
-			const std::vector<std::vector<double>>& a_x_0,
-			const std::vector<double>& a_x_1
+		inline state_vector multiply(
+			const state_matrix& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
 			assert(a_x_0[0].size() == a_x_1.size());
 			auto l_transpose = transpose(a_x_0);
-			std::vector<std::vector<double>> l_scaled_transpose(l_transpose.size());
+			state_matrix l_scaled_transpose(l_transpose.size());
 			for (int i = 0; i < a_x_1.size(); i++)
 			{
 				l_scaled_transpose[i] = multiply(l_transpose[i], a_x_1[i]);
@@ -470,12 +470,12 @@ namespace aurora
 			return additive_aggregate(l_scaled_transpose);
 		}
 
-		inline std::vector<std::vector<double>> multiply(
-			const std::vector<std::vector<double>>& a_x_0,
+		inline state_matrix multiply(
+			const state_matrix& a_x_0,
 			double a_x_1
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_x_0.size());
+			state_matrix l_result(a_x_0.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
 				l_result[i] = multiply(a_x_0[i], a_x_1);
@@ -483,16 +483,16 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> multiply(
-			const std::vector<std::vector<double>>& a_x_0,
-			const std::vector<std::vector<double>>& a_x_1
+		inline state_matrix multiply(
+			const state_matrix& a_x_0,
+			const state_matrix& a_x_1
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_x_0.size());
-			std::vector<std::vector<double>> l_x_1_transpose = transpose(a_x_1);
+			state_matrix l_result(a_x_0.size());
+			state_matrix l_x_1_transpose = transpose(a_x_1);
 			for (int i = 0; i < a_x_0.size(); i++)
 			{
-				std::vector<double> l_result_row(a_x_1[0].size());
+				state_vector l_result_row(a_x_1[0].size());
 				for (int j = 0; j < l_x_1_transpose.size(); j++)
 				{
 					l_result_row[j] = multiply(a_x_0[i], l_x_1_transpose[j]);
@@ -502,101 +502,101 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<double> sigmoid(
-			const std::vector<double>& a_x
+		inline state_vector sigmoid(
+			const state_vector& a_x
 		)
 		{
-			std::vector<double> l_result(a_x.size());
+			state_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = sigmoid(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<double> tanh(
-			const std::vector<double>& a_x
+		inline state_vector tanh(
+			const state_vector& a_x
 		)
 		{
-			std::vector<double> l_result(a_x.size());
+			state_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = std::tanh(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<double> leaky_relu(
-			const std::vector<double>& a_x,
+		inline state_vector leaky_relu(
+			const state_vector& a_x,
 			const double& a_m
 		)
 		{
-			std::vector<double> l_result(a_x.size());
+			state_vector l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> sigmoid(
-			const std::vector<std::vector<double>>& a_x
+		inline state_matrix sigmoid(
+			const state_matrix& a_x
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_x.size());
+			state_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = sigmoid(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> tanh(
-			const std::vector<std::vector<double>>& a_x
+		inline state_matrix tanh(
+			const state_matrix& a_x
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_x.size());
+			state_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = tanh(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> leaky_relu(
-			const std::vector<std::vector<double>>& a_x,
+		inline state_matrix leaky_relu(
+			const state_matrix& a_x,
 			const double& a_m
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_x.size());
+			state_matrix l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> sigmoid(
-			const std::vector<std::vector<std::vector<double>>>& a_x
+		inline state_cuboid sigmoid(
+			const state_cuboid& a_x
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
+			state_cuboid l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = sigmoid(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> tanh(
-			const std::vector<std::vector<std::vector<double>>>& a_x
+		inline state_cuboid tanh(
+			const state_cuboid& a_x
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
+			state_cuboid l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = tanh(a_x[i]);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> leaky_relu(
-			const std::vector<std::vector<std::vector<double>>>& a_x,
+		inline state_cuboid leaky_relu(
+			const state_cuboid& a_x,
 			const double& a_m
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_x.size());
+			state_cuboid l_result(a_x.size());
 			for (int i = 0; i < a_x.size(); i++)
 				l_result[i] = leaky_relu(a_x[i], a_m);
 			return l_result;
 		}
 
 		inline double magnitude(
-			const std::vector<double>& a_x
+			const state_vector& a_x
 		)
 		{
 			double l_sum = 0;
@@ -605,11 +605,11 @@ namespace aurora
 			return std::sqrt(l_sum);
 		}
 
-		inline std::vector<double> normalize(
-			const std::vector<double>& a_x
+		inline state_vector normalize(
+			const state_vector& a_x
 		)
 		{
-			std::vector<double> l_result(a_x.size());
+			state_vector l_result(a_x.size());
 
 			double l_magnitude = magnitude(a_x);
 
@@ -622,12 +622,12 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> concat(
-			const std::vector<double>& a_x_0,
-			const std::vector<double>& a_x_1
+		inline state_vector concat(
+			const state_vector& a_x_0,
+			const state_vector& a_x_1
 		)
 		{
-			std::vector<double> l_result(a_x_0.size() + a_x_1.size());
+			state_vector l_result(a_x_0.size() + a_x_1.size());
 			for (int i = 0; i < a_x_0.size(); i++)
 				l_result[i] = a_x_0[i];
 			for (int i = 0; i < a_x_1.size(); i++)
@@ -636,24 +636,24 @@ namespace aurora
 		}
 
 		inline void lstm_timestep(
-			const std::vector<double>& a_x,
-			std::vector<double>& a_hx,
-			std::vector<double>& a_cx,
-			const std::vector<std::vector<double>>& a_forget_gate_weights,
-			const std::vector<std::vector<double>>& a_input_limit_gate_weights,
-			const std::vector<std::vector<double>>& a_input_gate_weights,
-			const std::vector<std::vector<double>>& a_output_gate_weights,
-			const std::vector<double>& a_forget_gate_bias,
-			const std::vector<double>& a_input_limit_gate_bias,
-			const std::vector<double>& a_input_gate_bias,
-			const std::vector<double>& a_output_gate_bias
+			const state_vector& a_x,
+			state_vector& a_hx,
+			state_vector& a_cx,
+			const state_matrix& a_forget_gate_weights,
+			const state_matrix& a_input_limit_gate_weights,
+			const state_matrix& a_input_gate_weights,
+			const state_matrix& a_output_gate_weights,
+			const state_vector& a_forget_gate_bias,
+			const state_vector& a_input_limit_gate_bias,
+			const state_vector& a_input_gate_bias,
+			const state_vector& a_output_gate_bias
 		)
 		{
 			// Concatenate x and hx
-			std::vector<double> l_x_hx_concat = concat(a_x, a_hx);
+			state_vector l_x_hx_concat = concat(a_x, a_hx);
 
 			// Calculate forget gate y
-			std::vector<double> l_forget_gate_y = multiply(a_forget_gate_weights, l_x_hx_concat);
+			state_vector l_forget_gate_y = multiply(a_forget_gate_weights, l_x_hx_concat);
 			l_forget_gate_y = add(l_forget_gate_y, a_forget_gate_bias);
 			l_forget_gate_y = sigmoid(l_forget_gate_y);
 
@@ -661,23 +661,23 @@ namespace aurora
 			a_cx = hadamard(a_cx, l_forget_gate_y);
 
 			// Calculate input limit gate y
-			std::vector<double> l_input_limit_gate_y = multiply(a_input_limit_gate_weights, l_x_hx_concat);
+			state_vector l_input_limit_gate_y = multiply(a_input_limit_gate_weights, l_x_hx_concat);
 			l_input_limit_gate_y = add(l_input_limit_gate_y, a_input_limit_gate_bias);
 			l_input_limit_gate_y = sigmoid(l_input_limit_gate_y);
 
 			// Calculate input gate y
-			std::vector<double> l_input_gate_y = multiply(a_input_gate_weights, l_x_hx_concat);
+			state_vector l_input_gate_y = multiply(a_input_gate_weights, l_x_hx_concat);
 			l_input_gate_y = add(l_input_gate_y, a_input_gate_bias);
 			l_input_gate_y = tanh(l_input_gate_y);
 
 			// Calculate input to cell state
-			std::vector<double> l_input_to_cell_state = hadamard(l_input_gate_y, l_input_limit_gate_y);
+			state_vector l_input_to_cell_state = hadamard(l_input_gate_y, l_input_limit_gate_y);
 
 			// Input to the cell state
 			a_cx = add(a_cx, l_input_to_cell_state);
 
 			// Calculate output gate y
-			std::vector<double> l_output_gate_y = multiply(a_output_gate_weights, l_x_hx_concat);
+			state_vector l_output_gate_y = multiply(a_output_gate_weights, l_x_hx_concat);
 			l_output_gate_y = add(l_output_gate_y, a_output_gate_bias);
 			l_output_gate_y = sigmoid(l_output_gate_y);
 
@@ -696,8 +696,8 @@ namespace aurora
 		}
 
 		inline double mean_squared_error(
-			const std::vector<double>& a_prediction,
-			const std::vector<double>& a_desired
+			const state_vector& a_prediction,
+			const state_vector& a_desired
 		)
 		{
 			double l_sum = 0;
@@ -710,8 +710,8 @@ namespace aurora
 		}
 
 		inline double mean_squared_error(
-			const std::vector<std::vector<double>>& a_prediction,
-			const std::vector<std::vector<double>>& a_desired
+			const state_matrix& a_prediction,
+			const state_matrix& a_desired
 		)
 		{
 			double l_sum = 0;
@@ -746,51 +746,51 @@ namespace aurora
 			return l_urd(i_default_random_engine);
 		}
 
-		inline std::vector<double> make(
+		inline state_vector make(
 			const size_t& a_size
 		)
 		{
-			std::vector<double> l_result(a_size);
+			state_vector l_result(a_size);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> make(
+		inline state_matrix make(
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<double>> l_result(a_rows);
+			state_matrix l_result(a_rows);
 			for (int i = 0; i < l_result.size(); i++)
 				l_result[i] = make(a_cols);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> make(
+		inline state_cuboid make(
 			const size_t& a_depth,
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
 		{
-			std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+			state_cuboid l_result(a_depth);
 			for (int i = 0; i < l_result.size(); i++)
 				l_result[i] = make(a_rows, a_cols);
 			return l_result;
 		}
 
-		inline std::vector<double> random(
+		inline state_vector random(
 			const size_t& a_size,
 			const double& a_minimum,
 			const double& a_maximum
 		)
 		{
 			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
-			std::vector<double> l_result(a_size);
+			state_vector l_result(a_size);
 			for (int i = 0; i < a_size; i++)
 				l_result[i] = l_urd(i_default_random_engine);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<double>> random(
+		inline state_matrix random(
 			const size_t& a_rows,
 			const size_t& a_cols,
 			const double& a_minimum,
@@ -798,14 +798,14 @@ namespace aurora
 		)
 		{
 			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
-			std::vector<std::vector<double>> l_result = make(a_rows, a_cols);
+			state_matrix l_result = make(a_rows, a_cols);
 			for (int i = 0; i < a_rows; i++)
 				for (int j = 0; j < a_cols; j++)
 					l_result[i][j] = l_urd(i_default_random_engine);
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> random(
+		inline state_cuboid random(
 			const size_t& a_depth,
 			const size_t& a_rows,
 			const size_t& a_cols,
@@ -814,7 +814,7 @@ namespace aurora
 		)
 		{
 			std::uniform_real_distribution<double> l_urd(a_minimum, a_maximum);
-			std::vector<std::vector<std::vector<double>>> l_result = make(a_depth, a_rows, a_cols);
+			state_cuboid l_result = make(a_depth, a_rows, a_cols);
 			for (int i = 0; i < a_depth; i++)
 				for (int j = 0; j < a_rows; j++)
 					for (int k = 0; k < a_cols; k++)
@@ -822,11 +822,11 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<double> flatten(
-			const std::vector<std::vector<double>>& a_x
+		inline state_vector flatten(
+			const state_matrix& a_x
 		)
 		{
-			std::vector<double> l_result(a_x.size() * a_x[0].size());
+			state_vector l_result(a_x.size() * a_x[0].size());
 
 			for (int i = 0; i < a_x.size(); i++)
 			{
@@ -840,11 +840,11 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> flatten(
-			const std::vector<std::vector<std::vector<double>>>& a_x
+		inline state_vector flatten(
+			const state_cuboid& a_x
 		)
 		{
-			std::vector<double> l_result(a_x.size() * a_x[0].size() * a_x[0][0].size());
+			state_vector l_result(a_x.size() * a_x[0].size() * a_x[0][0].size());
 
 			size_t l_number_of_elements_in_matrix = a_x[0].size() * a_x[0][0].size();
 			size_t l_number_of_elements_in_row = a_x[0][0].size();
@@ -864,8 +864,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> partition(
-			const std::vector<double>& a_x,
+		inline state_matrix partition(
+			const state_vector& a_x,
 			const size_t& a_rows,
 			const size_t& a_cols
 		)
@@ -873,7 +873,7 @@ namespace aurora
 			// Make sure that there are a valid number of elements in the input to make a matrix
 			// of these dimensions.
 			assert(a_x.size() == a_rows * a_cols);
-			std::vector<std::vector<double>> l_result = make(a_rows, a_cols);
+			state_matrix l_result = make(a_rows, a_cols);
 			for (int i = 0; i < a_x.size(); i++)
 			{
 				l_result[i / a_cols][i % a_cols] = a_x[i];
@@ -881,8 +881,8 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<std::vector<std::vector<double>>> partition(
-			const std::vector<double>& a_x,
+		inline state_cuboid partition(
+			const state_vector& a_x,
 			const size_t& a_depth,
 			const size_t& a_rows,
 			const size_t& a_cols
@@ -891,8 +891,8 @@ namespace aurora
 			size_t l_number_of_elements_in_matrix = a_rows * a_cols;
 			// Make sure the the size of the input makes sense given what we're trying to make.
 			assert(a_x.size() == a_depth * l_number_of_elements_in_matrix);
-			std::vector<std::vector<double>> l_matrix_partition = partition(a_x, a_depth, l_number_of_elements_in_matrix);
-			std::vector<std::vector<std::vector<double>>> l_result(a_depth);
+			state_matrix l_matrix_partition = partition(a_x, a_depth, l_number_of_elements_in_matrix);
+			state_cuboid l_result(a_depth);
 			for (int i = 0; i < l_result.size(); i++)
 			{
 				l_result[i] = partition(l_matrix_partition[i], a_rows, a_cols);
@@ -900,9 +900,9 @@ namespace aurora
 			return l_result;
 		}
 
-		inline std::vector<double> convolve(
-			const std::vector<std::vector<double>>& a_x,
-			const std::vector<std::vector<double>>& a_filter,
+		inline state_vector convolve(
+			const state_matrix& a_x,
+			const state_matrix& a_filter,
 			const size_t& a_stride
 		)
 		{
@@ -915,7 +915,7 @@ namespace aurora
 
 			size_t l_convolution_count = (l_right_most_position / a_stride) + 1;
 
-			std::vector<double> l_result(l_convolution_count);
+			state_vector l_result(l_convolution_count);
 
 			for (int i = 0; i < l_convolution_count; i++)
 			{
@@ -933,9 +933,9 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> convolve(
-			const std::vector<std::vector<std::vector<double>>>& a_x,
-			const std::vector<std::vector<std::vector<double>>>& a_filter,
+		inline state_matrix convolve(
+			const state_cuboid& a_x,
+			const state_cuboid& a_filter,
 			const size_t& a_stride
 		)
 		{
@@ -951,11 +951,11 @@ namespace aurora
 			size_t l_vertical_convolution_count = (l_bottom_most_position / a_stride) + 1;
 			size_t l_horizontal_convolution_count = (l_right_most_position / a_stride) + 1;
 
-			std::vector<std::vector<double>> l_result(l_vertical_convolution_count);
+			state_matrix l_result(l_vertical_convolution_count);
 
 			for (int i = 0; i < l_vertical_convolution_count; i++)
 			{
-				std::vector<double> l_result_row(l_horizontal_convolution_count);
+				state_vector l_result_row(l_horizontal_convolution_count);
 				for (int j = 0; j < l_horizontal_convolution_count; j++)
 				{
 					l_result_row[j] = multiply(
@@ -974,8 +974,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<double> average_pool(
-			const std::vector<double>& a_x,
+		inline state_vector average_pool(
+			const state_vector& a_x,
 			const size_t& a_bin_width,
 			const size_t& a_stride = 1
 		)
@@ -984,7 +984,7 @@ namespace aurora
 
 			size_t l_pool_size = (l_right_most_index / a_stride) + 1;
 
-			std::vector<double> l_result(l_pool_size);
+			state_vector l_result(l_pool_size);
 
 			for (int i = 0; i < l_pool_size; i++)
 			{
@@ -995,8 +995,8 @@ namespace aurora
 
 		}
 
-		inline std::vector<std::vector<double>> average_pool(
-			const std::vector<std::vector<double>>& a_x,
+		inline state_matrix average_pool(
+			const state_matrix& a_x,
 			const size_t& a_bin_height,
 			const size_t& a_bin_width,
 			const size_t& a_stride = 1
@@ -1008,11 +1008,11 @@ namespace aurora
 			size_t l_pool_height = (l_top_most_index / a_stride) + 1;
 			size_t l_pool_width = (l_right_most_index / a_stride) + 1;
 
-			std::vector<std::vector<double>> l_result(l_pool_height);
+			state_matrix l_result(l_pool_height);
 
 			for (int i = 0; i < l_pool_height; i++)
 			{
-				std::vector<double> l_result_row(l_pool_width);
+				state_vector l_result_row(l_pool_width);
 
 				for (int j = 0; j < l_pool_width; j++)
 				{
@@ -1033,8 +1033,8 @@ namespace aurora
 			parameter_vector& m_position;
 
 		private:
-			std::vector<double> m_best_position;
-			std::vector<double> m_velocity;
+			state_vector m_best_position;
+			state_vector m_velocity;
 			double m_best_reward = -INFINITY;
 
 		public:
@@ -1050,8 +1050,8 @@ namespace aurora
 
 			particle_optimizer(
 				parameter_vector& a_parameter_vector,
-				const std::vector<double>& a_best_position,
-				const std::vector<double>& a_velocity,
+				const state_vector& a_best_position,
+				const state_vector& a_velocity,
 				const double& a_best_reward
 			) :
 				m_position(a_parameter_vector),
@@ -1068,7 +1068,7 @@ namespace aurora
 				const double& a_c1,
 				const double& a_c2,
 				const double& a_reward,
-				const std::vector<double>& a_global_best_position
+				const state_vector& a_global_best_position
 			)
 			{
 				if (a_reward > m_best_reward)
@@ -1076,9 +1076,9 @@ namespace aurora
 					m_best_position = m_position;
 					m_best_reward = a_reward;
 				}
-				std::vector<double> l_weighted_particle_velocity = oneshot::multiply(m_velocity, a_w);
-				std::vector<double> l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(m_best_position, m_position), a_c1), oneshot::random(0, 1));
-				std::vector<double> l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(a_global_best_position, m_position), a_c2), oneshot::random(0, 1));
+				state_vector l_weighted_particle_velocity = oneshot::multiply(m_velocity, a_w);
+				state_vector l_cognitive_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(m_best_position, m_position), a_c1), oneshot::random(0, 1));
+				state_vector l_social_term = oneshot::multiply(oneshot::multiply(oneshot::subtract(a_global_best_position, m_position), a_c2), oneshot::random(0, 1));
 				m_velocity = oneshot::add(oneshot::add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
 				m_position = oneshot::add(m_position, m_velocity);
 			}
@@ -1093,7 +1093,7 @@ namespace aurora
 			double m_c1 = 0;
 			double m_c2 = 0;
 			double m_global_best_reward = -INFINITY;
-			std::vector<double> m_global_best_position;
+			state_vector m_global_best_position;
 
 		public:
 			particle_swarm_optimizer(
@@ -1111,7 +1111,7 @@ namespace aurora
 			}
 
 			void update(
-				const std::vector<double>& a_particle_rewards
+				const state_vector& a_particle_rewards
 			)
 			{
 				// Get the global best position if it has improved
@@ -1137,7 +1137,7 @@ namespace aurora
 				return m_global_best_reward;
 			}
 
-			std::vector<double> global_best_position(
+			state_vector global_best_position(
 
 			)
 			{
