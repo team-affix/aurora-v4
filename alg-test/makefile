@@ -1,8 +1,6 @@
 B = main
 
 S = main.cpp
-S += ../aurora-v4/latent.cpp
-S += ../aurora-v4/oneshot.cpp
 
 H = ../aurora-v4/aurora.h
 H += ../aurora-v4/fundamentals.h
@@ -18,4 +16,3 @@ $B: $S $H
 
 clean:
 	rm -rf $B
-

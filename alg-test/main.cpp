@@ -19,46 +19,34 @@ void tnn_test(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	auto l_x = input(4, 2);
 	auto l_desired_y = input(4, 1);
 
 	sgp_ptr_matrix l_y;
 
-	size_t l_next_parameter_index = parameter_vector::next_index();
+	size_t l_next_parameter_index = l_model.next_parameter_index();
 
 	for (int i = 0; i < l_x.size(); i++)
 	{
-		parameter_vector::next_index(l_next_parameter_index);
+		l_model.next_parameter_index(l_next_parameter_index);
 		auto l_y_element = pointers(l_x[i]);
-		l_y_element = weight_junction(l_y_element, 5);
-		l_y_element = bias(l_y_element);
-		l_y_element = leaky_relu(l_y_element, 0.3);
-		l_y_element = weight_junction(l_y_element, 1);
-		l_y_element = bias(l_y_element);
-		l_y_element = sigmoid(l_y_element);
+		l_y_element = l_model.weight_junction(l_y_element, 5);
+		l_y_element = l_model.bias(l_y_element);
+		l_y_element = l_model.leaky_relu(l_y_element, 0.3);
+		l_y_element = l_model.weight_junction(l_y_element, 1);
+		l_y_element = l_model.bias(l_y_element);
+		l_y_element = l_model.sigmoid(l_y_element);
 		l_y.push_back(l_y_element);
 	}
 	
 	sgp_ptr_vector l_cross_entropy_losses;
 
 	for (int i = 0; i < l_y.size(); i++)
-		l_cross_entropy_losses.push_back(cross_entropy(l_y[i][0], &l_desired_y[i][0]));
+		l_cross_entropy_losses.push_back(l_model.cross_entropy(l_y[i][0], &l_desired_y[i][0]));
 
-	auto l_error = additive_aggregate(l_cross_entropy_losses)->depend();
-
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop();
-
-	std::uniform_real_distribution<double> l_urd(-1, 1);
-	std::default_random_engine l_dre(25);
-
-	for (int i = 0; i < l_parameters.size(); i++)
-	{
-		l_parameters[i]->m_state = l_urd(l_dre);
-	}
+	auto l_error = l_model.additive_aggregate(l_cross_entropy_losses)->depend();
 
 	const int CHECKPOINT = 100000;
 
@@ -77,6 +65,8 @@ void tnn_test(
 		{1},
 		{0}
 	};
+
+    gradient_descent_with_momentum l_optimizer(l_model.parameters(), false, 0.002, 0.9);
 
     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
@@ -106,15 +96,12 @@ void tnn_test(
 		if (epoch % CHECKPOINT == 0)
 			std::cout << std::endl;
 
-		for (int i = 0; i < l_parameters.size(); i++)
-		{
-			l_parameters[i]->m_state -= 0.002 * l_parameters[i]->gradient();
-		}
+        l_optimizer.update();
 
 	}
 
-	std::cout 
-        << std::endl << "PERIOD OF TRAINING (ms): " 
+	std::cout
+        << std::endl << "PERIOD OF TRAINING (ms): "
         << duration_ms(l_start)
         << std::endl;
 
@@ -134,35 +121,33 @@ void parabola_test(
 {
 	auto l_x = input(10, 1);
 
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 	
 	sgp_ptr_matrix l_y(l_x.size());
 
-	size_t l_next_parameter_index = parameter_vector::next_index();
+	size_t l_next_parameter_index = l_model.next_parameter_index();
 
 	for (int i = 0; i < l_y.size(); i++)
 	{
-		parameter_vector::next_index(l_next_parameter_index);
+		l_model.next_parameter_index(l_next_parameter_index);
 		auto l_tnn_y = pointers(l_x[i]);
-		l_tnn_y = weight_junction(l_tnn_y, 20);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
-		l_tnn_y = weight_junction(l_tnn_y, 1);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = l_model.weight_junction(l_tnn_y, 20);
+		l_tnn_y = l_model.bias(l_tnn_y);
+		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = l_model.weight_junction(l_tnn_y, 1);
+		l_tnn_y = l_model.bias(l_tnn_y);
+		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
 		l_y[i] = l_tnn_y;
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
-
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
+	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	std::default_random_engine l_dre(25);
 
 	std::uniform_real_distribution<double> l_ts_urd(-10, 10);
+
+    gradient_descent_with_momentum l_optimizer(l_model.parameters(), true, 0.02, 0.9);
 
 	double l_cost_momentum = 0;
 
@@ -202,10 +187,7 @@ void parabola_test(
 
 		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
 
-		for (int i = 0; i < l_parameters.size(); i++)
-		{
-			l_parameters[i]->m_state -= 0.002 * tanh(l_parameters[i]->gradient());
-		}
+        l_optimizer.update();
 
 		if (epoch % CHECKPOINT_INTERVAL == 0)
 			std::cout << "    LOSS FOR ABOVE EPOCH: " << l_cost_momentum << std::endl;
@@ -218,8 +200,7 @@ void lstm_test(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	const size_t l_lstm_y_units = 3;
 	const size_t l_tnn_h0_units = 3;
@@ -229,36 +210,33 @@ void lstm_test(
 
 	sgp_ptr_cuboid l_y;
 
-	size_t l_model_begin_next_parameter_index = parameter_vector::next_index();
+	size_t l_model_begin_next_parameter_index = l_model.next_parameter_index();
 
 	for (int i = 0; i < l_x.size(); i++)
 	{
-		parameter_vector::next_index(l_model_begin_next_parameter_index);
-		auto l_lstm_y = lstm(pointers(l_x[i]), l_lstm_y_units);
-		size_t l_tnn_begin_next_parameter_index = parameter_vector::next_index();
+		l_model.next_parameter_index(l_model_begin_next_parameter_index);
+		auto l_lstm_y = l_model.lstm(pointers(l_x[i]), l_lstm_y_units);
+		size_t l_tnn_begin_next_parameter_index = l_model.next_parameter_index();
 		sgp_ptr_matrix l_tnn_ys;
 		for (int j = 0; j < l_lstm_y.size(); j++)
 		{
-			parameter_vector::next_index(l_tnn_begin_next_parameter_index);
+			l_model.next_parameter_index(l_tnn_begin_next_parameter_index);
 			auto l_tnn_y = l_lstm_y[j];
-			l_tnn_y = weight_junction(l_tnn_y, l_tnn_h0_units);
-			l_tnn_y = bias(l_tnn_y);
-			l_tnn_y = leaky_relu(l_tnn_y, 0.3);
-			l_tnn_y = weight_junction(l_tnn_y, l_tnn_y_units);
-			l_tnn_y = bias(l_tnn_y);
-			l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+			l_tnn_y = l_model.weight_junction(l_tnn_y, l_tnn_h0_units);
+			l_tnn_y = l_model.bias(l_tnn_y);
+			l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
+			l_tnn_y = l_model.weight_junction(l_tnn_y, l_tnn_y_units);
+			l_tnn_y = l_model.bias(l_tnn_y);
+			l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
 			l_tnn_ys.push_back(l_tnn_y);
 		}
 		l_y.push_back(l_tnn_ys);
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size(), l_y[0][0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
+	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_parameters, true, 0.02);
+	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
 
 	state_cuboid l_training_set_xs =
 	{
@@ -331,42 +309,30 @@ void lstm_stacked_test(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	auto l_x = input(4, 2);
 
-	auto l_lstm_0 = lstm(pointers(l_x), 20);
-	auto l_lstm_1 = lstm(l_lstm_0, 20);
-	auto l_lstm_2 = lstm(l_lstm_1, 1);
+	auto l_lstm_0 = l_model.lstm(pointers(l_x), 20);
+	auto l_lstm_1 = l_model.lstm(l_lstm_0, 20);
+	auto l_lstm_2 = l_model.lstm(l_lstm_1, 1);
 
 	sgp_ptr_matrix l_y;
 
 	for (int i = 0; i < l_lstm_2.size(); i++)
 	{
 		auto l_tnn_y = l_lstm_2[i];
-		l_tnn_y = weight_junction(l_tnn_y, 5);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
-		l_tnn_y = weight_junction(l_tnn_y, 1);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = l_model.weight_junction(l_tnn_y, 5);
+		l_tnn_y = l_model.bias(l_tnn_y);
+		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = l_model.weight_junction(l_tnn_y, 1);
+		l_tnn_y = l_model.bias(l_tnn_y);
+		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
 		l_y.push_back(l_tnn_y);
 	}
 
 	auto l_desired_y = input(l_y.size(), l_y[0].size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
-
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop();
-
-	std::uniform_real_distribution<double> l_urd(-1, 1);
-	std::default_random_engine l_dre(28);
-
-	for (auto& l_parameter : l_parameters)
-	{
-		l_parameter->m_state = l_urd(l_dre);
-	}
+	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
 	state_cuboid l_training_set_xs =
 	{
@@ -400,6 +366,8 @@ void lstm_stacked_test(
 		},
 	};
 
+    gradient_descent_with_momentum l_optimizer(l_model.parameters(), true, 0.02, 0.9);
+
 	size_t CHECKPOINT = 100;
 
 	for (int epoch = 0; epoch < 1000000; epoch++)
@@ -417,10 +385,7 @@ void lstm_stacked_test(
 			l_model.bwd();
 		}
 
-		for (auto& l_parameter : l_parameters)
-		{
-			l_parameter->m_state -= 0.2 * l_parameter->gradient();
-		}
+        l_optimizer.update();
 
 		if (epoch % CHECKPOINT == 0)
 			std::cout << l_cost << std::endl;
@@ -433,7 +398,7 @@ void matrix_vector_multiply_test(
 
 )
 {
-	element_vector::start();
+    model l_model;
 
 	sgp_matrix l_x_0
 	{
@@ -449,9 +414,7 @@ void matrix_vector_multiply_test(
 		3
 	};
 
-	auto l_y = multiply(pointers(l_x_0), pointers(l_x_1));
-
-	element_vector l_model = element_vector::stop();
+	auto l_y = l_model.multiply(pointers(l_x_0), pointers(l_x_1));
 
 	l_model.fwd();
 
@@ -461,14 +424,12 @@ void cosine_similarity_test(
 
 )
 {
-	element_vector::start();
+    model l_model;
 
 	sgp_vector l_x_0{ 0, 1, 0, 0 };
 	sgp_vector l_x_1{ 0, -1, 0, 0 };
 
-	auto l_y = cosine_similarity(pointers(l_x_0), pointers(l_x_1));
-
-	auto l_model = element_vector::stop();
+	auto l_y = l_model.cosine_similarity(pointers(l_x_0), pointers(l_x_1));
 
 	l_model.fwd();
 
@@ -498,11 +459,9 @@ void similarity_interpolate_test(
 
 	auto l_query = input(2);
 	
-	element_vector::start();
+    model l_model;
 
-	auto l_y = similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
-
-	auto l_model = element_vector::stop();
+	auto l_y = l_model.similarity_interpolate(pointers(l_query), pointers(l_tsx), pointers(l_tsy));
 
 	while (true)
 	{
@@ -520,31 +479,18 @@ void large_memory_usage_test(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
-
 	sgp_vector l_x(1000);
 
     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
 	{
+        model l_model;
 		auto l_y = pointers(l_x);
-		l_y = weight_junction(l_y, 1000);
-		l_y = weight_junction(l_y, 1000);
-		l_y = weight_junction(l_y, 1000);
+		l_y = l_model.weight_junction(l_y, 1000);
+		l_y = l_model.weight_junction(l_y, 1000);
+		l_y = l_model.weight_junction(l_y, 1000);
 
-		element_vector l_model = element_vector::stop();
-		auto l_parameters = parameter_vector::stop();
-
-		std::cout << "MODEL CREATED: " << l_model.size() << " elements; " << duration_ms(l_start) << " ms" << std::endl;
-        l_start = std::chrono::high_resolution_clock::now();
-
-		std::uniform_real_distribution<double> l_urd(-1, 1);
-		std::default_random_engine l_dre(25);
-
-		for (auto& l_parameter : l_parameters)
-			l_parameter->m_state = l_urd(l_dre);
-		std::cout << "PARAMETERS INITIALIZED: " << duration_ms(l_start) << " ms" << std::endl;
+		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << duration_ms(l_start) << " ms" << std::endl;
         l_start = std::chrono::high_resolution_clock::now();
 
 		l_model.fwd();
@@ -554,72 +500,10 @@ void large_memory_usage_test(
 		l_model.bwd();
 		std::cout << "BACKWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
         l_start = std::chrono::high_resolution_clock::now();
+
 	}
 
 	std::cout << "DECONSTRUCTED: " << duration_ms(l_start) << " ms" << std::endl;
-
-}
-
-sgp_ptr_cuboid in_sequence_stock_predict(
-	sgp_ptr_matrix a_x,
-	const std::vector<size_t>& a_lstm_y_sizes,
-	const std::vector<size_t>& a_layer_y_sizes,
-	const size_t& a_time_slots_to_predict_per_timestep,
-	const size_t& a_time_slot_prediction_size
-)
-{
-	sgp_ptr_matrix l_y_raw = a_x;
-
-	for (int i = 0; i < a_lstm_y_sizes.size(); i++)
-		l_y_raw = lstm(l_y_raw, a_lstm_y_sizes[i]);
-
-	const size_t TOTAL_OUTPUT_UNITS = a_time_slot_prediction_size * a_time_slots_to_predict_per_timestep;
-
-	for (int i = 0; i < l_y_raw.size(); i++)
-	{
-		for (int j = 0; j < a_layer_y_sizes.size(); j++)
-		{
-			l_y_raw[i] = weight_junction(l_y_raw[i], a_layer_y_sizes[j]);
-			l_y_raw[i] = bias(l_y_raw[i]);
-			l_y_raw[i] = leaky_relu(l_y_raw[i], 0.3);
-		}
-	}
-
-	sgp_ptr_cuboid l_future_hour_predictions;
-
-	for (int i = 0; i < l_y_raw.size(); i++)
-	{
-		// Link the raw output with specific time slots
-		l_future_hour_predictions.push_back(partition(l_y_raw[i], a_time_slot_prediction_size));
-	}
-
-	return l_future_hour_predictions;
-
-}
-
-void issp_test(
-
-)
-{
-	element_vector::start();
-	parameter_vector::start();
-
-	sgp_matrix l_x = input(100, 4);
-
-	auto l_y = in_sequence_stock_predict(
-		pointers(l_x),
-		{ 20, 20 },
-		{ 20, 40 },
-		10,
-		2
-	);
-
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
-
-	l_model.fwd();
-
-	l_model.bwd();
 
 }
 
@@ -627,30 +511,26 @@ void pablo_tnn_example(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    latent::model l_model;
 
 	// Write model building code here
 	sgp_vector l_x = { 0, 0 };
 
 	sgp_ptr_vector l_y = pointers(l_x);
 
-	l_y = weight_junction(l_y, 5);
-	l_y = bias(l_y);
-	l_y = tanh(l_y);
+	l_y = l_model.weight_junction(l_y, 5);
+	l_y = l_model.bias(l_y);
+	l_y = l_model.tanh(l_y);
 	
-	l_y = weight_junction(l_y, 1);
-	l_y = bias(l_y);
-	l_y = sigmoid(l_y);
+	l_y = l_model.weight_junction(l_y, 1);
+	l_y = l_model.bias(l_y);
+	l_y = l_model.sigmoid(l_y);
 
 
 	auto l_desired_y = input(l_y.size());
-	auto l_error = mean_squared_error(l_y, pointers(l_desired_y))->depend();
+	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
 
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_parameters, true, 0.02);
+	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
 
 	state_matrix l_tsx =
 	{
@@ -713,20 +593,16 @@ void reward_structure_modeling(
 	// OUTPUTS:
 	// DESIRE TO PURCHASE
 
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
-	auto l_normalized_parameters = normalize(sigmoid(parameters(l_x.size())));
+	auto l_normalized_parameters = l_model.normalize(l_model.sigmoid(l_model.parameters(l_x.size())));
 
-	auto l_y = multiply(l_normalized_parameters, pointers(l_x));
+	auto l_y = l_model.multiply(l_normalized_parameters, pointers(l_x));
 
 	auto l_desired_y = state_gradient_pair();
-	auto l_error = mean_squared_error(l_y, &l_desired_y)->depend();
+	auto l_error = l_model.mean_squared_error(l_y, &l_desired_y)->depend();
 
-	auto l_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_parameters, true, 0.02);
+	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
 
 	struct training_set
 	{
@@ -794,8 +670,7 @@ void loss_modeling_test_0(
 	sgp_vector l_task_prediction(1);
 	sgp_vector l_loss_model_desired_y(1);
 
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	std::vector<size_t> l_tnn_layer_sizes = { 20, 20 };
 
@@ -803,22 +678,19 @@ void loss_modeling_test_0(
 
 	for (int i = 0; i < l_tnn_layer_sizes.size(); i++)
 	{
-		l_loss_model_y = weight_junction(l_loss_model_y, l_tnn_layer_sizes[i]);
-		l_loss_model_y = bias(l_loss_model_y);
-		l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
+		l_loss_model_y = l_model.weight_junction(l_loss_model_y, l_tnn_layer_sizes[i]);
+		l_loss_model_y = l_model.bias(l_loss_model_y);
+		l_loss_model_y = l_model.leaky_relu(l_loss_model_y, 0.3);
 	}
 
-	l_loss_model_y = weight_junction(l_loss_model_y, 1);
-	l_loss_model_y = bias(l_loss_model_y);
-	l_loss_model_y = leaky_relu(l_loss_model_y, 0.3);
-	l_loss_model_y = { pow(l_loss_model_y[0], constant(2)) };
+	l_loss_model_y = l_model.weight_junction(l_loss_model_y, 1);
+	l_loss_model_y = l_model.bias(l_loss_model_y);
+	l_loss_model_y = l_model.leaky_relu(l_loss_model_y, 0.3);
+	l_loss_model_y = { l_model.pow(l_loss_model_y[0], l_model.constant(2)) };
 
-	auto l_loss_model_loss = mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y))->depend();
+	auto l_loss_model_loss = l_model.mean_squared_error(l_loss_model_y, pointers(l_loss_model_desired_y))->depend();
 
-	auto l_loss_model = element_vector::stop();
-	auto l_parameters = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_parameters, true, 0.02);
+	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
 
 	std::uniform_real_distribution<double> l_urd(-10, 10);
 	std::default_random_engine l_dre(28);
@@ -844,12 +716,12 @@ void loss_modeling_test_0(
 			// CALCULATE MEAN SQUARED ERROR OF THE TASK PREDICTION
 			l_loss_model_desired_y[0].m_state = std::pow(l_task_prediction[0].m_state - l_task_desired_y, 2);
 
-			l_loss_model.fwd();
+			l_model.fwd();
 			
 			l_loss_model_loss.m_partial_gradient = 1;
 			l_loss_model_epoch_loss += l_loss_model_loss.m_state;
 
-			l_loss_model.bwd();
+			l_model.bwd();
 
 		}
 
@@ -880,9 +752,9 @@ void loss_modeling_test_0(
 
 	for (int epoch = 0; epoch < 100000; epoch++)
 	{
-		l_loss_model.fwd();
+		l_model.fwd();
 		l_loss_model_loss.m_partial_gradient = 1;
-		l_loss_model.bwd();
+		l_model.bwd();
 		l_task_prediction_optimizer.update();
 		if (epoch % 10000 == 0)
 		{
@@ -904,9 +776,9 @@ void loss_modeling_test_0(
 
 	for (int epoch = 0; epoch < 100000; epoch++)
 	{
-		l_loss_model.fwd();
+		l_model.fwd();
 		l_loss_model_loss.m_partial_gradient = 1;
-		l_loss_model.bwd();
+		l_model.bwd();
 		l_task_x_optimizer.update();
 		if (epoch % 10000 == 0)
 		{
@@ -950,8 +822,7 @@ void tnn_test_2(
 		{0},
 	};
 	
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	auto l_x = input(2);
 	auto l_y = pointers(l_x);
@@ -960,18 +831,15 @@ void tnn_test_2(
 
 	for (int i = 0; i < l_layer_sizes.size(); i++)
 	{
-		l_y = weight_junction(l_y, l_layer_sizes[i]);
-		l_y = bias(l_y);
-		l_y = leaky_relu(l_y, 0.3);
+		l_y = l_model.weight_junction(l_y, l_layer_sizes[i]);
+		l_y = l_model.bias(l_y);
+		l_y = l_model.leaky_relu(l_y, 0.3);
 	}
 
 	auto l_desired = input(1);
-	auto l_loss = mean_squared_error(l_y, pointers(l_desired))->depend();
+	auto l_loss = l_model.mean_squared_error(l_y, pointers(l_desired))->depend();
 
-	element_vector l_elements = element_vector::stop();
-	parameter_vector l_parameters = parameter_vector::stop(-1, 1);
-
-	gradient_descent l_optimizer(l_parameters, true, 0.02);
+	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
 
 	const int CHECKPOINT = 100000;
 
@@ -981,9 +849,9 @@ void tnn_test_2(
 		{
 			set_state(pointers(l_x), l_tsx[i]);
 			set_state(pointers(l_desired), l_tsy[i]);
-			l_elements.fwd();
+			l_model.fwd();
 			l_loss.m_partial_gradient = 1;
-			l_elements.bwd();
+			l_model.bwd();
 			if (epoch % CHECKPOINT == 0)
 			{
 				std::cout << l_y[0]->m_state << std::endl;
@@ -1002,13 +870,11 @@ void convolve_test(
 
 )
 {
-	element_vector::start();
+    model l_model;
 
 	auto l_x = input(3, 50, 50);
 	auto l_filter = input(3, 5, 5);
-	auto l_y = convolve(pointers(l_x), pointers(l_filter), 10);
-
-	element_vector l_element_vector = element_vector::stop();
+	auto l_y = l_model.convolve(pointers(l_x), pointers(l_filter), 10);
 
 	for (int i = 0; i < l_x.size(); i++)
 	{
@@ -1032,7 +898,7 @@ void convolve_test(
 		}
 	}
 
-	l_element_vector.fwd();
+	l_model.fwd();
 
 }
 
@@ -1040,14 +906,13 @@ void cnn_test(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	auto l_x = input(3, 1080, 1920);
-	auto l_cnn_y = convolve(pointers(l_x), parameters(3, 100, 100), 100);
-	l_cnn_y = average_pool(l_cnn_y, 3, 3, 3);
-	l_cnn_y = leaky_relu(l_cnn_y, 0.3);
-	l_cnn_y = convolve({ l_cnn_y }, parameters(1, 2, 2));
+	auto l_cnn_y = l_model.convolve(pointers(l_x), l_model.parameters(3, 100, 100), 100);
+	l_cnn_y = l_model.average_pool(l_cnn_y, 3, 3, 3);
+	l_cnn_y = l_model.leaky_relu(l_cnn_y, 0.3);
+	l_cnn_y = l_model.convolve({ l_cnn_y }, l_model.parameters(1, 2, 2));
 
 	std::vector<size_t> l_layer_sizes = { 15, 2 };
 
@@ -1055,15 +920,10 @@ void cnn_test(
 	
 	for (auto& l_layer_size : l_layer_sizes)
 	{
-		l_tnn_y = weight_junction(l_tnn_y, l_layer_size);
-		l_tnn_y = bias(l_tnn_y);
-		l_tnn_y = leaky_relu(l_tnn_y, 0.3);
+		l_tnn_y = l_model.weight_junction(l_tnn_y, l_layer_size);
+		l_tnn_y = l_model.bias(l_tnn_y);
+		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
 	}
-
-	element_vector l_element_vector = element_vector::stop();
-	parameter_vector l_parameter_vector = parameter_vector::stop();
-
-
 
 }
 
@@ -1469,22 +1329,18 @@ void scalar_multiplication_modeling_using_matrices(
 
 )
 {
-	element_vector::start();
-	parameter_vector::start();
+    model l_model;
 
 	auto l_x = input(4);
 
-	auto l_m = bias(weight_junction(pointers(l_x), 20));
-	l_m = bias(weight_junction(l_m, 20));
-	auto l_y = bias(weight_junction(l_m, 1));
+	auto l_m = l_model.bias(l_model.weight_junction(pointers(l_x), 20));
+	l_m = l_model.bias(l_model.weight_junction(l_m, 20));
+	auto l_y = l_model.bias(l_model.weight_junction(l_m, 1));
 
 	auto l_desired = input(1);
-	auto l_loss = mean_squared_error(l_y, pointers(l_desired))->depend();
+	auto l_loss = l_model.mean_squared_error(l_y, pointers(l_desired))->depend();
 
-	parameter_vector l_parameter_vector = parameter_vector::stop(-1, 1);
-	element_vector l_element_vector = element_vector::stop();
-
-	gradient_descent_with_momentum l_optimizer(l_parameter_vector, true, 0.2, 0.9);
+	gradient_descent_with_momentum l_optimizer(l_model.parameters(), true, 0.2, 0.9);
 
 	state_matrix l_ts_x =
 	{
@@ -1509,9 +1365,9 @@ void scalar_multiplication_modeling_using_matrices(
 		{
 			set_state(pointers(l_x), l_ts_x[i]);
 			set_state(pointers(l_desired), l_ts_y[i]);
-			l_element_vector.fwd();
+			l_model.fwd();
 			l_loss.m_partial_gradient = 1;
-			l_element_vector.bwd();
+			l_model.bwd();
 			l_epoch_cost += l_loss.m_state;
 		}
 		l_optimizer.update();
@@ -1627,14 +1483,13 @@ void sife_concurrent_feature_extraction_0(
     const size_t FEATURE_VECTOR_WIDTH = 10;
     const size_t IMAGE_WIDTH = 100;
     const std::vector<size_t> FEATURE_MODEL_DIMS = { 20, FEATURE_VECTOR_WIDTH };
-    const std::vector<size_t> CHASING_MODEL_DIMS=  { 20, 2 };
+    const std::vector<size_t> CHASING_MODEL_DIMS = { 20, 1 };
 
     ////////////////////////////////////////////////////////
     // First, create the f model. (Maps from Q1 to F) //////
     ////////////////////////////////////////////////////////
 
-    element_vector::start();
-    parameter_vector::start();
+    model l_f;
     
     auto l_f_x = input(INPUT_WIDTH);
     
@@ -1642,21 +1497,17 @@ void sife_concurrent_feature_extraction_0(
 
     for (size_t l_layer_size : FEATURE_MODEL_DIMS)
     {
-        l_f_y = weight_junction(l_f_y, l_layer_size);
-        l_f_y = bias(l_f_y);
-        l_f_y = leaky_relu(l_f_y, 0.3);
+        l_f_y = l_f.weight_junction(l_f_y, l_layer_size);
+        l_f_y = l_f.bias(l_f_y);
+        l_f_y = l_f.leaky_relu(l_f_y, 0.3);
     }
 
-    element_vector l_f = element_vector::stop();
-    parameter_vector l_f_params = parameter_vector::stop(-1, 1);
-    
 
     ////////////////////////////////////////////////////////
     // Next, create the g model. (Maps from Q2 to F) //////
     ////////////////////////////////////////////////////////
     
-    element_vector::start();
-    parameter_vector::start();
+    model l_g;
 
     auto l_g_x = input(IMAGE_WIDTH);
 
@@ -1664,32 +1515,26 @@ void sife_concurrent_feature_extraction_0(
 
     for (size_t l_layer_size : FEATURE_MODEL_DIMS)
     {
-        l_g_y = weight_junction(l_g_y, l_layer_size);
-        l_g_y = bias(l_g_y);
-        l_g_y = leaky_relu(l_g_y, 0.3);
+        l_g_y = l_g.weight_junction(l_g_y, l_layer_size);
+        l_g_y = l_g.bias(l_g_y);
+        l_g_y = l_g.leaky_relu(l_g_y, 0.3);
     }
-
-    element_vector l_g = element_vector::stop();
-    parameter_vector l_g_params = parameter_vector::stop(-1, 1);
 
 
     ////////////////////////////////////////////////////////
     // Next, define the characteristic loss. ///////////////
     ////////////////////////////////////////////////////////
 
-    element_vector::start();
+    model l_characteristic_loss;
 
-    auto l_characteristic_loss_y = mean_squared_error(l_f_y, l_g_y)->depend();
-
-    element_vector l_characteristic_loss = element_vector::stop();
+    auto l_characteristic_loss_y = l_characteristic_loss.mean_squared_error(l_f_y, l_g_y)->depend();
 
 
     ////////////////////////////////////////////////////////
     // Next, define the chasing models. ////////////////////
     ////////////////////////////////////////////////////////
 
-    element_vector::start();
-    parameter_vector::start();
+    model l_h;
 
     sgp_ptr_matrix l_h_y(FEATURE_VECTOR_WIDTH);
 
@@ -1701,8 +1546,13 @@ void sife_concurrent_feature_extraction_0(
             if (i == j)
                 continue;
             
-            l_h_y[i].push_back(l_f_y[j]);
-            l_h_y[i].push_back(l_g_y[j]);
+            // Average the individual feature values l_f[j] and l_g[j].
+            // Then, we negate the average to cause gradient to be negated in the backward pass.
+            // This is because the independence loss is supplying gradient to
+            // l_f_y and l_g_y, but we actually want l_f_y and l_g_y 
+            // to be supplied dependence loss instead.
+
+            l_h_y[i].push_back(l_h.negate(l_h.average(std::vector{l_f_y[j], l_g_y[j]})));
 
         }
     }
@@ -1711,9 +1561,9 @@ void sife_concurrent_feature_extraction_0(
     {
         for (size_t l_layer_size : CHASING_MODEL_DIMS)
         {
-            l_h_y_row = weight_junction(l_h_y_row, l_layer_size);
-            l_h_y_row = bias(l_h_y_row);
-            l_h_y_row = leaky_relu(l_h_y_row, 0.3);
+            l_h_y_row = l_h.weight_junction(l_h_y_row, l_layer_size);
+            l_h_y_row = l_h.bias(l_h_y_row);
+            l_h_y_row = l_h.leaky_relu(l_h_y_row, 0.3);
         }
     }
 
@@ -1722,23 +1572,23 @@ void sife_concurrent_feature_extraction_0(
     // F2^ G2^
     // F3^ G3^
 
-    auto l_f_prediction = flatten(range(l_h_y, 0, 0, l_h_y.size(), 1));
-    auto l_g_prediction = flatten(range(l_h_y, 0, 1, l_h_y.size(), 1));
+    auto l_shared_feature_predictions = flatten(l_h_y);
 
-    auto l_independence_loss = average({
-        mean_squared_error(l_f_prediction, l_f_y),
-        mean_squared_error(l_g_prediction, l_g_y)
-    })->depend();
+    // We negate the average of the feature values because
+    // we need the independence loss to become dependence loss.
 
-    element_vector l_h = element_vector::stop();
-    parameter_vector l_h_params = parameter_vector::stop(-1, 1);
-
+    auto l_independence_loss =
+        l_h.mean_squared_error(
+            l_shared_feature_predictions,
+            l_h.negate(l_h.average({l_f_y, l_g_y}))
+        )->depend();
+    
 
     ////////////////////////////////////////////////////////
     // Next, we will define the optimizers. ////////////////
     ////////////////////////////////////////////////////////
-    gradient_descent_with_momentum l_feature_optimizer(concat(l_f_params, l_g_params), true, 0.02, 0.9);
-    gradient_descent_with_momentum l_chasing_optimizer(l_h_params, true, 0.02, 0.9);
+    gradient_descent_with_momentum l_feature_optimizer(concat(l_f.parameters(), l_g.parameters()), true, 0.02, 0.9);
+    gradient_descent_with_momentum l_chasing_optimizer(l_h.parameters(), true, 0.02, 0.9);
     
     
     ////////////////////////////////////////////////////////
@@ -1756,24 +1606,82 @@ void sife_concurrent_feature_extraction_0(
 
 }
 
-void image_triangulation()
+void yas(
+
+)
 {
-    element_vector::start();
-    parameter_vector::start();
+    std::uniform_real_distribution<double> l_training_example_distribution(0, 10);
+    std::default_random_engine             l_dre(25);
 
-    sgp_vector l_x;
-    auto l_y = pointers(l_x);
+    // Construct the neural network. This means constructing a composite function of a bunch of
+    // matrix multiplications and other functions thrown in.
 
-    for (size_t s : {10, 20, 4})
+    auto x = input(1);
+    auto y_hat = pointers(x);
+
+    model l_model;
+
+    for (size_t s : {10, 5, 1})
     {
-        l_y = weight_junction(l_y, s);
-        l_y = bias(l_y);
-        l_y = leaky_relu(l_y, 0.3);
+        y_hat = l_model.weight_junction(y_hat, s);
+        y_hat = l_model.bias(y_hat);
+        y_hat = l_model.leaky_relu(y_hat, 0.3);
     }
 
-    element_vector l_elements = element_vector::stop();
-    parameter_vector l_params = parameter_vector::stop(-1, 1);
+    auto y_desired = input(1);
+
+    auto loss = l_model.mean_squared_error(y_hat, pointers(y_desired))->depend();
+
+    // Define the optimizer (gradient descent with momentum)
+    gradient_descent optimizer(l_model.parameters(), true, 0.02);
+
+
+
+    const size_t TRAINING_EXAMPLES_PER_EPOCH = 10;
+
+
+    // An epoch is like a time period. (like an iteration)
+    for (int epoch = 0; true; epoch++)
+    {
+        double loss_average = 0;
+
+        double previous_x = 0;
+        double previous_y = 0;
+        double previous_y_hat = 0;
+
+        for (int training_example_index = 0;
+            training_example_index < TRAINING_EXAMPLES_PER_EPOCH;
+            training_example_index++)
+        {
+            x[0].m_state = l_training_example_distribution(l_dre);// generate random number
+            y_desired[0].m_state = x[0].m_state * x[0].m_state;// calculate square of x
+            l_model.fwd();
+            loss.m_partial_gradient = 1;
+            l_model.bwd();
+            loss_average += loss.m_state;
+            previous_x = x[0].m_state;
+            previous_y = y_desired[0].m_state;
+            previous_y_hat = y_hat[0]->m_state;
+        }
+
+        loss_average /= (double)TRAINING_EXAMPLES_PER_EPOCH;
         
+        optimizer.update();
+
+        if (epoch % 100000 == 0)
+            std::cout 
+                << "Average Loss: "
+                << loss_average
+                << ", X: "
+                << previous_x
+                << ", Y: "
+                << previous_y
+                << ", Y_HAT: "
+                << previous_y_hat
+                << std::endl;
+
+    }
+
 
 }
 
@@ -1783,7 +1691,8 @@ int main(
 {
 	srand(time(0));
 
-	tnn_test();
+	yas();
 
 	return 0;
+    
 }
