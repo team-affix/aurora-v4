@@ -41,10 +41,10 @@ namespace aurora
 
 			double gradient(
 
-			)
+			) const
 			{
 				double l_result = 0;
-				for (auto& l_partial_gradient : m_partial_gradients)
+				for (const auto& l_partial_gradient : m_partial_gradients)
 				{
 					l_result += *l_partial_gradient;
 				}
@@ -61,360 +61,143 @@ namespace aurora
 
 		};
 
-        /// @brief Typedefs for improving readability / ease of use of framework.
-        /// These typedefs are for state_gradient_pair types.
-        typedef std::vector<state_gradient_pair> sgp_vector;
-        typedef std::vector<sgp_vector>          sgp_matrix;
-        typedef std::vector<sgp_matrix>          sgp_cuboid;
-
-        /// @brief Typedefs for state_gradient_pair pointer types.
-        typedef std::vector<state_gradient_pair*> sgp_ptr_vector;
-        typedef std::vector<sgp_ptr_vector>       sgp_ptr_matrix;
-        typedef std::vector<sgp_ptr_matrix>       sgp_ptr_cuboid;
-
-
-		inline sgp_ptr_vector pointers(
-			sgp_vector& a_vector
-		)
-		{
-			sgp_ptr_vector l_result;
-			for (int i = 0; i < a_vector.size(); i++)
-				l_result.push_back(&a_vector[i]);
-			return l_result;
-		}
-
-		inline sgp_ptr_matrix pointers(
-			sgp_matrix& a_matrix
-		)
-		{
-			sgp_ptr_matrix l_result;
-			for (int i = 0; i < a_matrix.size(); i++)
-				l_result.push_back(pointers(a_matrix[i]));
-			return l_result;
-		}
-
-		inline sgp_ptr_cuboid pointers(
-			sgp_cuboid& a_tensor
-		)
-		{
-			sgp_ptr_cuboid l_result;
-			for (int i = 0; i < a_tensor.size(); i++)
-				l_result.push_back(pointers(a_tensor[i]));
-			return l_result;
-		}
-
-		inline state_vector get_state(
-			const sgp_ptr_vector& a_vector
-		)
-		{
-			state_vector l_result(a_vector.size());
-			for (int i = 0; i < a_vector.size(); i++)
-				l_result[i] = a_vector[i]->m_state;
-			return l_result;
-		}
-
-		inline state_matrix get_state(
-			const sgp_ptr_matrix& a_matrix
-		)
-		{
-			state_matrix l_result(a_matrix.size());
-			for (int i = 0; i < a_matrix.size(); i++)
-				l_result[i] = get_state(a_matrix[i]);
-			return l_result;
-		}
-
-		inline state_cuboid get_state(
-			const sgp_ptr_cuboid& a_tensor
-		)
-		{
-			state_cuboid l_result(a_tensor.size());
-			for (int i = 0; i < a_tensor.size(); i++)
-				l_result[i] = get_state(a_tensor[i]);
-			return l_result;
-		}
-
-		inline void set_state(
-			const sgp_ptr_vector& a_destination,
-			const state_vector& a_source
-		)
-		{
-			for (int i = 0; i < a_destination.size(); i++)
-				a_destination[i]->m_state = a_source[i];
-		}
-
-		inline void set_state(
-			const sgp_ptr_matrix& a_destination,
-			const state_matrix& a_source
-		)
-		{
-			for (int i = 0; i < a_destination.size(); i++)
-				set_state(a_destination[i], a_source[i]);
-		}
-
-		inline void set_state(
-			const sgp_ptr_cuboid& a_destination,
-			const state_cuboid& a_source
-		)
-		{
-			for (int i = 0; i < a_destination.size(); i++)
-				set_state(a_destination[i], a_source[i]);
-		}
-
-		inline state_vector get_gradient(
-			const sgp_ptr_vector& a_vector
-		)
-		{
-			state_vector l_result(a_vector.size());
-			for (int i = 0; i < a_vector.size(); i++)
-				l_result[i] = a_vector[i]->gradient();
-			return l_result;
-		}
-
-		inline state_matrix get_gradient(
-			const sgp_ptr_matrix& a_matrix
-		)
-		{
-			state_matrix l_result(a_matrix.size());
-			for (int i = 0; i < a_matrix.size(); i++)
-				l_result[i] = get_state(a_matrix[i]);
-			return l_result;
-		}
-
-		inline state_cuboid get_gradient(
-			const sgp_ptr_cuboid& a_tensor
-		)
-		{
-			state_cuboid l_result(a_tensor.size());
-			for (int i = 0; i < a_tensor.size(); i++)
-				l_result[i] = get_state(a_tensor[i]);
-			return l_result;
-		}
-
-		inline void randomize_state(
-			const sgp_ptr_vector& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			std::uniform_real_distribution<double> l_urd(a_minimum_random_value, a_maximum_random_value);
-			for (auto& l_value : a_x)
-			{
-				l_value->m_state = l_urd(i_default_random_engine);
-			}
-		}
-
-		inline void randomize_state(
-			const sgp_ptr_matrix& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			for (auto& l_value : a_x)
-			{
-				randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
-			}
-		}
-
-		inline void randomize_state(
-			const sgp_ptr_cuboid& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			for (auto& l_value : a_x)
-			{
-				randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
-			}
-		}
-
-		inline void randomly_modulate_state(
-			const sgp_ptr_vector& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			std::uniform_real_distribution<double> l_urd(a_minimum_random_value, a_maximum_random_value);
-			for (auto& l_value : a_x)
-			{
-				l_value->m_state += l_urd(i_default_random_engine);
-			}
-		}
-
-		inline void randomly_modulate_state(
-			const sgp_ptr_matrix& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			for (auto& l_value : a_x)
-			{
-				randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
-			}
-		}
-
-		inline void randomly_modulate_state(
-			const sgp_ptr_cuboid& a_x,
-			const double& a_minimum_random_value,
-			const double& a_maximum_random_value
-		)
-		{
-			for (auto& l_value : a_x)
-			{
-				randomize_state(l_value, a_minimum_random_value, a_maximum_random_value);
-			}
-		}
-
-		inline sgp_vector input(
-			const size_t& a_size
-		)
-		{
-			return sgp_vector(a_size);
-		}
-
-		inline sgp_matrix input(
-			const size_t& a_rows,
-			const size_t& a_cols
-		)
-		{
-			sgp_matrix l_result(a_rows);
-			for (int i = 0; i < a_rows; i++)
-				l_result[i] = input(a_cols);
-			return l_result;
-		}
-
-		inline sgp_cuboid input(
-			const size_t& a_depth,
-			const size_t& a_rows,
-			const size_t& a_cols
-		)
-		{
-			sgp_cuboid l_result(a_depth);
-			for (int i = 0; i < a_depth; i++)
-				l_result[i] = input(a_rows, a_cols);
-			return l_result;
-		}
-
-        sgp_ptr_matrix partition(
-            const sgp_ptr_vector& a_x,
-            const size_t& a_bin_size
+        template<typename T>
+        inline T* pointers(
+            T& a_x
         )
         {
-            assert(a_x.size() % a_bin_size == 0);
+            return &a_x;
+        }
 
-            size_t l_bins_count = a_x.size() / a_bin_size;
+        template<typename T, size_t I, size_t ... J>
+		inline tensor<T*, I, J ...> pointers(
+			tensor<T, I, J ...>& a_tensor
+		)
+		{
+            tensor<T*, I, J...> l_result;
 
-            sgp_ptr_matrix l_result(l_bins_count);
+            for (int i = 0; i < I; i++)
+                l_result[i] = pointers(a_tensor[i]);
 
-            for (int i = 0; i < l_bins_count; i++)
+            return l_result;
+
+		}
+
+        inline double get_state(
+            const state_gradient_pair*& a_sgp_ptr
+        )
+        {
+            return a_sgp_ptr->m_state;
+        }
+
+        template<size_t I, size_t ... J>
+		inline tensor<double, I, J ...> get_state(
+			const tensor<state_gradient_pair*, I, J ...>& a_tensor
+		)
+		{
+            tensor<double, I, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = get_state(a_tensor[i]);
+
+            return l_result;
+
+		}
+
+        inline void set_state(
+            state_gradient_pair* a_destination,
+            const double& a_source
+        )
+        {
+            a_destination->m_state = a_source;
+        }
+
+        template<size_t I, size_t ... J>
+		inline void set_state(
+			tensor<state_gradient_pair*, I, J ...>& a_destination,
+			const tensor<double, I, J ...>& a_source
+		)
+		{
+            for (int i = 0; i < I; i++)
+                set_state(a_destination[i], a_source[i]);
+		}
+
+        inline double get_gradient(
+            const state_gradient_pair* a_sgp_ptr
+        )
+        {
+            return a_sgp_ptr->gradient();
+        }
+
+        template<size_t I, size_t ... J>
+        inline tensor<double, I, J ...> get_gradient(
+            const tensor<state_gradient_pair*, I, J ...>& a_tensor
+        )
+        {
+            tensor<double, I, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = get_gradient(a_tensor[i]);
+
+            return l_result;
+
+        }
+
+        template<size_t B, typename T, size_t I, size_t ... J>
+        tensor<T, B, I/B, J ...> partition(
+            const tensor<T, I, J ...>& a_x
+        )
+        {
+            static_assert(I % B == 0);
+
+            tensor<T, B, I/B, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
             {
-                sgp_ptr_vector l_bin(a_bin_size);
-
-                for (int j = 0; j < a_bin_size; j++)
-                    l_bin[j] = a_x[a_bin_size * i + j];
-
-                l_result[i] = l_bin;
-
+                l_result[i / B][i % B] = a_x[i];
             }
 
             return l_result;
 
         }
 
-        sgp_ptr_vector concat(
-            const sgp_ptr_vector& a_x_0,
-            const sgp_ptr_vector& a_x_1
+        template<typename T, size_t I1, size_t I2, size_t ... J>        
+        tensor<T, I1+I2, J ...> concat(
+            const tensor<T, I1, J ...>& a_x_0,
+            const tensor<T, I2, J ...>& a_x_1
         )
         {
-            sgp_ptr_vector l_result(a_x_0.size() + a_x_1.size());
-            for (int i = 0; i < a_x_0.size(); i++)
+            tensor<T, I1+I2, J ...> l_result;
+            
+            for (int i = 0; i < I1; i++)
                 l_result[i] = a_x_0[i];
-            for (int i = 0; i < a_x_1.size(); i++)
-                l_result[a_x_0.size() + i] = a_x_1[i];
-            return l_result;
-        }
-
-        sgp_ptr_vector flatten(
-            const sgp_ptr_matrix& a_matrix
-        )
-        {
-            sgp_ptr_vector l_result(a_matrix.size() * a_matrix[0].size());
-
-            for (int i = 0; i < a_matrix.size(); i++)
-            {
-                for (int j = 0; j < a_matrix[0].size(); j++)
-                {
-                    l_result[i * a_matrix[0].size() + j] = a_matrix[i][j];
-                }
-            }
+            
+            for (int i = 0; i < I2; i++)
+                l_result[I1 + i] = a_x_1[i];
 
             return l_result;
 
         }
 
-        sgp_ptr_vector flatten(
-            const sgp_ptr_cuboid& a_tensor
+        template<typename T, size_t I>
+        tensor<T, I> flatten(
+            const tensor<T, I>& a_tensor
         )
         {
-            sgp_ptr_vector l_result;
-            for (int i = 0; i < a_tensor.size(); i++)
-            {
-                sgp_ptr_vector l_flattened_matrix = flatten(a_tensor[i]);
-                l_result.insert(l_result.end(), l_flattened_matrix.begin(), l_flattened_matrix.end());
-            }
-            return l_result;
+            return a_tensor;
         }
 
-        sgp_ptr_vector range(
-            const sgp_ptr_vector& a_vector,
-            const size_t& a_start_index,
-            const size_t& a_size
+        template<typename T, size_t I, size_t ... J>
+        tensor<T, (I * ... * J)> flatten(
+            const tensor<T, I, J ...>& a_tensor
         )
         {
-            sgp_ptr_vector l_result(a_size);
+            tensor<T, (I * ... * J)> l_result;
 
-            for (int i = 0; i < a_size; i++)
+            for (int i = 0; i < I; i++)
             {
-                l_result[i] = a_vector[a_start_index + i];
-            }
-
-            return l_result;
-
-        }
-
-        sgp_ptr_matrix range(
-            const sgp_ptr_matrix& a_matrix,
-            const size_t& a_top_index,
-            const size_t& a_left_index,
-            const size_t& a_height,
-            const size_t& a_width
-        )
-        {
-            sgp_ptr_matrix l_result(a_height);
-
-            for (int i = 0; i < a_height; i++)
-            {
-                l_result[i] = range(a_matrix[a_top_index + i], a_left_index, a_width);
-            }
-
-            return l_result;
-
-        }
-
-        sgp_ptr_cuboid range(
-            const sgp_ptr_cuboid& a_tensor,
-            const size_t& a_front_index,
-            const size_t& a_top_index,
-            const size_t& a_left_index,
-            const size_t& a_depth,
-            const size_t& a_height,
-            const size_t& a_width
-        )
-        {
-            sgp_ptr_cuboid l_result(a_depth);
-
-            for (int i = 0; i < a_depth; i++)
-            {
-                l_result[i] = range(a_tensor[a_front_index + i], a_top_index, a_left_index, a_height, a_width);
+                tensor<T, (1 * ... * J)> l_flattened_nested = flatten(a_tensor[i]);
+                std::copy(l_flattened_nested.begin(), l_flattened_nested.end(), l_result.begin() + i * (1 * ... * J));
             }
 
             return l_result;
@@ -1095,82 +878,41 @@ namespace aurora
                 
             }
 
-            state_gradient_pair* negate(
-                state_gradient_pair* a_x
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> parameter(
+                
             )
             {
-                return multiply(a_x, constant(-1.0));
-            }
-
-            sgp_ptr_vector negate(
-                sgp_ptr_vector a_x
-            )
-            {
-                return multiply(a_x, constant(-1.0));
-            }
-
-            sgp_ptr_vector parameters(
-                const size_t& a_count
-            )
-            {
-                sgp_ptr_vector l_result(a_count);
+                tensor<state_gradient_pair*, I, J ...> l_result;
+                
                 for (int i = 0; i < a_count; i++)
-                    l_result[i] = parameter();
-                return l_result;
-            }
-
-            sgp_ptr_matrix parameters(
-                const size_t& a_rows,
-                const size_t& a_cols
-            )
-            {
-                sgp_ptr_matrix l_result(a_rows);
-                for (int i = 0; i < a_rows; i++)
-                    l_result[i] = parameters(a_cols);
-                return l_result;
-            }
-
-            sgp_ptr_cuboid parameters(
-                const size_t& a_depth,
-                const size_t& a_rows,
-                const size_t& a_cols
-            )
-            {
-                sgp_ptr_cuboid l_result(a_depth);
-                for (int i = 0; i < a_depth; i++)
-                    l_result[i] = parameters(a_rows, a_cols);
-                return l_result;
-            }
-
-            state_gradient_pair* additive_aggregate(
-                const sgp_ptr_vector& a_x
-            )
-            {
-                assert(a_x.size() > 0);
-
-                state_gradient_pair* l_result = a_x[0];
-
-                for (int i = 1; i < a_x.size(); i++)
-                {
-                    l_result = add(l_result, a_x[i]);
-                }
+                    l_result[i] = parameter<J ...>();
 
                 return l_result;
 
             }
 
-            sgp_ptr_vector add(
-                const sgp_ptr_vector& a_x_0,
-                const sgp_ptr_vector& a_x_1
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, J ...> additive_aggregate(
+                const tensor<state_gradient_pair*, I, J ...>& a_tensor
             )
             {
-                assert(a_x_0.size() == a_x_1.size());
-                sgp_ptr_vector l_result(a_x_0.size());
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_result[i] = add(a_x_0[i], a_x_1[i]);
-                }
+                tensor<state_gradient_pair*, J ...> l_result;
+
+                for (int i = 0; i < I; i++)
+                    l_result = add(l_result, a_tensor[i]);
+
                 return l_result;
+
+            }
+
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> add(
+                const tensor<state_gradient_pair*, I, J ...>& a_x_0,
+                const tensor<state_gradient_pair*, I, J ...>& a_x_1
+            )
+            {
+                tensor<state_gradient_pair*, I, J ...> l_result;
             }
 
             sgp_ptr_vector subtract(
@@ -1296,82 +1038,12 @@ namespace aurora
 
             }
 
-            state_gradient_pair* multiply(
-                const sgp_ptr_vector& a_x_0,
-                const sgp_ptr_vector& a_x_1
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> negate(
+                const tensor<state_gradient_pair*, I, J ...>& a_tensor
             )
             {
-                assert(a_x_0.size() == a_x_1.size());
-
-                sgp_ptr_vector l_multiply_ys(a_x_0.size());
-
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_multiply_ys[i] = multiply(a_x_0[i], a_x_1[i]);
-                }
-
-                return additive_aggregate(l_multiply_ys);
-
-            }
-
-            sgp_ptr_vector multiply(
-                const sgp_ptr_vector& a_x_0,
-                state_gradient_pair* a_x_1
-            )
-            {
-                sgp_ptr_vector l_result(a_x_0.size());
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_result[i] = multiply(a_x_0[i], a_x_1);
-                }
-                return l_result;
-            }
-
-            sgp_ptr_vector multiply(
-                const sgp_ptr_matrix& a_x_0,
-                const sgp_ptr_vector& a_x_1
-            )
-            {
-                assert(a_x_0[0].size() == a_x_1.size());
-                auto l_transpose = transpose(a_x_0);
-                sgp_ptr_matrix l_scaled_transpose(l_transpose.size());
-                for (int i = 0; i < a_x_1.size(); i++)
-                {
-                    l_scaled_transpose[i] = multiply(l_transpose[i], a_x_1[i]);
-                }
-                return additive_aggregate(l_scaled_transpose);
-            }
-
-            sgp_ptr_matrix multiply(
-                const sgp_ptr_matrix& a_x_0,
-                state_gradient_pair* a_x_1
-            )
-            {
-                sgp_ptr_matrix l_result(a_x_0.size());
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_result[i] = multiply(a_x_0[i], a_x_1);
-                }
-                return l_result;
-            }
-
-            sgp_ptr_matrix multiply(
-                const sgp_ptr_matrix& a_x_0,
-                const sgp_ptr_matrix& a_x_1
-            )
-            {
-                sgp_ptr_matrix l_result(a_x_0.size());
-                sgp_ptr_matrix l_x_1_transpose = transpose(a_x_1);
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    sgp_ptr_vector l_result_row(a_x_1[0].size());
-                    for (int j = 0; j < l_x_1_transpose.size(); j++)
-                    {
-                        l_result_row[j] = multiply(a_x_0[i], l_x_1_transpose[j]);
-                    }
-                    l_result[i] = l_result_row;
-                }
-                return l_result;
+                return multiply(a_tensor, constant(-1.0));
             }
 
             state_gradient_pair* bias(
