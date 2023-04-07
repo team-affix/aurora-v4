@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 #include <stdexcept>
+#include <iomanip>
 
 using namespace aurora;
 using namespace aurora::latent;
@@ -1669,7 +1670,7 @@ void yas(
         optimizer.update();
 
         if (epoch % 100000 == 0)
-            std::cout 
+            std::cout
                 << "Average Loss: "
                 << loss_average
                 << ", X: "
@@ -1690,8 +1691,6 @@ int main(
 )
 {
 	srand(time(0));
-
-	yas();
 
 	return 0;
     

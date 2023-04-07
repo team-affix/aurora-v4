@@ -14,6 +14,7 @@ aurora-v4/alg-test/main
 *.a
 
 alg-test/main
+alg-test/main.dSYM/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
