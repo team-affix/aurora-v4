@@ -6,6 +6,7 @@
 #include <string>
 #include <ostream>
 #include <initializer_list>
+#include <array>
 
 namespace aurora
 {
