@@ -70,10 +70,10 @@ namespace aurora
         }
 
         template<typename T, size_t I, size_t ... J>
-		inline tensor<T*, I, J ...> pointers(
-			tensor<T, I, J ...>& a_tensor
-		)
-		{
+        inline tensor<T*, I, J ...> pointers(
+            tensor<T, I, J ...>& a_tensor
+        )
+        {
             tensor<T*, I, J...> l_result;
 
             for (int i = 0; i < I; i++)
@@ -81,20 +81,20 @@ namespace aurora
 
             return l_result;
 
-		}
+        }
 
         inline double get_state(
-            const state_gradient_pair*& a_sgp_ptr
+            const state_gradient_pair* a_sgp_ptr
         )
         {
             return a_sgp_ptr->m_state;
         }
 
         template<size_t I, size_t ... J>
-		inline tensor<double, I, J ...> get_state(
-			const tensor<state_gradient_pair*, I, J ...>& a_tensor
-		)
-		{
+        inline tensor<double, I, J ...> get_state(
+            const tensor<state_gradient_pair*, I, J ...>& a_tensor
+        )
+        {
             tensor<double, I, J ...> l_result;
 
             for (int i = 0; i < I; i++)
@@ -102,7 +102,7 @@ namespace aurora
 
             return l_result;
 
-		}
+        }
 
         inline void set_state(
             state_gradient_pair* a_destination,
@@ -113,14 +113,14 @@ namespace aurora
         }
 
         template<size_t I, size_t ... J>
-		inline void set_state(
-			tensor<state_gradient_pair*, I, J ...>& a_destination,
-			const tensor<double, I, J ...>& a_source
-		)
-		{
+        inline void set_state(
+            tensor<state_gradient_pair*, I, J ...>& a_destination,
+            const tensor<double, I, J ...>& a_source
+        )
+        {
             for (int i = 0; i < I; i++)
                 set_state(a_destination[i], a_source[i]);
-		}
+        }
 
         inline double get_gradient(
             const state_gradient_pair* a_sgp_ptr
@@ -143,25 +143,33 @@ namespace aurora
 
         }
 
+        /// @brief 
+        /// @tparam T is the value type.
+        /// @tparam B is the number of bins into which the input should be partitioned.
+        /// @tparam I is the outermost rank size.
+        /// @tparam ...J the remaining rank sizes.
+        /// @param a_x 
+        /// @return 
         template<size_t B, typename T, size_t I, size_t ... J>
+            requires ((I % B) == 0)
         tensor<T, B, I/B, J ...> partition(
             const tensor<T, I, J ...>& a_x
         )
         {
-            static_assert(I % B == 0);
+            constexpr size_t BIN_SIZE = I/B;
 
-            tensor<T, B, I/B, J ...> l_result;
+            tensor<T, B, BIN_SIZE, J ...> l_result;
 
             for (int i = 0; i < I; i++)
             {
-                l_result[i / B][i % B] = a_x[i];
+                l_result[i / BIN_SIZE][i % BIN_SIZE] = a_x[i];
             }
 
             return l_result;
 
         }
 
-        template<typename T, size_t I1, size_t I2, size_t ... J>        
+        template<typename T, size_t I1, size_t I2, size_t ... J>
         tensor<T, I1+I2, J ...> concat(
             const tensor<T, I1, J ...>& a_x_0,
             const tensor<T, I2, J ...>& a_x_1
@@ -179,12 +187,20 @@ namespace aurora
 
         }
 
-        template<typename T, size_t I>
-        tensor<T, I> flatten(
-            const tensor<T, I>& a_tensor
+        template<typename T, size_t I, size_t J>
+        tensor<T, I * J> flatten(
+            const tensor<T, I, J>& a_tensor
         )
         {
-            return a_tensor;
+            tensor<T, I * J> l_result;
+
+            for (int i = 0; i < I; i++)
+            {
+                std::copy(a_tensor[i].begin(), a_tensor[i].end(), l_result.begin() + i * J);
+            }
+
+            return l_result;
+
         }
 
         template<typename T, size_t I, size_t ... J>
@@ -892,6 +908,20 @@ namespace aurora
 
             }
 
+            template<size_t I>
+            state_gradient_pair* additive_aggregate(
+                const tensor<state_gradient_pair*, I>& a_x
+            )
+            {
+                state_gradient_pair* l_result = constant(0);
+
+                for (int i = 0; i < I; i++)
+                    l_result = add(l_result, a_x[i]);
+
+                return l_result;
+
+            }
+
             template<size_t I, size_t ... J>
             tensor<state_gradient_pair*, J ...> additive_aggregate(
                 const tensor<state_gradient_pair*, I, J ...>& a_tensor
@@ -913,70 +943,74 @@ namespace aurora
             )
             {
                 tensor<state_gradient_pair*, I, J ...> l_result;
-            }
 
-            sgp_ptr_vector subtract(
-                const sgp_ptr_vector& a_x_0,
-                const sgp_ptr_vector& a_x_1
-            )
-            {
-                sgp_ptr_vector l_y(a_x_0.size());
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_y[i] = subtract(a_x_0[i], a_x_1[i]);
-                }
-                return l_y;
-            }
+                for (int i = 0; i < I; i++)
+                    l_result[i] = add(a_x_0[i], a_x_1[i]);
 
-            sgp_ptr_vector additive_aggregate(
-                const sgp_ptr_matrix& a_x
-            )
-            {
-                sgp_ptr_vector l_result = a_x[0];
-                for (int i = 1; i < a_x.size(); i++)
-                    l_result = add(l_result, a_x[i]);
                 return l_result;
+
             }
 
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> subtract(
+                const tensor<state_gradient_pair*, I, J ...>& a_x_0,
+                const tensor<state_gradient_pair*, I, J ...>& a_x_1
+            )
+            {
+                tensor<state_gradient_pair*, I, J ...> l_result;
+
+                for (int i = 0; i < I; i++)
+                    l_result[i] = subtract(a_x_0[i], a_x_1[i]);
+
+                return l_result;
+
+            }
+
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> multiply(
+                const tensor<state_gradient_pair*, I, J ...>& a_x_0,
+                const state_gradient_pair* a_x_1
+            )
+            {
+                tensor<state_gradient_pair*, I, J ...> l_result;
+
+                for (int i = 0; i < I; i++)
+                    l_result[i] = multiply(a_x_0[i], a_x_1);
+
+                return l_result;
+
+            }
+
+            template<size_t I>
             state_gradient_pair* average(
-                const sgp_ptr_vector& a_x
+                const tensor<state_gradient_pair*, I>& a_x
             )
             {
                 return divide(
                     additive_aggregate(a_x),
-                    constant(a_x.size()));
+                    constant(I));
             }
 
-            sgp_ptr_vector average(
-                const sgp_ptr_matrix& a_x
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, J ...> average(
+                const tensor<state_gradient_pair*, I, J ...>& a_x
             )
             {
-                return multiply(additive_aggregate(a_x), constant(1.0 / a_x.size()));
+                return multiply(additive_aggregate(a_x), constant(1.0 / I));
             }
 
-            sgp_ptr_matrix transpose(
-                const sgp_ptr_matrix& a_x
+            template<size_t I, size_t J>
+            tensor<state_gradient_pair*, J, I> transpose(
+                const tensor<state_gradient_pair*, I, J>& a_tensor
             )
             {
-                sgp_ptr_matrix l_result;
+                tensor<state_gradient_pair*, J, I> l_result;
 
-                // Resize the output matrix to have a number of rows equal to the number of 
-                // columns in the input matrix
-                l_result.resize(a_x[0].size());
-
-                for (int i = 0; i < l_result.size(); i++)
+                for (int i = 0; i < I; i++)
                 {
-                    // Resize each row of the output matrix to have a number of columns equal to
-                    // the number of rows in the input matrix
-                    l_result[i].resize(a_x.size());
-                }
-
-                for (int i = 0; i < a_x.size(); i++)
-                {
-                    for (int j = 0; j < a_x[i].size(); j++)
+                    for (int j = 0; j < J; j++)
                     {
-                        // Link up each pointer
-                        l_result[j][i] = a_x[i][j];
+                        l_result[j][i] = a_tensor[i][j];
                     }
                 }
 
@@ -984,57 +1018,24 @@ namespace aurora
 
             }
 
-            sgp_ptr_vector hadamard(
-                const sgp_ptr_vector& a_x_0,
-                const sgp_ptr_vector& a_x_1
+            /// @brief This function currently flips the tensor's final two ranks.
+            /// @tparam I 
+            /// @tparam J 
+            /// @tparam K 
+            /// @tparam ...L 
+            /// @param a_tensor 
+            /// @return 
+            template<size_t I, size_t J, size_t K, size_t ... L>
+            tensor<state_gradient_pair*, I, L ..., K, J> transpose(
+                const tensor<state_gradient_pair*, I, L ..., J, K>& a_tensor
             )
             {
-                assert(a_x_0.size() == a_x_1.size());
+                tensor<state_gradient_pair*, I, L ..., K, J> l_result;
 
-                sgp_ptr_vector l_y(a_x_0.size());
+                for (int i = 0; i < I; i++)
+                    l_result[i] = transpose(a_tensor[i]);
 
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_y[i] = multiply(a_x_0[i], a_x_1[i]);
-                }
-
-                return l_y;
-
-            }
-
-            sgp_ptr_matrix hadamard(
-                const sgp_ptr_matrix& a_x_0,
-                const sgp_ptr_matrix& a_x_1
-            )
-            {
-                assert(a_x_0.size() == a_x_1.size());
-
-                sgp_ptr_matrix l_y(a_x_0.size());
-
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_y[i] = hadamard(a_x_0[i], a_x_1[i]);
-                }
-
-                return l_y;
-
-            }
-
-            sgp_ptr_cuboid hadamard(
-                const sgp_ptr_cuboid& a_x_0,
-                const sgp_ptr_cuboid& a_x_1
-            )
-            {
-                assert(a_x_0.size() == a_x_1.size());
-
-                sgp_ptr_cuboid l_y(a_x_0.size());
-
-                for (int i = 0; i < a_x_0.size(); i++)
-                {
-                    l_y[i] = hadamard(a_x_0[i], a_x_1[i]);
-                }
-
-                return l_y;
+                return l_result;
 
             }
 
@@ -1053,43 +1054,18 @@ namespace aurora
                 return add(parameter(), a_x);
             }
 
-            sgp_ptr_vector bias(
-                const sgp_ptr_vector& a_x
+            template<size_t I, size_t ... J>
+            tensor<state_gradient_pair*, I, J ...> bias(
+                const tensor<state_gradient_pair*, I, J ...>& a_x
             )
             {
-                sgp_ptr_vector l_result(a_x.size());
+                tensor<state_gradient_pair*, I, J ...> l_result;
 
-                for (int i = 0; i < a_x.size(); i++)
+                for (int i = 0; i < I; i++)
                     l_result[i] = bias(a_x[i]);
 
                 return l_result;
-
-            }
-
-            sgp_ptr_matrix bias(
-                const sgp_ptr_matrix& a_x
-            )
-            {
-                sgp_ptr_matrix l_result(a_x.size());
-
-                for (int i = 0; i < a_x.size(); i++)
-                    l_result[i] = bias(a_x[i]);
-
-                return l_result;
-
-            }
-
-            sgp_ptr_cuboid bias(
-                const sgp_ptr_cuboid& a_x
-            )
-            {
-                sgp_ptr_cuboid l_result(a_x.size());
-
-                for (int i = 0; i < a_x.size(); i++)
-                    l_result[i] = bias(a_x[i]);
-
-                return l_result;
-
+                
             }
 
             sgp_ptr_vector weight_junction(
