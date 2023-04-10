@@ -15,6 +15,7 @@ aurora-v4/alg-test/main
 
 alg-test/main
 alg-test/main.dSYM/
+alg-test/test_tensor_io.bin
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

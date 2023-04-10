@@ -306,6 +306,61 @@ namespace aurora
         return multiply(additive_aggregate(a_x), T(1.0 / double(I)));
     }
 
+    template<typename T, size_t I, size_t J>
+    tensor<T, J> row(
+        const tensor<T, I, J>& a_x,
+        const size_t& a_row
+    )
+    {
+        return a_x[a_row];
+    }
+
+    template<typename T, size_t I, size_t J>
+    tensor<T, I> col(
+        const tensor<T, I, J>& a_x,
+        const size_t& a_col
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x[i][a_col];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I>
+    T dot(
+        const tensor<T, I>& a_x_0,
+        const tensor<T, I>& a_x_1
+    )
+    {
+        T l_result = 0;
+
+        for (int i = 0; i < I; i++)
+            l_result += a_x_0[i] * a_x_1[i];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I1, size_t J1, size_t J2>
+    tensor<T, I1, J2> dot(
+        const tensor<T, I1, J1>& a_x_0,
+        const tensor<T, J1, J2>& a_x_1
+    )
+    {
+        tensor<T, I1, J2> l_result;
+
+        for (int i = 0; i < I1; i++)
+            for (int j = 0; j < J2; j++)
+                l_result[i][j] = dot(row(a_x_0, i), col(a_x_1, j));
+
+        return l_result;
+
+    }
+
     /// @brief This function currently flips the tensor's outermost two ranks.
     /// @tparam I 
     /// @tparam J 
@@ -350,23 +405,12 @@ std::ostream& operator<<(std::ostream& a_ostream, const aurora::tensor<T, I>& a_
 
 }
 
-template<typename T, size_t I, size_t J>
-std::ostream& operator<<(std::ostream& a_ostream, const aurora::tensor<T, I, J>& a_tensor)
-{
-    for (const auto& l_element : a_tensor)
-        a_ostream << l_element << '\n';
-
-    a_ostream << '\n';
-
-    return a_ostream;
-
-}
-
 template<typename T, size_t I, size_t ... J>
+    requires (sizeof...(J) > 0)
 std::ostream& operator<<(std::ostream& a_ostream, const aurora::tensor<T, I, J ...>& a_tensor)
 {
     for (const auto& l_element : a_tensor)
-        a_ostream << l_element;
+        a_ostream << l_element << '\n';
 
     return a_ostream;
 

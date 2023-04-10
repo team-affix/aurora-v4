@@ -4,6 +4,8 @@
 #include <chrono>
 #include <stdexcept>
 #include <iomanip>
+#include <fstream>
+#include <string>
 
 using namespace aurora;
 using namespace aurora::latent;
@@ -2111,6 +2113,123 @@ void test_average(
 
 }
 
+void test_row(
+
+)
+{
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    constexpr size_t ROW_INDEX = 2;
+    
+    tensor<double, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_HEIGHT; i++)
+    {
+        for (int j = 0; j < TENSOR_WIDTH; j++)
+            l_tens_0[i][j] = i * TENSOR_WIDTH + j;
+        if (i == ROW_INDEX)
+        {
+            l_expected = l_tens_0[i];
+        }
+    }
+
+    tensor<double, TENSOR_WIDTH> l_row = row(l_tens_0, ROW_INDEX);
+
+    assert(l_row == l_expected);
+
+}
+
+void test_col(
+
+)
+{
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    constexpr size_t COL_INDEX = 7;
+    
+    tensor<double, TENSOR_HEIGHT> l_expected;
+
+    tensor<double, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_HEIGHT; i++)
+    {
+        for (int j = 0; j < TENSOR_WIDTH; j++)
+        {
+            l_tens_0[i][j] = i * TENSOR_WIDTH + j;
+
+            if (j == COL_INDEX)
+            {
+                l_expected[i] = l_tens_0[i][j];
+            }
+
+        }
+    }
+
+    tensor<double, TENSOR_HEIGHT> l_col = col(l_tens_0, COL_INDEX);
+
+    assert(l_col == l_expected);
+
+}
+
+void test_vector_dot(
+
+)
+{
+    constexpr size_t VECTOR_SIZE = 14;
+
+    tensor<double, VECTOR_SIZE> l_tens_0;
+    tensor<double, VECTOR_SIZE> l_tens_1;
+    
+    double l_expected = 0;
+
+    for (int i = 0; i < VECTOR_SIZE; i++)
+    {
+        l_tens_0[i] = i;
+        l_tens_1[i] = i % 2;
+        l_expected += l_tens_0[i] * l_tens_1[i];
+    }
+
+    double l_dot = dot(l_tens_0, l_tens_1);
+
+    assert(l_dot == l_expected);
+
+}
+
+void test_matrix_dot(
+
+)
+{
+    constexpr size_t MATRIX_0_ROWS = 10;
+    constexpr size_t MATRIX_0_COLS = 4;
+    constexpr size_t MATRIX_1_COLS = 14;
+
+    tensor<double, MATRIX_0_ROWS, MATRIX_0_COLS> l_tensor_0;
+
+    for (int i = 0; i < MATRIX_0_ROWS; i++)
+        for (int j = 0; j < MATRIX_0_COLS; j++)
+            l_tensor_0[i][j] = i * MATRIX_0_COLS + j;
+
+    tensor<double, MATRIX_0_COLS, MATRIX_1_COLS> l_tensor_1;
+
+    for (int i = 0; i < MATRIX_0_COLS; i++)
+        for (int j = 0; j < MATRIX_1_COLS; j++)
+            l_tensor_1[i][j] = i * MATRIX_1_COLS + j;
+
+    tensor<double, MATRIX_0_ROWS, MATRIX_1_COLS> l_expected;
+
+    for (int i = 0; i < MATRIX_0_ROWS; i++)
+        for (int j = 0; j < MATRIX_1_COLS; j++)
+            for (int k = 0; k < MATRIX_0_COLS; k++)
+                l_expected[i][j] += l_tensor_0[i][k] * l_tensor_1[k][j];
+
+    tensor<double, MATRIX_0_ROWS, MATRIX_1_COLS> l_dot = dot(l_tensor_0, l_tensor_1);
+
+    assert(l_dot == l_expected);
+
+}
+
 void test_transpose(
 
 )
@@ -2164,6 +2283,44 @@ void test_negate(
 
 }
 
+void test_io(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    const std::string FILE_PATH = "test_tensor_io.bin";
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+            }
+
+    std::ofstream l_ofs(FILE_PATH);
+
+    l_ofs << l_tens_0;
+    
+    l_ofs.close();
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_recovered;
+
+    std::ifstream l_ifs(FILE_PATH);
+
+    l_ifs >> l_recovered;
+
+    l_ifs.close();
+
+    assert(l_recovered == l_tens_0);
+
+    //std::filesystem::remove(FILE_PATH);
+
+}
+
 void unit_test_main(
 
 )
@@ -2182,8 +2339,13 @@ void unit_test_main(
     test_tensor_tensor_multiply();
     test_tensor_scalar_multiply();
     test_average();
+    test_row();
+    test_col();
+    test_vector_dot();
+    test_matrix_dot();
     test_transpose();
     test_negate();
+    test_io();
 }
 
 int main(
