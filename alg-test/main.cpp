@@ -2317,7 +2317,7 @@ void test_io(
 
     assert(l_recovered == l_tens_0);
 
-    //std::filesystem::remove(FILE_PATH);
+    std::filesystem::remove(FILE_PATH);
 
 }
 
