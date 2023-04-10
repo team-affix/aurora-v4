@@ -333,7 +333,7 @@ namespace aurora
         const tensor<T, I, J ...>& a_x
     )
     {
-        tensor<T, I, J ...> l_result = multiply(a_x, T(-1.0));
+        return multiply(a_x, T(-1.0));
     }
 
     inline std::default_random_engine i_default_random_engine;

@@ -2137,6 +2137,33 @@ void test_transpose(
 
 }
 
+void test_negate(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    constexpr double SCALAR = -1;
+    
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+                l_expected[i][j][k] = l_tens_0[i][j][k] * SCALAR;
+            }
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_multiplied = negate(l_tens_0);
+
+    assert(l_multiplied == l_expected);
+
+}
+
 void unit_test_main(
 
 )
@@ -2156,6 +2183,7 @@ void unit_test_main(
     test_tensor_scalar_multiply();
     test_average();
     test_transpose();
+    test_negate();
 }
 
 int main(
