@@ -1811,7 +1811,7 @@ void test_get_gradient(
 {
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
-    
+
     tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
     tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = pointers(l_tens_0);
@@ -1903,6 +1903,240 @@ void test_flatten(
 
 }
 
+void test_add(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_1;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_1[i][j][k] = (i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k) % 15;
+                l_expected[i][j][k] = l_tens_0[i][j][k] + l_tens_1[i][j][k];
+            }
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_added = add(l_tens_0, l_tens_1);
+
+    assert(l_added == l_expected);
+    
+}
+
+void test_additive_aggregate(
+
+)
+{
+    constexpr size_t VECTOR_SIZE = 10;
+    constexpr size_t MATRIX_ROWS = 300;
+    constexpr size_t MATRIX_COLS = 10;
+    
+    tensor<double, VECTOR_SIZE> l_tens_0;
+
+    double l_expected_0 = 0;
+
+    for (int i = 0; i < VECTOR_SIZE; i++)
+    {
+        l_tens_0[i] = i;
+        l_expected_0 += i;
+    }
+
+    double l_additive_aggregate_0 = additive_aggregate(l_tens_0);
+
+    assert(l_additive_aggregate_0 == l_expected_0);
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
+
+    tensor<double, MATRIX_COLS> l_expected_1;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_tens_1[i][j] = i * MATRIX_COLS + j;
+            l_expected_1[j] += i * MATRIX_COLS + j;
+        }
+
+    tensor<double, MATRIX_COLS> l_additive_aggregate_1 = additive_aggregate(l_tens_1);
+
+    assert(l_additive_aggregate_1 == l_expected_1);
+
+}
+
+void test_subtract(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_1;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_1[i][j][k] = (i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k) % 15;
+                l_expected[i][j][k] = l_tens_0[i][j][k] - l_tens_1[i][j][k];
+            }
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_subtracted = subtract(l_tens_0, l_tens_1);
+
+    assert(l_subtracted == l_expected);
+    
+}
+
+void test_tensor_tensor_multiply(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_1;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_1[i][j][k] = (i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k) % 15;
+                l_expected[i][j][k] = l_tens_0[i][j][k] * l_tens_1[i][j][k];
+            }
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_multiplied = multiply(l_tens_0, l_tens_1);
+
+    assert(l_multiplied == l_expected);
+    
+}
+
+void test_tensor_scalar_multiply(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    constexpr double SCALAR = 10.3;
+    
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+                l_expected[i][j][k] = l_tens_0[i][j][k] * SCALAR;
+            }
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_multiplied = multiply(l_tens_0, SCALAR);
+
+    assert(l_multiplied == l_expected);
+
+}
+
+void test_average(
+
+)
+{
+    constexpr size_t VECTOR_SIZE = 10;
+    constexpr size_t MATRIX_ROWS = 300;
+    constexpr size_t MATRIX_COLS = 10;
+    
+    tensor<double, VECTOR_SIZE> l_tens_0;
+
+    double l_expected_0 = 0;
+
+    for (int i = 0; i < VECTOR_SIZE; i++)
+    {
+        l_tens_0[i] = i;
+        l_expected_0 += i;
+    }
+
+    l_expected_0 /= (double)VECTOR_SIZE;
+
+    double l_average_0 = average(l_tens_0);
+
+    assert(l_average_0 == l_expected_0);
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
+
+    tensor<double, MATRIX_COLS> l_expected_1;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_tens_1[i][j] = i * MATRIX_COLS + j;
+            l_expected_1[j] += i * MATRIX_COLS + j;
+        }
+
+    l_expected_1 = multiply(l_expected_1, 1.0 / (double)MATRIX_ROWS);
+
+    tensor<double, MATRIX_COLS> l_average_1 = average(l_tens_1);
+
+    assert(l_average_1 == l_expected_1);
+
+}
+
+void test_transpose(
+
+)
+{
+    constexpr size_t TENSOR_DEPTH = 3;
+    constexpr size_t TENSOR_HEIGHT = 100;
+    constexpr size_t TENSOR_WIDTH = 10;
+    
+    tensor<double, TENSOR_HEIGHT, TENSOR_DEPTH, TENSOR_WIDTH> l_expected;
+
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+
+    for (int i = 0; i < TENSOR_DEPTH; i++)
+        for (int j = 0; j < TENSOR_HEIGHT; j++)
+            for (int k = 0; k < TENSOR_WIDTH; k++)
+            {
+                l_tens_0[i][j][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+                l_expected[j][i][k] = i * (TENSOR_HEIGHT * TENSOR_WIDTH) + j * TENSOR_WIDTH + k;
+            }
+
+    tensor<double, TENSOR_HEIGHT, TENSOR_DEPTH, TENSOR_WIDTH> l_transposed = transpose(l_tens_0);
+
+    assert(l_transposed == l_expected);
+
+}
+
 void unit_test_main(
 
 )
@@ -1915,6 +2149,13 @@ void unit_test_main(
     test_partition();
     test_concat();
     test_flatten();
+    test_add();
+    test_additive_aggregate();
+    test_subtract();
+    test_tensor_tensor_multiply();
+    test_tensor_scalar_multiply();
+    test_average();
+    test_transpose();
 }
 
 int main(
@@ -1924,5 +2165,5 @@ int main(
     unit_test_main();
 
 	return 0;
-    
+
 }
