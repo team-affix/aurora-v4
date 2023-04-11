@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 #include <string>
+#include <filesystem>
 
 using namespace aurora;
 using namespace aurora::latent;
@@ -1712,22 +1713,16 @@ void test_tensor_default_constructor(
 
 }
 
-void test_pointers(
+void test_make_operable(
 
 )
 {
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
-    
-    double l_double_0 = 10;
-    
-    double* l_double_0_ptr = pointers(l_double_0);
 
-    assert(l_double_0_ptr == &l_double_0);
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
-    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
-
-    tensor<double*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = pointers(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -1739,19 +1734,8 @@ void test_get_state(
 
 )
 {
-    constexpr double SGP_0_STATE = 3;
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 30;
-
-    state_gradient_pair l_sgp_0(SGP_0_STATE);
-
-    state_gradient_pair* l_sgp_0_ptr = pointers(l_sgp_0);
-
-    double l_sgp_0_state = get_state(l_sgp_0_ptr);
-
-    assert(l_sgp_0_state == SGP_0_STATE);
-
-
     
     tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
@@ -1760,7 +1744,7 @@ void test_get_state(
         for (int j = 0; j < MATRIX_COLS; j++)
             l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = pointers(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
     
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0_state = get_state(l_tens_0_ptr);
 
@@ -1774,23 +1758,12 @@ void test_set_state(
 
 )
 {
-    constexpr double SGP_0_STATE = 3;
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
     
-    state_gradient_pair l_sgp_0;
-
-    state_gradient_pair* l_sgp_0_ptr = pointers(l_sgp_0);
-    
-    set_state(l_sgp_0_ptr, SGP_0_STATE);
-
-    assert(l_sgp_0.m_state == SGP_0_STATE);
-
-    
-    
     tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = pointers(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0_state;
 
@@ -1816,7 +1789,7 @@ void test_get_gradient(
 
     tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = pointers(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2321,12 +2294,112 @@ void test_io(
 
 }
 
+void test_add_state_gradient_pairs(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    model::begin();
+
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
+            l_tens_1[i][j].m_state = (i * MATRIX_COLS + j) % 5;
+            l_expected_states[i][j] = l_tens_0[i][j].m_state + l_tens_1[i][j].m_state;
+        }
+
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = make_operable(l_tens_1);
+
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_added = add(l_tens_0_ptr, l_tens_1_ptr);
+
+    model l_model = model::end();
+
+    l_model.fwd();
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states = get_state(l_added);
+
+    assert(l_states == l_expected_states);
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+            l_added[i][j]->depend().m_partial_gradient = i * MATRIX_COLS + j;
+
+    l_model.bwd();
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            assert(l_tens_0[i][j].gradient() == i * MATRIX_COLS + j);
+            assert(l_tens_1[i][j].gradient() == i * MATRIX_COLS + j);
+        }
+    
+}
+
+void test_subtract_state_gradient_pairs(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    model::begin();
+
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
+            l_tens_1[i][j].m_state = (i * MATRIX_COLS + j) % 5;
+            l_expected_states[i][j] = l_tens_0[i][j].m_state - l_tens_1[i][j].m_state;
+        }
+
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = make_operable(l_tens_1);
+
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_subtracted = subtract(l_tens_0_ptr, l_tens_1_ptr);
+
+    model l_model = model::end();
+
+    l_model.fwd();
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states = get_state(l_subtracted);
+
+    assert(l_states == l_expected_states);
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+            l_subtracted[i][j]->depend().m_partial_gradient = i * MATRIX_COLS + j;
+
+    l_model.bwd();
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            assert(l_tens_0[i][j].gradient() ==   i * MATRIX_COLS + j);
+            assert(l_tens_1[i][j].gradient() == -(i * (int)MATRIX_COLS + j));
+        }
+    
+}
+
 void unit_test_main(
 
 )
 {
     test_tensor_default_constructor();
-    test_pointers();
+    test_make_operable();
     test_get_state();
     test_set_state();
     test_get_gradient();
@@ -2346,6 +2419,8 @@ void unit_test_main(
     test_transpose();
     test_negate();
     test_io();
+    test_add_state_gradient_pairs();
+    test_subtract_state_gradient_pairs();
 }
 
 int main(

@@ -141,6 +141,37 @@ namespace aurora
     }
 
     template<typename T, size_t I>
+    tensor<T, I> add(
+        tensor<T, I>& a_x_0,
+        tensor<T, I>& a_x_1
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x_0[i] + a_x_1[i];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I, size_t ... J>
+        requires (sizeof...(J) > 0)
+    tensor<T, I, J ...> add(
+        tensor<T, I, J ...>& a_x_0,
+        tensor<T, I, J ...>& a_x_1
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = add(a_x_0[i], a_x_1[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I>
         requires (I > 0)
     T additive_aggregate(
         const tensor<T, I>& a_tensor
@@ -159,6 +190,36 @@ namespace aurora
         requires (I > 0)
     tensor<T, J ...> additive_aggregate(
         const tensor<T, I, J ...>& a_tensor
+    )
+    {
+        tensor<T, J ...> l_result = a_tensor[0];
+
+        for (int i = 1; i < I; i++)
+            l_result = add(l_result, a_tensor[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I>
+        requires (I > 0)
+    T additive_aggregate(
+        tensor<T, I>& a_tensor
+    )
+    {
+        T l_result = a_tensor[0];
+
+        for (int i = 1; i < I; i++)
+            l_result = l_result + a_tensor[i];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I, size_t ... J>
+        requires (I > 0)
+    tensor<T, J ...> additive_aggregate(
+        tensor<T, I, J ...>& a_tensor
     )
     {
         tensor<T, J ...> l_result = a_tensor[0];
@@ -190,6 +251,37 @@ namespace aurora
     tensor<T, I, J ...> subtract(
         const tensor<T, I, J ...>& a_x_0,
         const tensor<T, I, J ...>& a_x_1
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = subtract(a_x_0[i], a_x_1[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I>
+    tensor<T, I> subtract(
+        tensor<T, I>& a_x_0,
+        tensor<T, I>& a_x_1
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x_0[i] - a_x_1[i];
+
+        return l_result;
+            
+    }
+
+    template<typename T, size_t I, size_t ... J>
+        requires (sizeof...(J) > 0)
+    tensor<T, I, J ...> subtract(
+        tensor<T, I, J ...>& a_x_0,
+        tensor<T, I, J ...>& a_x_1
     )
     {
         tensor<T, I, J ...> l_result;
@@ -233,6 +325,50 @@ namespace aurora
         requires (sizeof...(J) > 0)
     tensor<T, I, J ...> multiply(
         const tensor<T, I, J ...>& a_x_0,
+        const T& a_x_1
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = multiply(a_x_0[i], a_x_1);
+
+        return l_result;
+
+    }
+
+    /// @brief Vector-scalar multiplication.
+    /// @tparam T 
+    /// @tparam I 
+    /// @param a_x_0 
+    /// @param a_x_1 
+    /// @return 
+    template<typename T, size_t I>
+    tensor<T, I> multiply(
+        tensor<T, I>& a_x_0,
+        const T& a_x_1
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x_0[i] * a_x_1;
+
+        return l_result;
+
+    }
+
+    /// @brief Tensor-scalar multiplication.
+    /// @tparam T 
+    /// @tparam I 
+    /// @tparam ...J 
+    /// @param a_x_0 
+    /// @param a_x_1 
+    /// @return 
+    template<typename T, size_t I, size_t ... J>
+        requires (sizeof...(J) > 0)
+    tensor<T, I, J ...> multiply(
+        tensor<T, I, J ...>& a_x_0,
         const T& a_x_1
     )
     {
@@ -289,6 +425,50 @@ namespace aurora
         
     }
 
+    /// @brief Vector-vector multiplication.
+    /// @tparam T 
+    /// @tparam I 
+    /// @param a_x_0 
+    /// @param a_x_1 
+    /// @return 
+    template<typename T, size_t I>
+    tensor<T, I> multiply(
+        tensor<T, I>& a_x_0,
+        tensor<T, I>& a_x_1
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x_0[i] * a_x_1[i];
+
+        return l_result;
+
+    }
+
+    /// @brief Tensor-tensor multiplication.
+    /// @tparam T 
+    /// @tparam I 
+    /// @tparam ...J 
+    /// @param a_x_0 
+    /// @param a_x_1 
+    /// @return 
+    template<typename T, size_t I, size_t ... J>
+        requires (sizeof...(J) > 0)
+    tensor<T, I, J ...> multiply(
+        tensor<T, I, J ...>& a_x_0,
+        tensor<T, I, J ...>& a_x_1
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = multiply(a_x_0[i], a_x_1[i]);
+
+        return l_result;
+        
+    }
+
     template<typename T, size_t I>
     T average(
         const tensor<T, I>& a_x
@@ -306,6 +486,23 @@ namespace aurora
         return multiply(additive_aggregate(a_x), T(1.0 / double(I)));
     }
 
+    template<typename T, size_t I>
+    T average(
+        tensor<T, I>& a_x
+    )
+    {
+        return additive_aggregate(a_x) / T(I);
+    }
+
+    template<typename T, size_t I, size_t ... J>
+        requires (sizeof...(J) > 0)
+    tensor<T, J ...> average(
+        tensor<T, I, J ...>& a_x
+    )
+    {
+        return multiply(additive_aggregate(a_x), T(1.0 / double(I)));
+    }
+
     template<typename T, size_t I, size_t J>
     tensor<T, J> row(
         const tensor<T, I, J>& a_x,
@@ -318,6 +515,30 @@ namespace aurora
     template<typename T, size_t I, size_t J>
     tensor<T, I> col(
         const tensor<T, I, J>& a_x,
+        const size_t& a_col
+    )
+    {
+        tensor<T, I> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = a_x[i][a_col];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I, size_t J>
+    tensor<T, J> row(
+        tensor<T, I, J>& a_x,
+        const size_t& a_row
+    )
+    {
+        return a_x[a_row];
+    }
+
+    template<typename T, size_t I, size_t J>
+    tensor<T, I> col(
+        tensor<T, I, J>& a_x,
         const size_t& a_col
     )
     {
@@ -361,6 +582,37 @@ namespace aurora
 
     }
 
+    template<typename T, size_t I>
+    T dot(
+        tensor<T, I>& a_x_0,
+        tensor<T, I>& a_x_1
+    )
+    {
+        T l_result = 0;
+
+        for (int i = 0; i < I; i++)
+            l_result += a_x_0[i] * a_x_1[i];
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I1, size_t J1, size_t J2>
+    tensor<T, I1, J2> dot(
+        tensor<T, I1, J1>& a_x_0,
+        tensor<T, J1, J2>& a_x_1
+    )
+    {
+        tensor<T, I1, J2> l_result;
+
+        for (int i = 0; i < I1; i++)
+            for (int j = 0; j < J2; j++)
+                l_result[i][j] = dot(row(a_x_0, i), col(a_x_1, j));
+
+        return l_result;
+
+    }
+
     /// @brief This function currently flips the tensor's outermost two ranks.
     /// @tparam I 
     /// @tparam J 
@@ -383,9 +635,39 @@ namespace aurora
 
     }
 
+    /// @brief This function currently flips the tensor's outermost two ranks.
+    /// @tparam I 
+    /// @tparam J 
+    /// @tparam K 
+    /// @tparam ...L 
+    /// @param a_tensor 
+    /// @return 
+    template<typename T, size_t I, size_t J, size_t ... K>
+    tensor<T, J, I, K ...> transpose(
+        tensor<T, I, J, K ...>& a_tensor
+    )
+    {
+        tensor<T, J, I, K ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            for (int j = 0; j < J; j++)
+                l_result[j][i] = a_tensor[i][j];
+
+        return l_result;
+
+    }
+
     template<typename T, size_t I, size_t ... J>
     tensor<T, I, J ...> negate(
         const tensor<T, I, J ...>& a_x
+    )
+    {
+        return multiply(a_x, T(-1.0));
+    }
+
+    template<typename T, size_t I, size_t ... J>
+    tensor<T, I, J ...> negate(
+        tensor<T, I, J ...>& a_x
     )
     {
         return multiply(a_x, T(-1.0));

@@ -12,11 +12,11 @@ namespace aurora
 {
 	namespace latent
 	{
-		struct state_gradient_pair_dependency
-		{
-			double& m_state;
-			double& m_partial_gradient;
-		};
+        struct state_gradient_pair_dependency
+        {
+            double& m_state;
+            double& m_partial_gradient;
+        };
 
 		struct state_gradient_pair
 		{
@@ -51,97 +51,15 @@ namespace aurora
 				return l_result;
 			}
 
-			state_gradient_pair_dependency depend(
+            state_gradient_pair_dependency depend(
 
-			)
-			{
-				m_partial_gradients.push_back(std::shared_ptr<double>(new double(0)));
-				return state_gradient_pair_dependency{ m_state, *m_partial_gradients.back() };
-			}
-
+            )
+            {
+                m_partial_gradients.push_back(std::shared_ptr<double>(new double(0)));
+                return state_gradient_pair_dependency{m_state, *m_partial_gradients.back()};
+            }
+            
 		};
-
-        template<typename T>
-        inline T* pointers(
-            T& a_x
-        )
-        {
-            return &a_x;
-        }
-
-        template<typename T, size_t I, size_t ... J>
-        inline tensor<T*, I, J ...> pointers(
-            tensor<T, I, J ...>& a_tensor
-        )
-        {
-            tensor<T*, I, J...> l_result;
-
-            for (int i = 0; i < I; i++)
-                l_result[i] = pointers(a_tensor[i]);
-
-            return l_result;
-
-        }
-
-        inline double get_state(
-            const state_gradient_pair* a_sgp_ptr
-        )
-        {
-            return a_sgp_ptr->m_state;
-        }
-
-        template<size_t I, size_t ... J>
-        inline tensor<double, I, J ...> get_state(
-            const tensor<state_gradient_pair*, I, J ...>& a_tensor
-        )
-        {
-            tensor<double, I, J ...> l_result;
-
-            for (int i = 0; i < I; i++)
-                l_result[i] = get_state(a_tensor[i]);
-
-            return l_result;
-
-        }
-
-        inline void set_state(
-            state_gradient_pair* a_destination,
-            const double& a_source
-        )
-        {
-            a_destination->m_state = a_source;
-        }
-
-        template<size_t I, size_t ... J>
-        inline void set_state(
-            tensor<state_gradient_pair*, I, J ...>& a_destination,
-            const tensor<double, I, J ...>& a_source
-        )
-        {
-            for (int i = 0; i < I; i++)
-                set_state(a_destination[i], a_source[i]);
-        }
-
-        inline double get_gradient(
-            const state_gradient_pair* a_sgp_ptr
-        )
-        {
-            return a_sgp_ptr->gradient();
-        }
-
-        template<size_t I, size_t ... J>
-        inline tensor<double, I, J ...> get_gradient(
-            const tensor<state_gradient_pair*, I, J ...>& a_tensor
-        )
-        {
-            tensor<double, I, J ...> l_result;
-
-            for (int i = 0; i < I; i++)
-                l_result[i] = get_gradient(a_tensor[i]);
-
-            return l_result;
-
-        }
 
 		class element
 		{
@@ -187,17 +105,33 @@ namespace aurora
         class model
         {
         private:
-            std::vector<element*> m_elements;
+            static std::vector<model> s_models;
+            std::vector<std::shared_ptr<element>> m_elements;
 
         public:
-            virtual ~model(
+            static void begin(
 
             )
             {
-                for (auto& l_element : m_elements)
-                    delete l_element;
+                s_models.push_back(model());
             }
-            
+
+            static model end(
+
+            )
+            {
+                model l_result = s_models.back();
+                s_models.pop_back();
+                return l_result;
+            }
+
+            static void push(
+                const std::shared_ptr<element>& a_element
+            )
+            {
+                s_models.back().m_elements.push_back(a_element);
+            }
+
             void fwd(
 
             )
@@ -214,549 +148,551 @@ namespace aurora
                     m_elements[i]->bwd();
             }
 
-            const std::vector<element*>& elements(
+            const std::vector<std::shared_ptr<element>>& elements(
 
             ) const
             {
                 return m_elements;
             }
 
-        public:
-        
-            state_gradient_pair* constant(
-                const double& a_state
-            )
+		};
+
+        std::vector<model> model::s_models;
+
+        inline state_gradient_pair* constant(
+            const double& a_state
+        )
+        {
+            class element_constant : public element
             {
-                class element_constant : public element
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_constant(
+
+                )
                 {
-                public:
-                    state_gradient_pair m_y;
 
-                public:
-                    virtual ~element_constant(
+                }
 
-                    )
-                    {
+                element_constant(
+                    const double& a_y
+                ) :
+                    m_y(a_y)
+                {
 
-                    }
+                }
 
-                    element_constant(
-                        const double& a_y
-                    ) :
-                        m_y(a_y)
-                    {
+            };
 
-                    }
+            element_constant* l_element(new element_constant(a_state));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                };
+            return &l_element->m_y;
 
-                element_constant* l_element(new element_constant(a_state));
-                
-                m_elements.push_back(l_element);
+        }
 
-                return &l_element->m_y;
-
-            }
-
-            state_gradient_pair* add(
-                state_gradient_pair* a_x_0,
-                state_gradient_pair* a_x_1
-            )
+        inline state_gradient_pair* add(
+            state_gradient_pair* a_x_0,
+            state_gradient_pair* a_x_1
+        )
+        {
+            class element_add : public element
             {
-                class element_add : public element
+            private:
+                state_gradient_pair_dependency m_x_0;
+                state_gradient_pair_dependency m_x_1;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_add(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x_0;
-                    state_gradient_pair_dependency m_x_1;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_add(
+                element_add(
+                    state_gradient_pair* a_x_0,
+                    state_gradient_pair* a_x_1
+                ) :
+                    m_x_0(a_x_0->depend()),
+                    m_x_1(a_x_1->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_add(
-                        state_gradient_pair* a_x_0,
-                        state_gradient_pair* a_x_1
-                    ) :
-                        m_x_0(a_x_0->depend()),
-                        m_x_1(a_x_1->depend())
-                    {
+                )
+                {
+                    m_y.m_state = m_x_0.m_state + m_x_1.m_state;
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x_0.m_partial_gradient = l_y_gradient;
+                    m_x_1.m_partial_gradient = l_y_gradient;
+                }
 
-                    )
-                    {
-                        m_y.m_state = m_x_0.m_state + m_x_1.m_state;
-                    }
+            };
+            
+            element_add* l_element(new element_add(a_x_0, a_x_1));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    virtual void bwd(
+            return &l_element->m_y;
+            
+        }
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x_0.m_partial_gradient = l_y_gradient;
-                        m_x_1.m_partial_gradient = l_y_gradient;
-                    }
-
-                };
-                
-                element_add* l_element(new element_add(a_x_0, a_x_1));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
-
-            state_gradient_pair* subtract(
-                state_gradient_pair* a_x_0,
-                state_gradient_pair* a_x_1
-            )
+        inline state_gradient_pair* subtract(
+            state_gradient_pair* a_x_0,
+            state_gradient_pair* a_x_1
+        )
+        {
+            class element_subtract : public element
             {
-                class element_subtract : public element
+            private:
+                state_gradient_pair_dependency m_x_0;
+                state_gradient_pair_dependency m_x_1;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_subtract(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x_0;
-                    state_gradient_pair_dependency m_x_1;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_subtract(
+                element_subtract(
+                    state_gradient_pair* a_x_0,
+                    state_gradient_pair* a_x_1
+                ) :
+                    m_x_0(a_x_0->depend()),
+                    m_x_1(a_x_1->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_subtract(
-                        state_gradient_pair* a_x_0,
-                        state_gradient_pair* a_x_1
-                    ) :
-                        m_x_0(a_x_0->depend()),
-                        m_x_1(a_x_1->depend())
-                    {
+                )
+                {
+                    m_y.m_state = m_x_0.m_state - m_x_1.m_state;
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x_0.m_partial_gradient = l_y_gradient;
+                    m_x_1.m_partial_gradient = -l_y_gradient;
+                }
 
-                    )
-                    {
-                        m_y.m_state = m_x_0.m_state - m_x_1.m_state;
-                    }
+            };
 
-                    virtual void bwd(
+            element_subtract* l_element(new element_subtract(a_x_0, a_x_1));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x_0.m_partial_gradient = l_y_gradient;
-                        m_x_1.m_partial_gradient = -l_y_gradient;
-                    }
+            return &l_element->m_y;
+            
+        }
 
-                };
-
-                element_subtract* l_element(new element_subtract(a_x_0, a_x_1));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
-
-            state_gradient_pair* multiply(
-                state_gradient_pair* a_x_0,
-                state_gradient_pair* a_x_1
-            )
+        inline state_gradient_pair* multiply(
+            state_gradient_pair* a_x_0,
+            state_gradient_pair* a_x_1
+        )
+        {
+            class element_multiply : public element
             {
-                class element_multiply : public element
+            private:
+                state_gradient_pair_dependency m_x_0;
+                state_gradient_pair_dependency m_x_1;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_multiply(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x_0;
-                    state_gradient_pair_dependency m_x_1;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_multiply(
+                element_multiply(
+                    state_gradient_pair* a_x_0,
+                    state_gradient_pair* a_x_1
+                ) :
+                    m_x_0(a_x_0->depend()),
+                    m_x_1(a_x_1->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_multiply(
-                        state_gradient_pair* a_x_0,
-                        state_gradient_pair* a_x_1
-                    ) :
-                        m_x_0(a_x_0->depend()),
-                        m_x_1(a_x_1->depend())
-                    {
+                )
+                {
+                    m_y.m_state = m_x_0.m_state * m_x_1.m_state;
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state;
+                    m_x_1.m_partial_gradient = l_y_gradient * m_x_0.m_state;
+                }
 
-                    )
-                    {
-                        m_y.m_state = m_x_0.m_state * m_x_1.m_state;
-                    }
+            };
+            
+            element_multiply* l_element(new element_multiply(a_x_0, a_x_1));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    virtual void bwd(
+            return &l_element->m_y;
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state;
-                        m_x_1.m_partial_gradient = l_y_gradient * m_x_0.m_state;
-                    }
+        }
 
-                };
-                
-                element_multiply* l_element(new element_multiply(a_x_0, a_x_1));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-
-            }
-
-            state_gradient_pair* divide(
-                state_gradient_pair* a_x_0,
-                state_gradient_pair* a_x_1
-            )
+        inline state_gradient_pair* divide(
+            state_gradient_pair* a_x_0,
+            state_gradient_pair* a_x_1
+        )
+        {
+            class element_divide : public element
             {
-                class element_divide : public element
+            private:
+                state_gradient_pair_dependency m_x_0;
+                state_gradient_pair_dependency m_x_1;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_divide(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x_0;
-                    state_gradient_pair_dependency m_x_1;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_divide(
+                element_divide(
+                    state_gradient_pair* a_x_0,
+                    state_gradient_pair* a_x_1
+                ) :
+                    m_x_0(a_x_0->depend()),
+                    m_x_1(a_x_1->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_divide(
-                        state_gradient_pair* a_x_0,
-                        state_gradient_pair* a_x_1
-                    ) :
-                        m_x_0(a_x_0->depend()),
-                        m_x_1(a_x_1->depend())
-                    {
+                )
+                {
+                    m_y.m_state = m_x_0.m_state / m_x_1.m_state;
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x_0.m_partial_gradient = l_y_gradient / m_x_1.m_state;
+                    m_x_1.m_partial_gradient = l_y_gradient * (-m_x_0.m_state / std::pow(m_x_1.m_state, 2.0));
+                }
 
-                    )
-                    {
-                        m_y.m_state = m_x_0.m_state / m_x_1.m_state;
-                    }
+            };
+            
+            element_divide* l_element(new element_divide(a_x_0, a_x_1));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    virtual void bwd(
+            return &l_element->m_y;
+            
+        }
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x_0.m_partial_gradient = l_y_gradient / m_x_1.m_state;
-                        m_x_1.m_partial_gradient = l_y_gradient * (-m_x_0.m_state / std::pow(m_x_1.m_state, 2.0));
-                    }
-
-                };
-                
-                element_divide* l_element(new element_divide(a_x_0, a_x_1));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
-
-            state_gradient_pair* pow(
-                state_gradient_pair* a_x_0,
-                state_gradient_pair* a_x_1
-            )
+        inline state_gradient_pair* pow(
+            state_gradient_pair* a_x_0,
+            state_gradient_pair* a_x_1
+        )
+        {
+            class element_pow : public element
             {
-                class element_pow : public element
+            private:
+                state_gradient_pair_dependency m_x_0;
+                state_gradient_pair_dependency m_x_1;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_pow(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x_0;
-                    state_gradient_pair_dependency m_x_1;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_pow(
+                element_pow(
+                    state_gradient_pair* a_x_0,
+                    state_gradient_pair* a_x_1
+                ) :
+                    m_x_0(a_x_0->depend()),
+                    m_x_1(a_x_1->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_pow(
-                        state_gradient_pair* a_x_0,
-                        state_gradient_pair* a_x_1
-                    ) :
-                        m_x_0(a_x_0->depend()),
-                        m_x_1(a_x_1->depend())
-                    {
+                )
+                {
+                    m_y.m_state = std::pow(m_x_0.m_state, m_x_1.m_state);
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state * std::pow(m_x_0.m_state, m_x_1.m_state - 1.0);
+                    m_x_1.m_partial_gradient = l_y_gradient * std::pow(m_x_0.m_state, m_x_1.m_state) * std::log(m_x_0.m_state);
+                }
 
-                    )
-                    {
-                        m_y.m_state = std::pow(m_x_0.m_state, m_x_1.m_state);
-                    }
+            };
+            
+            element_pow* l_element(new element_pow(a_x_0, a_x_1));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    virtual void bwd(
+            return &l_element->m_y;
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x_0.m_partial_gradient = l_y_gradient * m_x_1.m_state * std::pow(m_x_0.m_state, m_x_1.m_state - 1.0);
-                        m_x_1.m_partial_gradient = l_y_gradient * std::pow(m_x_0.m_state, m_x_1.m_state) * std::log(m_x_0.m_state);
-                    }
+        }
 
-                };
-                
-                element_pow* l_element(new element_pow(a_x_0, a_x_1));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-
-            }
-
-            state_gradient_pair* sigmoid(
-                state_gradient_pair* a_x
-            )
+        inline state_gradient_pair* sigmoid(
+            state_gradient_pair* a_x
+        )
+        {
+            class element_sigmoid : public element
             {
-                class element_sigmoid : public element
+            private:
+                state_gradient_pair_dependency m_x;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                element_sigmoid(
+                    state_gradient_pair* a_x
+                ) :
+                    m_x(a_x->depend())
                 {
-                private:
-                    state_gradient_pair_dependency m_x;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    element_sigmoid(
-                        state_gradient_pair* a_x
-                    ) :
-                        m_x(a_x->depend())
-                    {
+                virtual void fwd(
 
-                    }
+                )
+                {
+                    m_y.m_state = 1.0 / (1.0 + exp(-m_x.m_state));
+                }
 
-                    virtual void fwd(
+                virtual void bwd(
 
-                    )
-                    {
-                        m_y.m_state = 1.0 / (1.0 + exp(-m_x.m_state));
-                    }
+                )
+                {
+                    m_x.m_partial_gradient = m_y.gradient() * m_y.m_state * (1.0 - m_y.m_state);
+                }
 
-                    virtual void bwd(
+            };
+            
+            element_sigmoid* l_element(new element_sigmoid(a_x));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    )
-                    {
-                        m_x.m_partial_gradient = m_y.gradient() * m_y.m_state * (1.0 - m_y.m_state);
-                    }
+            return &l_element->m_y;
+            
+        }
 
-                };
-                
-                element_sigmoid* l_element(new element_sigmoid(a_x));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
-
-            state_gradient_pair* tanh(
-                state_gradient_pair* a_x
-            )
+        inline state_gradient_pair* tanh(
+            state_gradient_pair* a_x
+        )
+        {
+            class element_tanh : public element
             {
-                class element_tanh : public element
+            private:
+                state_gradient_pair_dependency m_x;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_tanh(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_tanh(
+                element_tanh(
+                    state_gradient_pair* a_x
+                ) :
+                    m_x(a_x->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_tanh(
-                        state_gradient_pair* a_x
-                    ) :
-                        m_x(a_x->depend())
-                    {
+                )
+                {
+                    m_y.m_state = std::tanh(m_x.m_state);
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    m_x.m_partial_gradient = m_y.gradient() / std::pow(cosh(m_x.m_state), 2.0);
+                }
 
-                    )
-                    {
-                        m_y.m_state = std::tanh(m_x.m_state);
-                    }
+            };
 
-                    virtual void bwd(
+            element_tanh* l_element(new element_tanh(a_x));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    )
-                    {
-                        m_x.m_partial_gradient = m_y.gradient() / std::pow(cosh(m_x.m_state), 2.0);
-                    }
+            return &l_element->m_y;
+            
+        }
 
-                };
-
-                element_tanh* l_element(new element_tanh(a_x));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
-
-            state_gradient_pair* leaky_relu(
-                state_gradient_pair* a_x,
-                const double& a_m
-            )
+        inline state_gradient_pair* leaky_relu(
+            state_gradient_pair* a_x,
+            const double& a_m
+        )
+        {
+            class element_leaky_relu : public element
             {
-                class element_leaky_relu : public element
+            private:
+                state_gradient_pair_dependency m_x;
+                double m_m = 0;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_leaky_relu(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x;
-                    double m_m = 0;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_leaky_relu(
+                element_leaky_relu(
+                    state_gradient_pair* a_x,
+                    const double& a_m
+                ) :
+                    m_x(a_x->depend()),
+                    m_m(a_m)
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_leaky_relu(
-                        state_gradient_pair* a_x,
-                        const double& a_m
-                    ) :
-                        m_x(a_x->depend()),
-                        m_m(a_m)
-                    {
+                )
+                {
+                    m_y.m_state =
+                        (m_x.m_state > 0) * m_x.m_state +
+                        (m_x.m_state <= 0) * m_m * m_x.m_state;
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    double l_y_gradient = m_y.gradient();
+                    m_x.m_partial_gradient =
+                        (m_x.m_state > 0) * l_y_gradient +
+                        (m_x.m_state <= 0) * l_y_gradient * m_m;
+                }
 
-                    )
-                    {
-                        m_y.m_state =
-                            (m_x.m_state > 0) * m_x.m_state +
-                            (m_x.m_state <= 0) * m_m * m_x.m_state;
-                    }
+            };
 
-                    virtual void bwd(
+            element_leaky_relu* l_element(new element_leaky_relu(a_x, a_m));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    )
-                    {
-                        double l_y_gradient = m_y.gradient();
-                        m_x.m_partial_gradient =
-                            (m_x.m_state > 0) * l_y_gradient +
-                            (m_x.m_state <= 0) * l_y_gradient * m_m;
-                    }
+            return &l_element->m_y;
 
-                };
+        }
 
-                element_leaky_relu* l_element(new element_leaky_relu(a_x, a_m));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-
-            }
-
-            state_gradient_pair* log(
-                state_gradient_pair* a_x
-            )
+        inline state_gradient_pair* log(
+            state_gradient_pair* a_x
+        )
+        {
+            class element_log : public element
             {
-                class element_log : public element
+            private:
+                state_gradient_pair_dependency m_x;
+
+            public:
+                state_gradient_pair m_y;
+
+            public:
+                virtual ~element_log(
+
+                )
                 {
-                private:
-                    state_gradient_pair_dependency m_x;
 
-                public:
-                    state_gradient_pair m_y;
+                }
 
-                public:
-                    virtual ~element_log(
+                element_log(
+                    state_gradient_pair* a_x
+                ) :
+                    m_x(a_x->depend())
+                {
 
-                    )
-                    {
+                }
 
-                    }
+                virtual void fwd(
 
-                    element_log(
-                        state_gradient_pair* a_x
-                    ) :
-                        m_x(a_x->depend())
-                    {
+                )
+                {
+                    m_y.m_state = std::log(m_x.m_state);
+                }
 
-                    }
+                virtual void bwd(
 
-                    virtual void fwd(
+                )
+                {
+                    m_x.m_partial_gradient = m_y.gradient() / m_x.m_state;
+                }
 
-                    )
-                    {
-                        m_y.m_state = std::log(m_x.m_state);
-                    }
+            };
+            
+            element_log* l_element(new element_log(a_x));
+            
+            model::push(std::shared_ptr<element>(l_element));
 
-                    virtual void bwd(
-
-                    )
-                    {
-                        m_x.m_partial_gradient = m_y.gradient() / m_x.m_state;
-                    }
-
-                };
-                
-                element_log* l_element(new element_log(a_x));
-                
-                m_elements.push_back(l_element);
-
-                return &l_element->m_y;
-                
-            }
+            return &l_element->m_y;
+            
+        }
 
         //     sgp_ptr_vector weight_junction(
         //         const sgp_ptr_vector& a_x,
@@ -1340,7 +1276,198 @@ namespace aurora
 		// 		}
 		// 	}
 
-		};
+
+        class operable
+        {
+        private:
+            state_gradient_pair* m_state_gradient_pair;
+
+        public:
+            operable(
+
+            ) :
+                m_state_gradient_pair(nullptr)
+            {
+
+            }
+        
+            operable(
+                state_gradient_pair* a_state_gradient_pair
+            ) :
+                m_state_gradient_pair(a_state_gradient_pair)
+            {
+                
+            }
+
+            operable(
+                const double& a_state
+            ) :
+                m_state_gradient_pair(constant(a_state))
+            {
+
+            }
+
+            operable operator+(
+                operable a_operable
+            )
+            {
+                return add(*this, a_operable);
+            }
+
+            operable operator-(
+                operable a_operable
+            )
+            {
+                return subtract(*this, a_operable);
+            }
+
+            operable operator*(
+                operable a_operable
+            )
+            {
+                return multiply(*this, a_operable);
+            }
+
+            operable operator/(
+                operable a_operable
+            )
+            {
+                return divide(*this, a_operable);
+            }
+
+            state_gradient_pair* operator->(
+
+            )
+            {
+                return m_state_gradient_pair;
+            }
+
+            const state_gradient_pair* operator->(
+
+            ) const
+            {
+                return m_state_gradient_pair;
+            }
+
+            state_gradient_pair& operator*(
+
+            )
+            {
+                return *m_state_gradient_pair;
+            }
+
+            const state_gradient_pair& operator*(
+
+            ) const
+            {
+                return *m_state_gradient_pair;
+            }
+
+            operator state_gradient_pair*(
+
+            )
+            {
+                return m_state_gradient_pair;
+            }
+
+            operator const state_gradient_pair*(
+
+            ) const
+            {
+                return m_state_gradient_pair;
+            }
+
+        };
+        
+        template<size_t I>
+        tensor<operable, I> make_operable(
+            tensor<state_gradient_pair, I>& a_tensor
+        )
+        {
+            tensor<operable, I> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = &a_tensor[i];
+
+            return l_result;
+
+        }
+
+        template<size_t I, size_t ... J>
+            requires (sizeof...(J) > 0)
+        tensor<operable, I, J ...> make_operable(
+            tensor<state_gradient_pair, I, J ...>& a_tensor
+        )
+        {
+            tensor<operable, I, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = make_operable(a_tensor[i]);
+
+            return l_result;
+
+        }
+
+        inline double get_state(
+            const operable& a_sgp_ptr
+        )
+        {
+            return a_sgp_ptr->m_state;
+        }
+
+        template<size_t I, size_t ... J>
+        inline tensor<double, I, J ...> get_state(
+            const tensor<operable, I, J ...>& a_tensor
+        )
+        {
+            tensor<double, I, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = get_state(a_tensor[i]);
+
+            return l_result;
+
+        }
+
+        inline void set_state(
+            operable a_destination,
+            const double& a_source
+        )
+        {
+            a_destination->m_state = a_source;
+        }
+
+        template<size_t I, size_t ... J>
+        inline void set_state(
+            tensor<operable, I, J ...>& a_destination,
+            const tensor<double, I, J ...>& a_source
+        )
+        {
+            for (int i = 0; i < I; i++)
+                set_state(a_destination[i], a_source[i]);
+        }
+
+        inline double get_gradient(
+            const operable a_sgp_ptr
+        )
+        {
+            return a_sgp_ptr->gradient();
+        }
+
+        template<size_t I, size_t ... J>
+        inline tensor<double, I, J ...> get_gradient(
+            const tensor<operable, I, J ...>& a_tensor
+        )
+        {
+            tensor<double, I, J ...> l_result;
+
+            for (int i = 0; i < I; i++)
+                l_result[i] = get_gradient(a_tensor[i]);
+
+            return l_result;
+
+        }
+
 
 	}
 }
