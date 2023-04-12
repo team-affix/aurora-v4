@@ -1309,40 +1309,33 @@ namespace aurora
 
             operable operator+(
                 operable a_operable
-            )
+            ) const
             {
-                return add(*this, a_operable);
+                return add(m_state_gradient_pair, a_operable);
             }
 
             operable operator-(
                 operable a_operable
-            )
+            ) const
             {
-                return subtract(*this, a_operable);
+                return subtract(m_state_gradient_pair, a_operable);
             }
 
             operable operator*(
                 operable a_operable
-            )
+            ) const
             {
-                return multiply(*this, a_operable);
+                return multiply(m_state_gradient_pair, a_operable);
             }
 
             operable operator/(
                 operable a_operable
-            )
+            ) const
             {
-                return divide(*this, a_operable);
+                return divide(m_state_gradient_pair, a_operable);
             }
 
             state_gradient_pair* operator->(
-
-            )
-            {
-                return m_state_gradient_pair;
-            }
-
-            const state_gradient_pair* operator->(
 
             ) const
             {
@@ -1351,26 +1344,12 @@ namespace aurora
 
             state_gradient_pair& operator*(
 
-            )
-            {
-                return *m_state_gradient_pair;
-            }
-
-            const state_gradient_pair& operator*(
-
             ) const
             {
                 return *m_state_gradient_pair;
             }
 
             operator state_gradient_pair*(
-
-            )
-            {
-                return m_state_gradient_pair;
-            }
-
-            operator const state_gradient_pair*(
 
             ) const
             {
