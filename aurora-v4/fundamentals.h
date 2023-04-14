@@ -41,7 +41,7 @@ namespace aurora
     /// @return 
     template<size_t B, typename T, size_t I, size_t ... J>
         requires ((I % B) == 0)
-    tensor<T, B, I/B, J ...> partition(
+    inline tensor<T, B, I/B, J ...> partition(
         const tensor<T, I, J ...>& a_x
     )
     {
@@ -59,7 +59,7 @@ namespace aurora
     }
 
     template<typename T, size_t I1, size_t I2, size_t ... J>
-    tensor<T, I1+I2, J ...> concat(
+    inline tensor<T, I1+I2, J ...> concat(
         const tensor<T, I1, J ...>& a_x_0,
         const tensor<T, I2, J ...>& a_x_1
     )
@@ -77,7 +77,7 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t J>
-    tensor<T, I * J> flatten(
+    inline tensor<T, I * J> flatten(
         const tensor<T, I, J>& a_tensor
     )
     {
@@ -93,7 +93,7 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t ... J>
-    tensor<T, (I * ... * J)> flatten(
+    inline tensor<T, (I * ... * J)> flatten(
         const tensor<T, I, J ...>& a_tensor
     )
     {
@@ -110,7 +110,7 @@ namespace aurora
     }
 
     template<typename T, size_t I>
-    tensor<T, I> add(
+    inline tensor<T, I> add(
         const tensor<T, I>& a_x_0,
         const tensor<T, I>& a_x_1
     )
@@ -126,7 +126,7 @@ namespace aurora
 
     template<typename T, size_t I, size_t ... J>
         requires (sizeof...(J) > 0)
-    tensor<T, I, J ...> add(
+    inline tensor<T, I, J ...> add(
         const tensor<T, I, J ...>& a_x_0,
         const tensor<T, I, J ...>& a_x_1
     )
@@ -142,7 +142,7 @@ namespace aurora
 
     template<typename T, size_t I>
         requires (I > 0)
-    T additive_aggregate(
+    inline T additive_aggregate(
         const tensor<T, I>& a_tensor
     )
     {
@@ -157,7 +157,7 @@ namespace aurora
 
     template<typename T, size_t I, size_t ... J>
         requires (I > 0)
-    tensor<T, J ...> additive_aggregate(
+    inline tensor<T, J ...> additive_aggregate(
         const tensor<T, I, J ...>& a_tensor
     )
     {
@@ -171,7 +171,7 @@ namespace aurora
     }
 
     template<typename T, size_t I>
-    tensor<T, I> subtract(
+    inline tensor<T, I> subtract(
         const tensor<T, I>& a_x_0,
         const tensor<T, I>& a_x_1
     )
@@ -187,7 +187,7 @@ namespace aurora
 
     template<typename T, size_t I, size_t ... J>
         requires (sizeof...(J) > 0)
-    tensor<T, I, J ...> subtract(
+    inline tensor<T, I, J ...> subtract(
         const tensor<T, I, J ...>& a_x_0,
         const tensor<T, I, J ...>& a_x_1
     )
@@ -208,7 +208,7 @@ namespace aurora
     /// @param a_x_1 
     /// @return 
     template<typename T, size_t I>
-    tensor<T, I> multiply(
+    inline tensor<T, I> multiply(
         const tensor<T, I>& a_x_0,
         const T& a_x_1
     )
@@ -231,7 +231,7 @@ namespace aurora
     /// @return 
     template<typename T, size_t I, size_t ... J>
         requires (sizeof...(J) > 0)
-    tensor<T, I, J ...> multiply(
+    inline tensor<T, I, J ...> multiply(
         const tensor<T, I, J ...>& a_x_0,
         const T& a_x_1
     )
@@ -252,7 +252,7 @@ namespace aurora
     /// @param a_x_1 
     /// @return 
     template<typename T, size_t I>
-    tensor<T, I> multiply(
+    inline tensor<T, I> multiply(
         const tensor<T, I>& a_x_0,
         const tensor<T, I>& a_x_1
     )
@@ -275,7 +275,7 @@ namespace aurora
     /// @return 
     template<typename T, size_t I, size_t ... J>
         requires (sizeof...(J) > 0)
-    tensor<T, I, J ...> multiply(
+    inline tensor<T, I, J ...> multiply(
         const tensor<T, I, J ...>& a_x_0,
         const tensor<T, I, J ...>& a_x_1
     )
@@ -290,7 +290,7 @@ namespace aurora
     }
 
     template<typename T, size_t I>
-    T average(
+    inline T average(
         const tensor<T, I>& a_x
     )
     {
@@ -299,7 +299,7 @@ namespace aurora
 
     template<typename T, size_t I, size_t ... J>
         requires (sizeof...(J) > 0)
-    tensor<T, J ...> average(
+    inline tensor<T, J ...> average(
         const tensor<T, I, J ...>& a_x
     )
     {
@@ -307,7 +307,7 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t J>
-    tensor<T, J> row(
+    inline tensor<T, J> row(
         const tensor<T, I, J>& a_x,
         const size_t& a_row
     )
@@ -316,7 +316,7 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t J>
-    tensor<T, I> col(
+    inline tensor<T, I> col(
         const tensor<T, I, J>& a_x,
         const size_t& a_col
     )
@@ -331,7 +331,7 @@ namespace aurora
     }
 
     template<typename T, size_t I>
-    T dot(
+    inline T dot(
         const tensor<T, I>& a_x_0,
         const tensor<T, I>& a_x_1
     )
@@ -346,7 +346,7 @@ namespace aurora
     }
 
     template<typename T, size_t I1, size_t J1, size_t J2>
-    tensor<T, I1, J2> dot(
+    inline tensor<T, I1, J2> dot(
         const tensor<T, I1, J1>& a_x_0,
         const tensor<T, J1, J2>& a_x_1
     )
@@ -369,7 +369,7 @@ namespace aurora
     /// @param a_tensor 
     /// @return 
     template<typename T, size_t I, size_t J, size_t ... K>
-    tensor<T, J, I, K ...> transpose(
+    inline tensor<T, J, I, K ...> transpose(
         const tensor<T, I, J, K ...>& a_tensor
     )
     {
@@ -384,11 +384,152 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t ... J>
-    tensor<T, I, J ...> negate(
+    inline tensor<T, I, J ...> negate(
         const tensor<T, I, J ...>& a_x
     )
     {
         return multiply(a_x, T(-1.0));
+    }
+
+    template<typename T>
+    inline T sigmoid(
+        const T& a_x
+    );
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> sigmoid(
+        const tensor<T, I, J ...>& a_tensor
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = sigmoid(a_tensor[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T>
+    inline T tanh(
+        const T& a_x
+    );
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> tanh(
+        const tensor<T, I, J ...>& a_tensor
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = tanh(a_tensor[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T>
+    inline T leaky_relu(
+        const T& a_x,
+        const double& a_m
+    );
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> leaky_relu(
+        const tensor<T, I, J ...>& a_tensor,
+        const double& a_m
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = leaky_relu(a_tensor[i], a_m);
+
+        return l_result;
+
+    }
+
+    template<typename T>
+    inline T log(
+        const T& a_x
+    );
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> log(
+        const tensor<T, I, J ...>& a_tensor
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = log(a_tensor[i]);
+
+        return l_result;
+
+    }
+
+    template<typename T>
+    inline T pow(
+        const T& a_x_0,
+        const T& a_x_1
+    );
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> pow(
+        const tensor<T, I, J ...>& a_x_0,
+        const T& a_x_1
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = pow(a_x_0[i], a_x_1);
+
+        return l_result;
+
+    }
+
+    template<typename T, size_t I>
+    inline T magnitude(
+        const tensor<T, I>& a_tensor
+    )
+    {
+        T l_sum(0);
+
+        for (const T& l_element : a_tensor)
+        {
+            l_sum += pow(l_element, T(2.0));
+        }
+
+        return sqrt(l_sum);
+
+    }
+
+    template<typename T, size_t I>
+    inline tensor<T, I> normalize(
+        const tensor<T, I>& a_tensor
+    )
+    {
+        return multiply(a_tensor, T(1.0) / magnitude(a_tensor));
+    }
+
+    template<typename T, size_t I>
+    inline T cos_sim(
+        const tensor<T, I>& a_x_0,
+        const tensor<T, I>& a_x_1
+    )
+    {
+        return dot(a_x_0, a_x_1) / (magnitude(a_x_0) * magnitude(a_x_1));
+    }
+
+    template<typename T, size_t I>
+    inline T euclidian_distance(
+        const tensor<T, I>& a_x_0,
+        const tensor<T, I>& a_x_1
+    )
+    {
+        return magnitude(subtract(a_x_0, a_x_1));
     }
 
     inline std::default_random_engine i_default_random_engine;

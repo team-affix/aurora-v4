@@ -9,6 +9,51 @@
 
 namespace aurora
 {
+    template<>
+    inline double sigmoid<double>(
+        const double& a_x
+    )
+    {
+        return 1.0 / (1.0 + std::exp(-a_x));
+    }
+
+    template<>
+    inline double tanh<double>(
+        const double& a_x
+    )
+    {
+        return std::tanh(a_x);
+    }
+    
+    template<>
+    inline double leaky_relu<double>(
+    	const double& a_x,
+    	const double& a_m
+    )
+    {
+    	if (a_x >= 0)
+    		return a_x;
+    	else
+    		return a_m * a_x;
+    }
+
+    template<>
+    inline double log<double>(
+        const double& a_x
+    )
+    {
+        return std::log(a_x);
+    }
+
+    template<>
+    inline double pow<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return std::pow(a_x_0, a_x_1);
+    }
+    
 	namespace oneshot
 	{
 		// class parameter_vector : public std::vector<double>
@@ -113,13 +158,6 @@ namespace aurora
 		// 	}
 
 		// };
-
-		// inline double sigmoid(
-		// 	const double& a_x
-		// )
-		// {
-		// 	return 1.0 / (1.0 + std::exp(-a_x));
-		// }
 
 		// inline double leaky_relu(
 		// 	const double& a_x,

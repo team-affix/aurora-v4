@@ -9,7 +9,6 @@
 #include <filesystem>
 
 using namespace aurora;
-using namespace aurora::latent;
 
 // Returns the number of milliseconds elapsed since the start.
 long long duration_ms(
@@ -2394,6 +2393,130 @@ void test_subtract_state_gradient_pairs(
     
 }
 
+void test_sigmoid()
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01;
+            l_expected[i][j] = sigmoid(l_states[i][j]);
+        }
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_sigmoid = sigmoid(l_states);
+
+    assert(l_sigmoid == l_expected);
+
+}
+
+void test_tanh(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01 - 10;
+            l_expected[i][j] = tanh(l_states[i][j]);
+        }
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tanh = tanh(l_states);
+
+    assert(l_tanh == l_expected);
+
+}
+
+void test_leaky_relu(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01 - 10;
+            l_expected[i][j] = leaky_relu(l_states[i][j], 0.3);
+        }
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_leaky_relu = leaky_relu(l_states, 0.3);
+
+    assert(l_leaky_relu == l_expected);
+
+}
+
+void test_log(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01 + 0.01;
+            l_expected[i][j] = log(l_states[i][j]);
+        }
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_log = log(l_states);
+
+    assert(l_log == l_expected);
+
+}
+
+void test_pow(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    constexpr double POWER = 2.0;
+    
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01 + 0.01;
+            l_expected[i][j] = pow(l_states[i][j], POWER);
+        }
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_pow = pow(l_states, POWER);
+
+    assert(l_pow == l_expected);
+
+}
+
 void unit_test_main(
 
 )
@@ -2421,6 +2544,11 @@ void unit_test_main(
     test_io();
     test_add_state_gradient_pairs();
     test_subtract_state_gradient_pairs();
+    test_sigmoid();
+    test_tanh();
+    test_leaky_relu();
+    test_log();
+    test_pow();
 }
 
 int main(
