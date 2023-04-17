@@ -2517,6 +2517,43 @@ void test_pow(
 
 }
 
+void test_pow_state_gradient_pair(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    constexpr double POWER = 2;
+
+    model::begin();
+
+    state_gradient_pair l_power(POWER);
+
+    operable l_power_operable = make_operable(l_power);
+
+    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_states;
+
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j] = i * 0.1 + j * 0.01 + 0.01;
+            l_expected[i][j] = pow(l_states[i][j].m_state, POWER);
+        }
+
+    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_pow = pow(make_operable(l_states), make_operable(l_power));
+
+    model l_model = model::end();
+
+    l_model.fwd();
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+            assert(l_pow[i][j]->m_state == l_expected[i][j]);
+
+}
+
 void unit_test_main(
 
 )
@@ -2549,6 +2586,7 @@ void unit_test_main(
     test_leaky_relu();
     test_log();
     test_pow();
+    test_pow_state_gradient_pair();
 }
 
 int main(

@@ -1078,22 +1078,14 @@ namespace aurora
 
     };
     
-    template<size_t I>
-    tensor<operable, I> make_operable(
-        tensor<state_gradient_pair, I>& a_tensor
+    operable make_operable(
+        state_gradient_pair& a_state_gradient_pair
     )
     {
-        tensor<operable, I> l_result;
-
-        for (int i = 0; i < I; i++)
-            l_result[i] = &a_tensor[i];
-
-        return l_result;
-
+        return operable(&a_state_gradient_pair);
     }
 
     template<size_t I, size_t ... J>
-        requires (sizeof...(J) > 0)
     tensor<operable, I, J ...> make_operable(
         tensor<state_gradient_pair, I, J ...>& a_tensor
     )
@@ -1165,6 +1157,15 @@ namespace aurora
 
         return l_result;
 
+    }
+
+    template<>
+    operable pow<operable>(
+        const operable& a_x_0,
+        const operable& a_x_1
+    )
+    {
+        return pow((state_gradient_pair*)a_x_0, (state_gradient_pair*)a_x_1);
     }
     
 }
