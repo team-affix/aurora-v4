@@ -59,6 +59,9 @@ namespace aurora
         
     };
 
+    template<size_t I, size_t ... J>
+    using latent_tensor = tensor<state_gradient_pair*, I, J ...>;
+
     class element
     {
     public:
@@ -157,7 +160,8 @@ namespace aurora
 
     std::vector<model> model::s_models;
 
-    inline state_gradient_pair* constant(
+    template<>
+    inline state_gradient_pair* constant<state_gradient_pair*>(
         const double& a_state
     )
     {
@@ -192,9 +196,10 @@ namespace aurora
 
     }
 
-    inline state_gradient_pair* add(
-        state_gradient_pair* a_x_0,
-        state_gradient_pair* a_x_1
+    template<>
+    inline state_gradient_pair* add<state_gradient_pair*>(
+        state_gradient_pair* const& a_x_0,
+        state_gradient_pair* const& a_x_1
     )
     {
         class element_add : public element
@@ -250,9 +255,10 @@ namespace aurora
         
     }
 
-    inline state_gradient_pair* subtract(
-        state_gradient_pair* a_x_0,
-        state_gradient_pair* a_x_1
+    template<>
+    inline state_gradient_pair* subtract<state_gradient_pair*>(
+        state_gradient_pair* const& a_x_0,
+        state_gradient_pair* const& a_x_1
     )
     {
         class element_subtract : public element
@@ -308,9 +314,10 @@ namespace aurora
         
     }
 
-    inline state_gradient_pair* multiply(
-        state_gradient_pair* a_x_0,
-        state_gradient_pair* a_x_1
+    template<>
+    inline state_gradient_pair* multiply<state_gradient_pair*>(
+        state_gradient_pair* const& a_x_0,
+        state_gradient_pair* const& a_x_1
     )
     {
         class element_multiply : public element
@@ -366,9 +373,10 @@ namespace aurora
 
     }
 
-    inline state_gradient_pair* divide(
-        state_gradient_pair* a_x_0,
-        state_gradient_pair* a_x_1
+    template<>
+    inline state_gradient_pair* divide<state_gradient_pair*>(
+        state_gradient_pair* const& a_x_0,
+        state_gradient_pair* const& a_x_1
     )
     {
         class element_divide : public element
@@ -424,9 +432,10 @@ namespace aurora
         
     }
 
-    inline state_gradient_pair* pow(
-        state_gradient_pair* a_x_0,
-        state_gradient_pair* a_x_1
+    template<>
+    inline state_gradient_pair* pow<state_gradient_pair*>(
+        state_gradient_pair* const& a_x_0,
+        state_gradient_pair* const& a_x_1
     )
     {
         class element_pow : public element
@@ -482,8 +491,9 @@ namespace aurora
 
     }
     
-    inline state_gradient_pair* sigmoid(
-        state_gradient_pair* a_x
+    template<>
+    inline state_gradient_pair* sigmoid<state_gradient_pair*>(
+        state_gradient_pair* const& a_x
     )
     {
         class element_sigmoid : public element
@@ -527,8 +537,9 @@ namespace aurora
         
     }
 
-    inline state_gradient_pair* tanh(
-        state_gradient_pair* a_x
+    template<>
+    inline state_gradient_pair* tanh<state_gradient_pair*>(
+        state_gradient_pair* const& a_x
     )
     {
         class element_tanh : public element
@@ -579,8 +590,9 @@ namespace aurora
         
     }
 
-    inline state_gradient_pair* leaky_relu(
-        state_gradient_pair* a_x,
+    template<>
+    inline state_gradient_pair* leaky_relu<state_gradient_pair*>(
+        state_gradient_pair* const& a_x,
         const double& a_m
     )
     {
@@ -640,8 +652,9 @@ namespace aurora
 
     }
 
-    inline state_gradient_pair* log(
-        state_gradient_pair* a_x
+    template<>
+    inline state_gradient_pair* log<state_gradient_pair*>(
+        state_gradient_pair* const& a_x
     )
     {
         class element_log : public element
@@ -997,110 +1010,110 @@ namespace aurora
     // 	}
 
 
-    class operable
-    {
-    private:
-        state_gradient_pair* m_state_gradient_pair;
+    // class operable
+    // {
+    // private:
+    //     state_gradient_pair* m_state_gradient_pair;
 
-    public:
-        operable(
+    // public:
+    //     operable(
 
-        ) :
-            m_state_gradient_pair(nullptr)
-        {
+    //     ) :
+    //         m_state_gradient_pair(nullptr)
+    //     {
 
-        }
+    //     }
     
-        operable(
-            state_gradient_pair* a_state_gradient_pair
-        ) :
-            m_state_gradient_pair(a_state_gradient_pair)
-        {
+    //     operable(
+    //         state_gradient_pair* a_state_gradient_pair
+    //     ) :
+    //         m_state_gradient_pair(a_state_gradient_pair)
+    //     {
             
-        }
+    //     }
 
-        operable(
-            const double& a_state
-        ) :
-            m_state_gradient_pair(constant(a_state))
-        {
+    //     operable(
+    //         const double& a_state
+    //     ) :
+    //         m_state_gradient_pair(constant(a_state))
+    //     {
 
-        }
+    //     }
 
-        operable operator+(
-            operable a_operable
-        ) const
-        {
-            return add(m_state_gradient_pair, a_operable);
-        }
+    //     operable operator+(
+    //         operable a_operable
+    //     ) const
+    //     {
+    //         return add(m_state_gradient_pair, a_operable);
+    //     }
 
-        operable operator-(
-            operable a_operable
-        ) const
-        {
-            return subtract(m_state_gradient_pair, a_operable);
-        }
+    //     operable operator-(
+    //         operable a_operable
+    //     ) const
+    //     {
+    //         return subtract(m_state_gradient_pair, a_operable);
+    //     }
 
-        operable operator*(
-            operable a_operable
-        ) const
-        {
-            return multiply(m_state_gradient_pair, a_operable);
-        }
+    //     operable operator*(
+    //         operable a_operable
+    //     ) const
+    //     {
+    //         return multiply(m_state_gradient_pair, a_operable);
+    //     }
 
-        operable operator/(
-            operable a_operable
-        ) const
-        {
-            return divide(m_state_gradient_pair, a_operable);
-        }
+    //     operable operator/(
+    //         operable a_operable
+    //     ) const
+    //     {
+    //         return divide(m_state_gradient_pair, a_operable);
+    //     }
 
-        state_gradient_pair* operator->(
+    //     state_gradient_pair* operator->(
 
-        ) const
-        {
-            return m_state_gradient_pair;
-        }
+    //     ) const
+    //     {
+    //         return m_state_gradient_pair;
+    //     }
 
-        state_gradient_pair& operator*(
+    //     state_gradient_pair& operator*(
 
-        ) const
-        {
-            return *m_state_gradient_pair;
-        }
+    //     ) const
+    //     {
+    //         return *m_state_gradient_pair;
+    //     }
 
-        operator state_gradient_pair*(
+    //     operator state_gradient_pair*(
 
-        ) const
-        {
-            return m_state_gradient_pair;
-        }
+    //     ) const
+    //     {
+    //         return m_state_gradient_pair;
+    //     }
 
-    };
+    // };
     
-    operable make_operable(
-        state_gradient_pair& a_state_gradient_pair
-    )
-    {
-        return operable(&a_state_gradient_pair);
-    }
+    // state_gradient_pair* make_operable(
+    //     state_gradient_pair& a_state_gradient_pair
+    // )
+    // {
+    //     return &a_state_gradient_pair;
+    // }
 
-    template<size_t I, size_t ... J>
-    tensor<operable, I, J ...> make_operable(
-        tensor<state_gradient_pair, I, J ...>& a_tensor
-    )
-    {
-        tensor<operable, I, J ...> l_result;
+    // template<size_t I, size_t ... J>
+    // tensor<state_gradient_pair*, I, J ...> make_operable(
+    //     tensor<state_gradient_pair, I, J ...>& a_tensor
+    // )
+    // {
+    //     tensor<state_gradient_pair*, I, J ...> l_result;
 
-        for (int i = 0; i < I; i++)
-            l_result[i] = make_operable(a_tensor[i]);
+    //     for (int i = 0; i < I; i++)
+    //         l_result[i] = make_operable(a_tensor[i]);
 
-        return l_result;
+    //     return l_result;
 
-    }
+    // }
 
     inline double get_state(
-        const operable& a_sgp_ptr
+        state_gradient_pair* a_sgp_ptr
     )
     {
         return a_sgp_ptr->m_state;
@@ -1108,7 +1121,7 @@ namespace aurora
 
     template<size_t I, size_t ... J>
     inline tensor<double, I, J ...> get_state(
-        const tensor<operable, I, J ...>& a_tensor
+        const tensor<state_gradient_pair*, I, J ...>& a_tensor
     )
     {
         tensor<double, I, J ...> l_result;
@@ -1121,7 +1134,7 @@ namespace aurora
     }
 
     inline void set_state(
-        operable a_destination,
+        state_gradient_pair* a_destination,
         const double& a_source
     )
     {
@@ -1130,7 +1143,7 @@ namespace aurora
 
     template<size_t I, size_t ... J>
     inline void set_state(
-        tensor<operable, I, J ...>& a_destination,
+        tensor<state_gradient_pair*, I, J ...>& a_destination,
         const tensor<double, I, J ...>& a_source
     )
     {
@@ -1139,7 +1152,7 @@ namespace aurora
     }
 
     inline double get_gradient(
-        const operable a_sgp_ptr
+        const state_gradient_pair* a_sgp_ptr
     )
     {
         return a_sgp_ptr->gradient();
@@ -1147,7 +1160,7 @@ namespace aurora
 
     template<size_t I, size_t ... J>
     inline tensor<double, I, J ...> get_gradient(
-        const tensor<operable, I, J ...>& a_tensor
+        const tensor<state_gradient_pair*, I, J ...>& a_tensor
     )
     {
         tensor<double, I, J ...> l_result;
@@ -1159,14 +1172,14 @@ namespace aurora
 
     }
 
-    template<>
-    operable pow<operable>(
-        const operable& a_x_0,
-        const operable& a_x_1
-    )
-    {
-        return pow((state_gradient_pair*)a_x_0, (state_gradient_pair*)a_x_1);
-    }
+    // template<>
+    // operable pow<operable>(
+    //     const operable& a_x_0,
+    //     const operable& a_x_1
+    // )
+    // {
+    //     return pow((state_gradient_pair*)a_x_0, (state_gradient_pair*)a_x_1);
+    // }
     
 }
 

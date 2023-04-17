@@ -1712,20 +1712,22 @@ void test_tensor_default_constructor(
 
 }
 
-void test_make_operable(
+void test_make_state_gradient_pair(
 
 )
 {
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
 
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
+    model::begin();
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_ptr[i][j] == &l_tens_0[i][j]);
+            assert(l_tens_0_ptr[i][j]->m_state == 0.0);
+
+    model l_model = model::end();
 
 }
 
@@ -1735,21 +1737,23 @@ void test_get_state(
 {
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 30;
-    
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
+
+    model::begin();
+
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
 
     // Just initialize all of the values in the matrix to be different.
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
-
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+            l_tens_0_ptr[i][j]->m_state = i * MATRIX_COLS + j;
     
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0_state = get_state(l_tens_0_ptr);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_state[i][j] == l_tens_0[i][j].m_state);
+            assert(l_tens_0_state[i][j] == l_tens_0_ptr[i][j]->m_state);
+    
+    model l_model = model::end();
     
 }
 
@@ -1759,10 +1763,10 @@ void test_set_state(
 {
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
-    
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+    model::begin();
+    
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0_state;
 
@@ -1775,7 +1779,9 @@ void test_set_state(
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0[i][j].m_state == l_tens_0_state[i][j]);
+            assert(l_tens_0_ptr[i][j]->m_state == l_tens_0_state[i][j]);
+
+    model l_model = model::end();
 
 }
 
@@ -1786,14 +1792,14 @@ void test_get_gradient(
     constexpr size_t MATRIX_ROWS = 100;
     constexpr size_t MATRIX_COLS = 300;
 
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
+    model::begin();
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            state_gradient_pair_dependency l_dep = l_tens_0[i][j].depend();
+            state_gradient_pair_dependency l_dep = l_tens_0_ptr[i][j]->depend();
             l_dep.m_partial_gradient = i * MATRIX_COLS + j;
         }
 
@@ -1802,6 +1808,8 @@ void test_get_gradient(
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
             assert(l_tens_0_grad[i][j] == i * MATRIX_COLS + j);
+
+    model l_model = model::end();
 
 }
 
@@ -2302,23 +2310,20 @@ void test_add_state_gradient_pairs(
     
     model::begin();
 
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
-
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
+
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr;
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
-            l_tens_1[i][j].m_state = (i * MATRIX_COLS + j) % 5;
-            l_expected_states[i][j] = l_tens_0[i][j].m_state + l_tens_1[i][j].m_state;
+            l_tens_0_ptr[i][j]->m_state = i * MATRIX_COLS + j;
+            l_tens_1_ptr[i][j]->m_state = (i * MATRIX_COLS + j) % 5;
+            l_expected_states[i][j] = l_tens_0_ptr[i][j]->m_state + l_tens_1_ptr[i][j]->m_state;
         }
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = make_operable(l_tens_1);
-
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_added = add(l_tens_0_ptr, l_tens_1_ptr);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_added = add(l_tens_0_ptr, l_tens_1_ptr);
 
     model l_model = model::end();
 
@@ -2337,8 +2342,8 @@ void test_add_state_gradient_pairs(
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            assert(l_tens_0[i][j].gradient() == i * MATRIX_COLS + j);
-            assert(l_tens_1[i][j].gradient() == i * MATRIX_COLS + j);
+            assert(l_tens_0_ptr[i][j]->gradient() == i * MATRIX_COLS + j);
+            assert(l_tens_1_ptr[i][j]->gradient() == i * MATRIX_COLS + j);
         }
     
 }
@@ -2352,23 +2357,20 @@ void test_subtract_state_gradient_pairs(
     
     model::begin();
 
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_0;
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
-
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
+
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr;
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            l_tens_0[i][j].m_state = i * MATRIX_COLS + j;
-            l_tens_1[i][j].m_state = (i * MATRIX_COLS + j) % 5;
-            l_expected_states[i][j] = l_tens_0[i][j].m_state - l_tens_1[i][j].m_state;
+            l_tens_0_ptr[i][j]->m_state = i * MATRIX_COLS + j;
+            l_tens_1_ptr[i][j]->m_state = (i * MATRIX_COLS + j) % 5;
+            l_expected_states[i][j] = l_tens_0_ptr[i][j]->m_state - l_tens_1_ptr[i][j]->m_state;
         }
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = make_operable(l_tens_0);
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = make_operable(l_tens_1);
-
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_subtracted = subtract(l_tens_0_ptr, l_tens_1_ptr);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_subtracted = subtract(l_tens_0_ptr, l_tens_1_ptr);
 
     model l_model = model::end();
 
@@ -2387,8 +2389,8 @@ void test_subtract_state_gradient_pairs(
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            assert(l_tens_0[i][j].gradient() ==   i * MATRIX_COLS + j);
-            assert(l_tens_1[i][j].gradient() == -(i * (int)MATRIX_COLS + j));
+            assert(l_tens_0_ptr[i][j]->gradient() ==   i * MATRIX_COLS + j);
+            assert(l_tens_1_ptr[i][j]->gradient() == -(i * (int)MATRIX_COLS + j));
         }
     
 }
@@ -2463,7 +2465,7 @@ void test_leaky_relu(
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_leaky_relu = leaky_relu(l_states, 0.3);
 
     assert(l_leaky_relu == l_expected);
-
+    
 }
 
 void test_log(
@@ -2529,20 +2531,20 @@ void test_pow_state_gradient_pair(
 
     state_gradient_pair l_power(POWER);
 
-    operable l_power_operable = make_operable(l_power);
+    state_gradient_pair* l_power_ptr = &l_power;
 
-    tensor<state_gradient_pair, MATRIX_ROWS, MATRIX_COLS> l_states;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_states;
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
         {
-            l_states[i][j] = i * 0.1 + j * 0.01 + 0.01;
-            l_expected[i][j] = pow(l_states[i][j].m_state, POWER);
+            l_states[i][j]->m_state = i * 0.1 + j * 0.01 + 0.01;
+            l_expected[i][j] = pow(l_states[i][j]->m_state, POWER);
         }
 
-    tensor<operable, MATRIX_ROWS, MATRIX_COLS> l_pow = pow(make_operable(l_states), make_operable(l_power));
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_pow = pow(l_states, l_power_ptr);
 
     model l_model = model::end();
 
@@ -2559,7 +2561,7 @@ void unit_test_main(
 )
 {
     test_tensor_default_constructor();
-    test_make_operable();
+    test_make_state_gradient_pair();
     test_get_state();
     test_set_state();
     test_get_gradient();

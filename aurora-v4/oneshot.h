@@ -10,6 +10,50 @@
 namespace aurora
 {
     template<>
+    inline double constant<double>(
+        const double& a_x
+    )
+    {
+        return a_x;
+    }
+
+    template<>
+    inline double add<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 + a_x_1;
+    }
+
+    template<>
+    inline double subtract<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 - a_x_1;
+    }
+
+    template<>
+    inline double multiply<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 * a_x_1;
+    }
+
+    template<>
+    inline double divide<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 / a_x_1;
+    }
+
+    template<>
     inline double sigmoid<double>(
         const double& a_x
     )
