@@ -12,7 +12,7 @@ namespace aurora
 {
     template<typename T>
     inline T constant(
-        const double& a_x
+        const double& a_x = 0
     );
 
     template<typename T>
@@ -74,6 +74,20 @@ namespace aurora
     template<typename T, size_t I, size_t ... J>
     struct tensor : public std::array<tensor<T, J ...>, I>
     {
+        tensor(
+
+        )
+        {
+
+        }
+
+        tensor(
+            const std::initializer_list<tensor<T, J ...>>& a_initializer_list
+        ) :
+            std::array<tensor<T, J ...>, I>(a_initializer_list.begin(), a_initializer_list.end())
+        {
+
+        }
         
     };
 
@@ -84,10 +98,32 @@ namespace aurora
 
         )
         {
-            for (int i = 0; i < I; i++)
-                std::array<T, I>::at(i) = constant<T>(0.0);
+
         }
+
+        tensor(
+            const std::initializer_list<T>& a_initializer_list
+        ) :
+            std::array<T, I>(a_initializer_list.begin(), a_initializer_list.end())
+        {
+            
+        }
+        
     };
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> constant(
+        const double& a_double = 0
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = constant<T, J ...>(a_double);
+        
+        return l_result;
+
+    }
 
     /// @brief 
     /// @tparam T is the value type.
@@ -270,6 +306,15 @@ namespace aurora
 
     }
 
+    template<typename T, size_t I, size_t J>
+    inline tensor<T, I> multiply(
+        const tensor<T, I, J>& a_x_0,
+        const tensor<T, J>& a_x_1
+    )
+    {
+        return flatten(dot(a_x_0, partition<J>(a_x_1)));
+    }
+
     template<typename T, size_t I>
     inline T average(
         const tensor<T, I>& a_x
@@ -449,7 +494,7 @@ namespace aurora
         const tensor<T, I>& a_tensor
     )
     {
-        T l_sum(0);
+        T l_sum = constant<T>(0);
 
         for (const T& l_element : a_tensor)
         {
@@ -484,6 +529,15 @@ namespace aurora
     )
     {
         return magnitude(subtract(a_x_0, a_x_1));
+    }
+
+    template<typename T, size_t I, size_t ... J>
+    T mean_squared_error(
+        const tensor<T, I, J ...>& a_x_0,
+        const tensor<T, I, J ...>& a_x_1
+    )
+    {
+        return average(pow(flatten(subtract(a_x_0, a_x_1)), 2.0));
     }
 
     inline std::default_random_engine i_default_random_engine;

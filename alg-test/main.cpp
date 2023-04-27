@@ -22,38 +22,38 @@ long long duration_ms(
 
 // )
 // {
-//     model l_model;
+//     constexpr size_t CONCURRENT_INSTANCES = 4;
+//     constexpr std::array<size_t, 3> INSTANCE_DIMENSIONS = {2, 5, 1};
+    
+//     model::begin();
 
-// 	auto l_x = input(4, 2);
-// 	auto l_desired_y = input(4, 1);
+// 	auto l_x = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()>();
+// 	auto l_desired_y = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()>();
 
-// 	sgp_ptr_matrix l_y;
+// 	latent_tensor<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_y;
 
-// 	size_t l_next_parameter_index = l_model.next_parameter_index();
+//     auto l_w0 = input<INSTANCE_DIMENSIONS[1], INSTANCE_DIMENSIONS[0]>();
+//     auto l_w1 = input<INSTANCE_DIMENSIONS[2], INSTANCE_DIMENSIONS[1]>();
+//     auto l_b0 = input<INSTANCE_DIMENSIONS[0]>();
+//     auto l_b1 = input<INSTANCE_DIMENSIONS[1]>();
+//     auto l_b2 = input<INSTANCE_DIMENSIONS[2]>();
 
 // 	for (int i = 0; i < l_x.size(); i++)
 // 	{
-// 		l_model.next_parameter_index(l_next_parameter_index);
-// 		auto l_y_element = pointers(l_x[i]);
-// 		l_y_element = l_model.weight_junction(l_y_element, 5);
-// 		l_y_element = l_model.bias(l_y_element);
-// 		l_y_element = l_model.leaky_relu(l_y_element, 0.3);
-// 		l_y_element = l_model.weight_junction(l_y_element, 1);
-// 		l_y_element = l_model.bias(l_y_element);
-// 		l_y_element = l_model.sigmoid(l_y_element);
-// 		l_y.push_back(l_y_element);
+//         auto l_w0_y = multiply(l_w0, l_x[i]);
+//         auto l_b1_y = add(l_w0_y, l_b1);
+//         auto l_leaky_relu_0 = leaky_relu(l_b1_y, 0.3);
+//         auto l_w1_y = multiply(l_w1, l_leaky_relu_0);
+//         auto l_b2_y = add(l_w1_y, l_b2);
+//         auto l_sigmoid = sigmoid(l_b2_y);
+//         l_y[i] = l_sigmoid;
 // 	}
-	
-// 	sgp_ptr_vector l_cross_entropy_losses;
 
-// 	for (int i = 0; i < l_y.size(); i++)
-// 		l_cross_entropy_losses.push_back(l_model.cross_entropy(l_y[i][0], &l_desired_y[i][0]));
-
-// 	auto l_error = l_model.additive_aggregate(l_cross_entropy_losses)->depend();
+//     auto l_mse_loss = mean_squared_error(l_y, l_desired_y)->depend();
 
 // 	const int CHECKPOINT = 100000;
 
-// 	state_matrix l_ts_x =
+// 	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()> l_ts_x =
 // 	{
 // 		{0, 0},
 // 		{0, 1},
@@ -61,7 +61,7 @@ long long duration_ms(
 // 		{1, 1}
 // 	};
 
-// 	state_matrix l_ts_y =
+// 	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_ts_y =
 // 	{
 // 		{0},
 // 		{1},
@@ -1688,6 +1688,15 @@ long long duration_ms(
 
 // }
 
+bool is_close_to(
+    const double& a_x_0,
+    const double& a_x_1,
+    const double& a_threshold = 0.0000000001
+)
+{
+    return std::abs(a_x_0 - a_x_1) < a_threshold;
+}
+
 void test_tensor_default_constructor(
 
 )
@@ -1696,19 +1705,19 @@ void test_tensor_default_constructor(
     constexpr size_t MATRIX_ROWS = 400;
     constexpr size_t MATRIX_COLS = 30;
 
-    tensor<double, VECTOR_SIZE> l_tens_0;
+    tensor<double, VECTOR_SIZE> l_tens_0 = constant<double, VECTOR_SIZE>(0);
     
     for (const double& l_double : l_tens_0)
         // Check for default construction of elements.
-        assert(l_double == 0);
+        assert(is_close_to(l_double, 0));
 
 
-    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
+    tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1 = constant<double, MATRIX_ROWS, MATRIX_COLS>(0);
 
     for (const tensor<double, MATRIX_COLS>& l_row : l_tens_1)
         for (const double& l_double : l_row)
             // Check for default construction of elements.
-            assert(l_double == 0);
+            assert(is_close_to(l_double, 0));
 
 }
 
@@ -1721,11 +1730,11 @@ void test_make_state_gradient_pair(
 
     model::begin();
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_ptr[i][j]->m_state == 0.0);
+            assert(is_close_to(l_tens_0_ptr[i][j]->m_state, 0.0));
 
     model l_model = model::end();
 
@@ -1740,7 +1749,7 @@ void test_get_state(
 
     model::begin();
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     // Just initialize all of the values in the matrix to be different.
     for (int i = 0; i < MATRIX_ROWS; i++)
@@ -1751,7 +1760,7 @@ void test_get_state(
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_state[i][j] == l_tens_0_ptr[i][j]->m_state);
+            assert(is_close_to(l_tens_0_state[i][j], l_tens_0_ptr[i][j]->m_state));
     
     model l_model = model::end();
     
@@ -1766,7 +1775,7 @@ void test_set_state(
 
     model::begin();
     
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_0_state;
 
@@ -1779,7 +1788,7 @@ void test_set_state(
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_ptr[i][j]->m_state == l_tens_0_state[i][j]);
+            assert(is_close_to(l_tens_0_ptr[i][j]->m_state, l_tens_0_state[i][j]));
 
     model l_model = model::end();
 
@@ -1794,7 +1803,7 @@ void test_get_gradient(
 
     model::begin();
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -1807,7 +1816,7 @@ void test_get_gradient(
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_tens_0_grad[i][j] == i * MATRIX_COLS + j);
+            assert(is_close_to(l_tens_0_grad[i][j], i * MATRIX_COLS + j));
 
     model l_model = model::end();
 
@@ -1821,7 +1830,7 @@ void test_partition(
     constexpr size_t MATRIX_COLS = 100;
     constexpr size_t VALID_VECTOR_DIMS   = MATRIX_ROWS * MATRIX_COLS;
 
-    tensor<double, VALID_VECTOR_DIMS> l_valid_size_vector;
+    tensor<double, VALID_VECTOR_DIMS> l_valid_size_vector = constant<double, VALID_VECTOR_DIMS>(0);
 
     for (int i = 0; i < VALID_VECTOR_DIMS; i++)
         l_valid_size_vector[i] = i;
@@ -1830,7 +1839,7 @@ void test_partition(
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
-            assert(l_partitioned_valid_size_vector[i][j] == l_valid_size_vector[i * MATRIX_COLS + j]);
+            assert(is_close_to(l_partitioned_valid_size_vector[i][j], l_valid_size_vector[i * MATRIX_COLS + j]));
 
 }
 
@@ -1843,13 +1852,13 @@ void test_concat(
     constexpr size_t MATRIX_1_ROWS = 400;
     constexpr size_t MATRIX_1_COLS = 100;
 
-    tensor<double, MATRIX_0_ROWS, MATRIX_0_COLS> l_tens_0;
+    tensor<double, MATRIX_0_ROWS, MATRIX_0_COLS> l_tens_0 = constant<double, MATRIX_0_ROWS, MATRIX_0_COLS>(0);
 
     for (int i = 0; i < MATRIX_0_ROWS; i++)
         for (int j = 0; j < MATRIX_0_COLS; j++)
             l_tens_0[i][j] = i * MATRIX_0_COLS + j;
 
-    tensor<double, MATRIX_1_ROWS, MATRIX_1_COLS> l_tens_1;
+    tensor<double, MATRIX_1_ROWS, MATRIX_1_COLS> l_tens_1 = constant<double, MATRIX_1_ROWS, MATRIX_1_COLS>(0);
 
     for (int i = 0; i < MATRIX_1_ROWS; i++)
         for (int j = 0; j < MATRIX_1_COLS; j++)
@@ -1859,7 +1868,7 @@ void test_concat(
 
     for (int i = 0; i < MATRIX_0_ROWS + MATRIX_1_ROWS; i++)
         for (int j = 0; j < MATRIX_0_COLS; j++)
-            assert(l_concatenated[i][j] == i * MATRIX_0_COLS + j);
+            assert(is_close_to(l_concatenated[i][j], i * MATRIX_0_COLS + j));
 
 }
 
@@ -1871,7 +1880,7 @@ void test_flatten(
     constexpr size_t TENSOR_HEIGHT = 20;
     constexpr size_t TENSOR_WIDTH = 30;
     
-    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0;
+    tensor<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH> l_tens_0 = constant<double, TENSOR_DEPTH, TENSOR_HEIGHT, TENSOR_WIDTH>(0);
 
     for (int i = 0; i < TENSOR_DEPTH; i++)
         for (int j = 0; j < TENSOR_HEIGHT; j++)
@@ -1881,7 +1890,7 @@ void test_flatten(
     tensor<double, TENSOR_DEPTH * TENSOR_HEIGHT * TENSOR_WIDTH> l_flattened = flatten(l_tens_0);
 
     for (int i = 0; i < l_flattened.size(); i++)
-        assert(l_flattened[i] == l_tens_0[i / (TENSOR_HEIGHT * TENSOR_WIDTH)][(i / TENSOR_WIDTH) % TENSOR_HEIGHT][i % TENSOR_WIDTH]);
+        assert(is_close_to(l_flattened[i], l_tens_0[i / (TENSOR_HEIGHT * TENSOR_WIDTH)][(i / TENSOR_WIDTH) % TENSOR_HEIGHT][i % TENSOR_WIDTH]));
 
 }
 
@@ -1942,7 +1951,7 @@ void test_additive_aggregate(
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
 
-    tensor<double, MATRIX_COLS> l_expected_1;
+    tensor<double, MATRIX_COLS> l_expected_1 = constant<double, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2076,7 +2085,7 @@ void test_average(
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_tens_1;
 
-    tensor<double, MATRIX_COLS> l_expected_1;
+    tensor<double, MATRIX_COLS> l_expected_1 = constant<double, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2197,7 +2206,7 @@ void test_matrix_dot(
         for (int j = 0; j < MATRIX_1_COLS; j++)
             l_tensor_1[i][j] = i * MATRIX_1_COLS + j;
 
-    tensor<double, MATRIX_0_ROWS, MATRIX_1_COLS> l_expected;
+    tensor<double, MATRIX_0_ROWS, MATRIX_1_COLS> l_expected = constant<double, MATRIX_0_ROWS, MATRIX_1_COLS>(0);
 
     for (int i = 0; i < MATRIX_0_ROWS; i++)
         for (int j = 0; j < MATRIX_1_COLS; j++)
@@ -2312,8 +2321,8 @@ void test_add_state_gradient_pairs(
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2359,8 +2368,8 @@ void test_subtract_state_gradient_pairs(
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected_states;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr;
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_0_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_tens_1_ptr = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2403,7 +2412,6 @@ void test_sigmoid()
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_states;
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
-
 
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
@@ -2533,7 +2541,7 @@ void test_pow_state_gradient_pair(
 
     state_gradient_pair* l_power_ptr = &l_power;
 
-    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_states;
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_states = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
 
     tensor<double, MATRIX_ROWS, MATRIX_COLS> l_expected;
 
@@ -2553,6 +2561,40 @@ void test_pow_state_gradient_pair(
     for (int i = 0; i < MATRIX_ROWS; i++)
         for (int j = 0; j < MATRIX_COLS; j++)
             assert(l_pow[i][j]->m_state == l_expected[i][j]);
+
+}
+
+void test_insertion_extraction_operators(
+
+)
+{
+    constexpr size_t MATRIX_ROWS = 100;
+    constexpr size_t MATRIX_COLS = 30;
+    constexpr double POWER = 2;
+
+    model::begin();
+
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_states = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+        {
+            l_states[i][j]->m_state = i * 0.1 + j * 0.01 + 0.01;
+        }
+    
+    tensor<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS> l_recovered = constant<state_gradient_pair*, MATRIX_ROWS, MATRIX_COLS>(0);
+
+    model l_model = model::end();
+
+    std::stringstream l_ss;
+
+    l_ss << l_states;
+
+    l_ss >> l_recovered;
+
+    for (int i = 0; i < MATRIX_ROWS; i++)
+        for (int j = 0; j < MATRIX_COLS; j++)
+            assert(is_close_to(l_states[i][j]->m_state, l_recovered[i][j]->m_state));
 
 }
 
@@ -2589,6 +2631,7 @@ void unit_test_main(
     test_log();
     test_pow();
     test_pow_state_gradient_pair();
+    test_insertion_extraction_operators();
 }
 
 int main(

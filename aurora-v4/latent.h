@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <stdexcept>
 #include <functional>
+#include <ostream>
+#include <istream>
 #include "fundamentals.h"
 
 namespace aurora
@@ -59,8 +61,28 @@ namespace aurora
         
     };
 
+    std::ostream& operator <<(std::ostream& a_out, const state_gradient_pair* a_state_gradient_pair)
+    {
+        a_out << a_state_gradient_pair->m_state;
+        return a_out;
+    }
+
+    std::istream& operator >>(std::istream& a_in, state_gradient_pair* a_state_gradient_pair)
+    {
+        a_in >> a_state_gradient_pair->m_state;
+        return a_in;
+    }
+
     template<size_t I, size_t ... J>
     using latent_tensor = tensor<state_gradient_pair*, I, J ...>;
+
+    template<size_t I, size_t ... J>
+    tensor<state_gradient_pair*, I, J ...> input(
+
+    )
+    {
+        return constant<state_gradient_pair*, I, J ...>(0);
+    }
 
     class element
     {
@@ -108,6 +130,13 @@ namespace aurora
     private:
         static std::vector<model> s_models;
         std::vector<std::shared_ptr<element>> m_elements;
+
+        model(
+
+        )
+        {
+            
+        }
 
     public:
         static void begin(
@@ -726,7 +755,7 @@ namespace aurora
     //             {
     //                 sgp_ptr_vector l_hx_x_concat = concat(a_hx, a_x);
 
-    //                 // Construct gates
+    //                 // Construcwhat is an aztec dignitaryt gates
 
     //                 auto l_forget_gate = a_model.weight_junction(l_hx_x_concat, a_hx.size());
     //                 l_forget_gate = a_model.bias(l_forget_gate);
@@ -787,95 +816,6 @@ namespace aurora
 
     //     }
 
-    //     state_gradient_pair* mean_squared_error(
-    //         state_gradient_pair* a_prediction,
-    //         state_gradient_pair* a_desired
-    //     )
-    //     {
-    //         auto l_error = subtract(a_prediction, a_desired);
-    //         return pow(l_error, constant(2));
-    //     }
-
-    //     state_gradient_pair* mean_squared_error(
-    //         const sgp_ptr_vector& a_prediction,
-    //         const sgp_ptr_vector& a_desired
-    //     )
-    //     {
-    //         assert(a_prediction.size() == a_desired.size());
-
-    //         sgp_ptr_vector l_squared_errors(a_prediction.size());
-
-    //         for (int i = 0; i < a_prediction.size(); i++)
-    //         {
-    //             l_squared_errors[i] =
-    //                 pow(
-    //                     subtract(a_prediction[i], a_desired[i]),
-    //                     constant(2)
-    //                 );
-    //         }
-
-    //         return divide(
-    //             additive_aggregate(l_squared_errors),
-    //             constant(a_prediction.size()));
-    //     }
-
-    //     state_gradient_pair* mean_squared_error(
-    //         const sgp_ptr_matrix& a_prediction,
-    //         const sgp_ptr_matrix& a_desired
-    //     )
-    //     {
-    //         assert(a_prediction.size() == a_desired.size());
-    //         assert(a_prediction[0].size() == a_desired[0].size());
-
-    //         sgp_ptr_matrix l_squared_errors(a_prediction.size());
-
-    //         for (int i = 0; i < a_prediction.size(); i++)
-    //         {
-    //             sgp_ptr_vector l_squared_error_row(a_prediction[0].size());
-    //             for (int j = 0; j < a_prediction[i].size(); j++)
-    //             {
-    //                 l_squared_error_row[j] =
-    //                     pow(
-    //                         subtract(a_prediction[i][j], a_desired[i][j]),
-    //                         constant(2)
-    //                     );
-    //             }
-    //             l_squared_errors[i] = l_squared_error_row;
-    //         }
-
-    //         return divide(
-    //             additive_aggregate(additive_aggregate(l_squared_errors)),
-    //             constant(a_prediction.size() * a_prediction[0].size()));
-    //     }
-
-    //     state_gradient_pair* mean_squared_error(
-    //         const sgp_ptr_cuboid& a_prediction,
-    //         const sgp_ptr_cuboid& a_desired
-    //     )
-    //     {
-    //         assert(a_prediction.size() == a_desired.size());
-    //         assert(a_prediction[0].size() == a_desired[0].size());
-    //         assert(a_prediction[0][0].size() == a_desired[0][0].size());
-
-    //         sgp_ptr_vector l_squared_errors(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size());
-
-    //         for (int i = 0; i < a_prediction.size(); i++)
-    //         {
-    //             for (int j = 0; j < a_prediction[0].size(); j++)
-    //             {
-    //                 for (int k = 0; k < a_prediction[0][0].size(); k++)
-    //                 {
-    //                     l_squared_errors[i * a_prediction[0].size() + j * a_prediction[0][0].size() + k] =
-    //                         pow(subtract(a_prediction[i][j][k], a_desired[i][j][k]), constant(2));
-    //                 }
-    //             }
-    //         }
-
-    //         return divide(
-    //             additive_aggregate(l_squared_errors),
-    //             constant(a_prediction.size() * a_prediction[0].size() * a_prediction[0][0].size()));
-    //     }
-
     //     state_gradient_pair* cross_entropy(
     //         state_gradient_pair* a_prediction,
     //         state_gradient_pair* a_desired
@@ -886,231 +826,129 @@ namespace aurora
     //         auto l_negated_sum = multiply(constant(-1), add(l_first_term, l_second_term));
     //         return l_negated_sum;
     //     }
-        
-    // };
-
-
-    // class optimizer
-    // {
-    // private:
-    // 	bool m_normalize_gradients = false;
-
-    // public:
-    // 	sgp_ptr_vector m_values;
-
-    // public:
-    // 	optimizer(
-    // 		const sgp_ptr_vector& a_values,
-    // 		const bool& a_normalize_gradients
-    // 	) :
-    // 		m_values(a_values.begin(), a_values.end()),
-    // 		m_normalize_gradients(a_normalize_gradients)
-    // 	{
-
-    // 	}
-
-    // 	virtual void update(
-
-    // 	)
-    // 	{
-
-    // 	}
-
-    // protected:
-    // 	state_vector useful_gradients(
-
-    // 	)
-    // 	{
-    // 		state_vector l_gradients = get_gradient(m_values);
-
-    // 		if (m_normalize_gradients)
-    // 		{
-    // 			double l_normalization_denominator = 0;
-
-    // 			for (const auto& l_gradient : l_gradients)
-    // 				l_normalization_denominator += std::abs(l_gradient);
-
-    // 			for (auto& l_gradient : l_gradients)
-    // 				l_gradient /= l_normalization_denominator;
-
-    // 		}
-
-    // 		return l_gradients;
-
-    // 	}
 
     // };
 
-    // class gradient_descent : public optimizer
-    // {
-    // public:
-    // 	double m_learn_rate = 0;
+    template<size_t I, size_t ... J>
+    class optimizer
+    {
+    private:
+    	bool m_normalize_gradients = false;
 
-    // public:
-    // 	gradient_descent(
-    // 		const sgp_ptr_vector& a_values,
-    // 		const bool& a_normalize_gradients,
-    // 		const double& a_learn_rate
-    // 	) :
-    // 		optimizer(a_values, a_normalize_gradients),
-    // 		m_learn_rate(a_learn_rate)
-    // 	{
+    public:
+    	latent_tensor<(I * ... * J)> m_values;
 
-    // 	}
+    public:
+    	optimizer(
+    		const latent_tensor<I, J ...>& a_values,
+    		const bool& a_normalize_gradients
+    	) :
+    		m_values(flatten(a_values)),
+    		m_normalize_gradients(a_normalize_gradients)
+    	{
 
-    // 	virtual void update(
+    	}
 
-    // 	)
-    // 	{
-    // 		state_vector l_gradients = useful_gradients();
-    // 		for (int i = 0; i < m_values.size(); i++)
-    // 		{
-    // 			m_values[i]->m_state -= m_learn_rate * l_gradients[i];
-    // 		}
-    // 	}
+    	virtual void update(
 
-    // };
+    	)
+    	{
 
-    // class gradient_descent_with_momentum : public optimizer
-    // {
-    // public:
-    // 	double m_learn_rate = 0;
-    // 	double m_beta = 0;
-    // 	double m_alpha = 0;
-    // 	state_vector m_momenta;
+    	}
 
-    // public:
-    // 	gradient_descent_with_momentum(
-    // 		const sgp_ptr_vector& a_values,
-    // 		const bool& a_normalize_gradients,
-    // 		const double& a_learn_rate,
-    // 		const double& a_beta
-    // 	) :
-    // 		optimizer(a_values, a_normalize_gradients),
-    // 		m_learn_rate(a_learn_rate),
-    // 		m_beta(a_beta),
-    // 		m_alpha(1.0 - a_beta),
-    // 		m_momenta(a_values.size())
-    // 	{
-    // 		assert(a_beta >= 0 && a_beta <= 1);
-    // 	}
+    protected:
+    	tensor<double, (I * ... * J)> useful_gradients(
 
-    // 	virtual void update(
+    	)
+    	{
+    		tensor<double, (I * ... * J)> l_gradients = get_gradient(m_values);
 
-    // 	)
-    // 	{
-    // 		state_vector l_gradients = useful_gradients();
-    // 		for (int i = 0; i < m_values.size(); i++)
-    // 		{
-    // 			auto& l_value = m_values[i];
-    // 			auto& l_momentum = m_momenta[i];
-    // 			l_momentum = m_beta * l_momentum + m_alpha * l_gradients[i];
-    // 			l_value->m_state -= m_learn_rate * l_momentum;
-    // 		}
-    // 	}
+    		if (m_normalize_gradients)
+    		{
+    			double l_normalization_denominator = 0;
 
+    			for (const auto& l_gradient : l_gradients)
+    				l_normalization_denominator += std::abs(l_gradient);
 
-    // class operable
-    // {
-    // private:
-    //     state_gradient_pair* m_state_gradient_pair;
+    			for (auto& l_gradient : l_gradients)
+    				l_gradient /= l_normalization_denominator;
 
-    // public:
-    //     operable(
+    		}
 
-    //     ) :
-    //         m_state_gradient_pair(nullptr)
-    //     {
+    		return l_gradients;
 
-    //     }
-    
-    //     operable(
-    //         state_gradient_pair* a_state_gradient_pair
-    //     ) :
-    //         m_state_gradient_pair(a_state_gradient_pair)
-    //     {
-            
-    //     }
+    	}
 
-    //     operable(
-    //         const double& a_state
-    //     ) :
-    //         m_state_gradient_pair(constant(a_state))
-    //     {
+    };
 
-    //     }
+    template<size_t I, size_t ... J>
+    class gradient_descent : public optimizer<I, J ...>
+    {
+    public:
+    	double m_learn_rate = 0;
 
-    //     operable operator+(
-    //         operable a_operable
-    //     ) const
-    //     {
-    //         return add(m_state_gradient_pair, a_operable);
-    //     }
+    public:
+    	gradient_descent(
+    		const latent_tensor<I, J ...>& a_values,
+    		const bool& a_normalize_gradients,
+    		const double& a_learn_rate
+    	) :
+    		optimizer<I, J ...>(a_values, a_normalize_gradients),
+    		m_learn_rate(a_learn_rate)
+    	{
 
-    //     operable operator-(
-    //         operable a_operable
-    //     ) const
-    //     {
-    //         return subtract(m_state_gradient_pair, a_operable);
-    //     }
+    	}
 
-    //     operable operator*(
-    //         operable a_operable
-    //     ) const
-    //     {
-    //         return multiply(m_state_gradient_pair, a_operable);
-    //     }
+    	virtual void update(
 
-    //     operable operator/(
-    //         operable a_operable
-    //     ) const
-    //     {
-    //         return divide(m_state_gradient_pair, a_operable);
-    //     }
+    	)
+    	{
+    		tensor<double, (I * ... * J)> l_gradients = this->useful_gradients();
+    		for (int i = 0; i < this->m_values.size(); i++)
+    		{
+    			this->m_values[i]->m_state -= this->m_learn_rate * l_gradients[i];
+    		}
+    	}
 
-    //     state_gradient_pair* operator->(
+    };
 
-    //     ) const
-    //     {
-    //         return m_state_gradient_pair;
-    //     }
+    template<size_t I, size_t ... J>
+    class gradient_descent_with_momentum : public gradient_descent<I, J ...>
+    {
+    public:
+    	double m_beta = 0;
+    	double m_alpha = 0;
+    	tensor<double, (I * ... * J)> m_momenta;
 
-    //     state_gradient_pair& operator*(
+    public:
+    	gradient_descent_with_momentum(
+    		const latent_tensor<I, J ...>& a_values,
+    		const bool& a_normalize_gradients,
+    		const double& a_learn_rate,
+    		const double& a_beta
+    	) :
+    		gradient_descent<I, J ...>(a_values, a_normalize_gradients, a_learn_rate),
+    		m_beta(a_beta),
+    		m_alpha(1.0 - a_beta)
+    	{
+    		assert(a_beta >= 0 && a_beta <= 1);
+    	}
 
-    //     ) const
-    //     {
-    //         return *m_state_gradient_pair;
-    //     }
+    	virtual void update(
 
-    //     operator state_gradient_pair*(
+    	)
+    	{
+    		tensor<double, (I * ... * J)> l_gradients = this->useful_gradients();
+    		for (int i = 0; i < this->m_values.size(); i++)
+    		{
+    			auto& l_value = this->m_values[i];
+    			auto& l_momentum = this->m_momenta[i];
+    			l_momentum = m_beta * l_momentum + m_alpha * l_gradients[i];
+    			l_value->m_state -= this->m_learn_rate * l_momentum;
+    		}
+    	}
 
-    //     ) const
-    //     {
-    //         return m_state_gradient_pair;
-    //     }
-
-    // };
-    
-    // state_gradient_pair* make_operable(
-    //     state_gradient_pair& a_state_gradient_pair
-    // )
-    // {
-    //     return &a_state_gradient_pair;
-    // }
-
-    // template<size_t I, size_t ... J>
-    // tensor<state_gradient_pair*, I, J ...> make_operable(
-    //     tensor<state_gradient_pair, I, J ...>& a_tensor
-    // )
-    // {
-    //     tensor<state_gradient_pair*, I, J ...> l_result;
-
-    //     for (int i = 0; i < I; i++)
-    //         l_result[i] = make_operable(a_tensor[i]);
-
-    //     return l_result;
-
-    // }
+    };
 
     inline double get_state(
         state_gradient_pair* a_sgp_ptr
@@ -1172,15 +1010,6 @@ namespace aurora
 
     }
 
-    // template<>
-    // operable pow<operable>(
-    //     const operable& a_x_0,
-    //     const operable& a_x_1
-    // )
-    // {
-    //     return pow((state_gradient_pair*)a_x_0, (state_gradient_pair*)a_x_1);
-    // }
-    
 }
 
 #endif
