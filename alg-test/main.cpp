@@ -39,7 +39,6 @@ void tnn_test(
 
     auto l_w0 = input<INSTANCE_DIMENSIONS[1], INSTANCE_DIMENSIONS[0]>(l_randomly_generate_parameter);
     auto l_w1 = input<INSTANCE_DIMENSIONS[2], INSTANCE_DIMENSIONS[1]>(l_randomly_generate_parameter);
-    auto l_b0 = input<INSTANCE_DIMENSIONS[0]>(l_randomly_generate_parameter);
     auto l_b1 = input<INSTANCE_DIMENSIONS[1]>(l_randomly_generate_parameter);
     auto l_b2 = input<INSTANCE_DIMENSIONS[2]>(l_randomly_generate_parameter);
 
@@ -80,7 +79,7 @@ void tnn_test(
     l_x_ss >> l_ts_x;
     l_y_ss >> l_ts_y;
 
-    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b0, l_b1, l_b2), false, 0.002, 0.9);
+    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b1, l_b2), false, 0.002, 0.9);
 
     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
@@ -136,86 +135,98 @@ void tnn_test(
 // 		return -1.0;
 // }
 
-// void parabola_test(
+void parabola_test(
 
-// )
-// {
-// 	auto l_x = input(10, 1);
+)
+{
+    constexpr size_t CONCURRENT_INSTANCES = 4;
+    constexpr std::array<size_t, 3> LAYER_DIMS = {1, 20, 1};
+    
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
 
-//     model l_model;
+    model::begin();
 	
-// 	sgp_ptr_matrix l_y(l_x.size());
+    auto l_x = input<CONCURRENT_INSTANCES, LAYER_DIMS.front()>();
+    
+    latent_tensor<CONCURRENT_INSTANCES, LAYER_DIMS.back()> l_y;
 
-// 	size_t l_next_parameter_index = l_model.next_parameter_index();
+    auto l_w0 = input<LAYER_DIMS[1], LAYER_DIMS[0]>(l_randomly_generate_parameter);
+    auto l_w1 = input<LAYER_DIMS[2], LAYER_DIMS[1]>(l_randomly_generate_parameter);
+    auto l_b1 = input<LAYER_DIMS[1]>(l_randomly_generate_parameter);
+    auto l_b2 = input<LAYER_DIMS[2]>(l_randomly_generate_parameter);
 
-// 	for (int i = 0; i < l_y.size(); i++)
-// 	{
-// 		l_model.next_parameter_index(l_next_parameter_index);
-// 		auto l_tnn_y = pointers(l_x[i]);
-// 		l_tnn_y = l_model.weight_junction(l_tnn_y, 20);
-// 		l_tnn_y = l_model.bias(l_tnn_y);
-// 		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
-// 		l_tnn_y = l_model.weight_junction(l_tnn_y, 1);
-// 		l_tnn_y = l_model.bias(l_tnn_y);
-// 		l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
-// 		l_y[i] = l_tnn_y;
-// 	}
+	for (int i = 0; i < CONCURRENT_INSTANCES; i++)
+	{
+        auto l_w0_y = multiply(l_w0, l_x[i]);
+        auto l_b1_y = add(l_b1, l_w0_y);
+        auto l_leaky_relu_0 = leaky_relu(l_b1_y, 0.3);
+        auto l_w1_y = multiply(l_w1, l_leaky_relu_0);
+        auto l_b2_y = add(l_b2, l_w1_y);
+        auto l_leaky_relu_1 = leaky_relu(l_b2_y, 0.3);
+        l_y[i] = l_leaky_relu_1;
+	}
 
-// 	auto l_desired_y = input(l_y.size(), l_y[0].size());
-// 	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
+	auto l_desired_y = input<CONCURRENT_INSTANCES, LAYER_DIMS.back()>();
 
-// 	std::default_random_engine l_dre(25);
+	auto l_error = mean_squared_error(l_y, l_desired_y)->depend();
 
-// 	std::uniform_real_distribution<double> l_ts_urd(-10, 10);
+    model l_model = model::end();
 
-//     gradient_descent_with_momentum l_optimizer(l_model.parameters(), true, 0.02, 0.9);
+    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b1, l_b2), true, 0.02, 0.9);
 
-// 	double l_cost_momentum = 0;
+	double l_cost_momentum = 0;
 
-// 	const size_t CHECKPOINT_INTERVAL = 10000;
+	const size_t CHECKPOINT_INTERVAL = 10000;
 
-// 	for (int epoch = 0; true; epoch++)
-// 	{
-// 		double l_cost = 0;
+    std::uniform_real_distribution<double> l_ts_urd(-10, 10);
 
-// 		state_matrix l_ts_x;
-// 		state_matrix l_ts_y;
+	for (int epoch = 0; epoch < CHECKPOINT_INTERVAL * 30; epoch++)
+	{
+		double l_cost = 0;
 
-// 		for (int i = 0; i < l_x.size(); i++)
-// 		{
-// 			l_ts_x.push_back({ l_ts_urd(l_dre) });
-// 			l_ts_y.push_back({ l_ts_x.back()[0] * l_ts_x.back()[0] });
-// 		}
+		tensor<double, CONCURRENT_INSTANCES, LAYER_DIMS.front()> l_ts_x;
+		tensor<double, CONCURRENT_INSTANCES, LAYER_DIMS.back()> l_ts_y;
 
-// 		set_state(pointers(l_x), l_ts_x);
-// 		set_state(pointers(l_desired_y), l_ts_y);
+		for (int i = 0; i < CONCURRENT_INSTANCES; i++)
+		{
+            l_ts_x[i][0] = l_ts_urd(l_dre);
+            l_ts_y[i][0] = l_ts_x[i][0] * l_ts_x[i][0];
+		}
 
-// 		l_model.fwd();
+		set_state(l_x, l_ts_x);
+		set_state(l_desired_y, l_ts_y);
 
-// 		l_error.m_partial_gradient = 1;
-// 		l_cost = l_error.m_state;
+		l_model.fwd();
 
-// 		l_model.bwd();
+		l_error.m_partial_gradient = 1;
+		l_cost = l_error.m_state;
 
-// 		if (epoch % CHECKPOINT_INTERVAL == 0)
-// 		{
-// 			for (int i = 0; i < l_y.size(); i++)
-// 			{
-// 				std::cout << "INPUT: " << l_ts_x[i][0] << ", PREDICTION: " << l_y[i][0]->m_state << ", DESIRED: " << l_ts_y[i][0] << std::endl;
-// 			}
-// 		}
+		l_model.bwd();
+
+		if (epoch % CHECKPOINT_INTERVAL == 0)
+		{
+			for (int i = 0; i < l_y.size(); i++)
+			{
+				std::cout << "INPUT: " << l_ts_x[i][0] << ", PREDICTION: " << l_y[i][0]->m_state << ", DESIRED: " << l_ts_y[i][0] << std::endl;
+			}
+		}
 
 
-// 		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
+		l_cost_momentum = 0.99 * l_cost_momentum + 0.01 * l_cost;
 
-//         l_optimizer.update();
+        l_optimizer.update();
 
-// 		if (epoch % CHECKPOINT_INTERVAL == 0)
-// 			std::cout << "    LOSS FOR ABOVE EPOCH: " << l_cost_momentum << std::endl;
+		if (epoch % CHECKPOINT_INTERVAL == 0)
+			std::cout << "    LOSS FOR ABOVE EPOCH: " << l_cost_momentum << std::endl;
 
-// 	}
+	}
 
-// }
+    assert(l_cost_momentum < 1.0);
+
+}
 
 // void lstm_test(
 
@@ -2688,6 +2699,7 @@ void unit_test_main(
     test_insertion_extraction_operators();
     test_concat_more_than_two();
     tnn_test();
+    parabola_test();
 }
 
 int main(
