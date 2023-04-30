@@ -18,97 +18,111 @@ long long duration_ms(
     return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - a_start)).count();
 }
 
-// void tnn_test(
+void tnn_test(
 
-// )
-// {
-//     constexpr size_t CONCURRENT_INSTANCES = 4;
-//     constexpr std::array<size_t, 3> INSTANCE_DIMENSIONS = {2, 5, 1};
+)
+{
+    constexpr size_t CONCURRENT_INSTANCES = 4;
+    constexpr std::array<size_t, 3> INSTANCE_DIMENSIONS = {2, 5, 1};
     
-//     model::begin();
+    std::default_random_engine l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd]{return l_urd(l_dre);};
+    
+    model::begin();
 
-// 	auto l_x = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()>();
-// 	auto l_desired_y = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()>();
+	auto l_x = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()>();
+	auto l_desired_y = input<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()>();
 
-// 	latent_tensor<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_y;
+	latent_tensor<CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_y;
 
-//     auto l_w0 = input<INSTANCE_DIMENSIONS[1], INSTANCE_DIMENSIONS[0]>();
-//     auto l_w1 = input<INSTANCE_DIMENSIONS[2], INSTANCE_DIMENSIONS[1]>();
-//     auto l_b0 = input<INSTANCE_DIMENSIONS[0]>();
-//     auto l_b1 = input<INSTANCE_DIMENSIONS[1]>();
-//     auto l_b2 = input<INSTANCE_DIMENSIONS[2]>();
+    auto l_w0 = input<INSTANCE_DIMENSIONS[1], INSTANCE_DIMENSIONS[0]>(l_randomly_generate_parameter);
+    auto l_w1 = input<INSTANCE_DIMENSIONS[2], INSTANCE_DIMENSIONS[1]>(l_randomly_generate_parameter);
+    auto l_b0 = input<INSTANCE_DIMENSIONS[0]>(l_randomly_generate_parameter);
+    auto l_b1 = input<INSTANCE_DIMENSIONS[1]>(l_randomly_generate_parameter);
+    auto l_b2 = input<INSTANCE_DIMENSIONS[2]>(l_randomly_generate_parameter);
 
-// 	for (int i = 0; i < l_x.size(); i++)
-// 	{
-//         auto l_w0_y = multiply(l_w0, l_x[i]);
-//         auto l_b1_y = add(l_w0_y, l_b1);
-//         auto l_leaky_relu_0 = leaky_relu(l_b1_y, 0.3);
-//         auto l_w1_y = multiply(l_w1, l_leaky_relu_0);
-//         auto l_b2_y = add(l_w1_y, l_b2);
-//         auto l_sigmoid = sigmoid(l_b2_y);
-//         l_y[i] = l_sigmoid;
-// 	}
+	for (int i = 0; i < l_x.size(); i++)
+	{
+        auto l_w0_y = multiply(l_w0, l_x[i]);
+        auto l_b1_y = add(l_w0_y, l_b1);
+        auto l_leaky_relu_0 = leaky_relu(l_b1_y, 0.3);
+        auto l_w1_y = multiply(l_w1, l_leaky_relu_0);
+        auto l_b2_y = add(l_w1_y, l_b2);
+        auto l_sigmoid = sigmoid(l_b2_y);
+        l_y[i] = l_sigmoid;
+	}
 
-//     auto l_mse_loss = mean_squared_error(l_y, l_desired_y)->depend();
+    auto l_mse_loss = mean_squared_error(l_y, l_desired_y)->depend();
 
-// 	const int CHECKPOINT = 100000;
+    model l_model = model::end();
 
-// 	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()> l_ts_x =
-// 	{
-// 		{0, 0},
-// 		{0, 1},
-// 		{1, 0},
-// 		{1, 1}
-// 	};
+	const int CHECKPOINT = 100000;
 
-// 	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_ts_y =
-// 	{
-// 		{0},
-// 		{1},
-// 		{1},
-// 		{0}
-// 	};
+	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()> l_ts_x =
+	{
+		{0, 0},
+		{0, 1},
+		{1, 0},
+		{1, 1}
+	};
 
-//     gradient_descent_with_momentum l_optimizer(l_model.parameters(), false, 0.002, 0.9);
+	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_ts_y =
+	{
+		{0},
+		{1},
+		{1},
+		{0}
+	};
 
-//     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
+    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b0, l_b1, l_b2), false, 0.002, 0.9);
 
-// 	for (int epoch = 0; epoch < 1000000; epoch++)
-// 	{
-// 		set_state(pointers(l_x), l_ts_x);
-// 		set_state(pointers(l_desired_y), l_ts_y);
+    std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
-// 		l_model.fwd();
+	for (int epoch = 0; epoch < 500000; epoch++)
+	{
+		set_state(l_x, l_ts_x);
+		set_state(l_desired_y, l_ts_y);
 
-// 		l_error.m_partial_gradient = 1;
+		l_model.fwd();
 
-// 		l_model.bwd();
+		l_mse_loss.m_partial_gradient = 1;
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << l_y[0][0]->m_state << std::endl;
+		l_model.bwd();
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << l_y[1][0]->m_state << std::endl;
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[0][0]->m_state << std::endl;
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << l_y[2][0]->m_state << std::endl;
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[1][0]->m_state << std::endl;
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << l_y[3][0]->m_state << std::endl;
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[2][0]->m_state << std::endl;
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << std::endl;
+		if (epoch % CHECKPOINT == 0)
+			std::cout << l_y[3][0]->m_state << std::endl;
 
-//         l_optimizer.update();
+		if (epoch % CHECKPOINT == 0)
+			std::cout << std::endl;
 
-// 	}
+        l_optimizer.update();
 
-// 	std::cout
-//         << std::endl << "PERIOD OF TRAINING (ms): "
-//         << duration_ms(l_start)
-//         << std::endl;
+	}
 
-// }
+    l_model.fwd();
+
+    assert(l_y[0][0]->m_state < 0.07);
+    assert(l_y[1][0]->m_state > 0.9);
+    assert(l_y[2][0]->m_state > 0.9);
+    assert(l_y[3][0]->m_state < 0.07);
+
+	std::cout
+        << std::endl << "PERIOD OF TRAINING (ms): "
+        << duration_ms(l_start)
+        << std::endl;
+
+}
 
 // double sign_d(const double& a_double)
 // {
@@ -2598,6 +2612,42 @@ void test_insertion_extraction_operators(
 
 }
 
+void test_concat_more_than_two(
+
+)
+{
+    constexpr size_t MATRIX_0_ROWS = 300;
+    constexpr size_t MATRIX_1_ROWS = 400;
+    constexpr size_t MATRIX_2_ROWS = 200;
+
+    constexpr size_t MATRIX_COMMON_COLS = 100;
+
+    tensor<double, MATRIX_0_ROWS, MATRIX_COMMON_COLS> l_tens_0 = constant<double, MATRIX_0_ROWS, MATRIX_COMMON_COLS>(0);
+
+    for (int i = 0; i < MATRIX_0_ROWS; i++)
+        for (int j = 0; j < MATRIX_COMMON_COLS; j++)
+            l_tens_0[i][j] = i * MATRIX_COMMON_COLS + j;
+
+    tensor<double, MATRIX_1_ROWS, MATRIX_COMMON_COLS> l_tens_1 = constant<double, MATRIX_1_ROWS, MATRIX_COMMON_COLS>(0);
+
+    for (int i = 0; i < MATRIX_1_ROWS; i++)
+        for (int j = 0; j < MATRIX_COMMON_COLS; j++)
+            l_tens_1[i][j] = i * MATRIX_COMMON_COLS + j + MATRIX_0_ROWS * MATRIX_COMMON_COLS;
+
+    tensor<double, MATRIX_2_ROWS, MATRIX_COMMON_COLS> l_tens_2 = constant<double, MATRIX_2_ROWS, MATRIX_COMMON_COLS>(0);
+
+    for (int i = 0; i < MATRIX_2_ROWS; i++)
+        for (int j = 0; j < MATRIX_COMMON_COLS; j++)
+            l_tens_2[i][j] = i * MATRIX_COMMON_COLS + j + MATRIX_0_ROWS * MATRIX_COMMON_COLS + MATRIX_1_ROWS * MATRIX_COMMON_COLS;
+
+    tensor<double, MATRIX_0_ROWS + MATRIX_1_ROWS + MATRIX_2_ROWS, MATRIX_COMMON_COLS> l_concatenated = concat(l_tens_0, l_tens_1, l_tens_2);
+
+    for (int i = 0; i < MATRIX_0_ROWS + MATRIX_1_ROWS + MATRIX_2_ROWS; i++)
+        for (int j = 0; j < MATRIX_COMMON_COLS; j++)
+            assert(is_close_to(l_concatenated[i][j], i * MATRIX_COMMON_COLS + j));
+
+}
+
 void unit_test_main(
 
 )
@@ -2632,6 +2682,8 @@ void unit_test_main(
     test_pow();
     test_pow_state_gradient_pair();
     test_insertion_extraction_operators();
+    test_concat_more_than_two();
+    tnn_test();
 }
 
 int main(

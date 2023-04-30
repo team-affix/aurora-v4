@@ -78,10 +78,18 @@ namespace aurora
 
     template<size_t I, size_t ... J>
     tensor<state_gradient_pair*, I, J ...> input(
-
+        const std::function<double()>& a_get_value
     )
     {
-        return constant<state_gradient_pair*, I, J ...>(0);
+        return constant<state_gradient_pair*, I, J ...>(a_get_value);
+    }
+
+    template<size_t I, size_t ... J>
+    tensor<state_gradient_pair*, I, J ...> input(
+        const double& a_value = 0
+    )
+    {
+        return constant<state_gradient_pair*, I, J ...>(a_value);
     }
 
     class element
@@ -829,21 +837,21 @@ namespace aurora
 
     // };
 
-    template<size_t I, size_t ... J>
+    template<size_t I>
     class optimizer
     {
     private:
     	bool m_normalize_gradients = false;
 
     public:
-    	latent_tensor<(I * ... * J)> m_values;
+    	latent_tensor<I> m_values;
 
     public:
     	optimizer(
-    		const latent_tensor<I, J ...>& a_values,
+    		const latent_tensor<I>& a_values,
     		const bool& a_normalize_gradients
     	) :
-    		m_values(flatten(a_values)),
+    		m_values(a_values),
     		m_normalize_gradients(a_normalize_gradients)
     	{
 
@@ -857,11 +865,11 @@ namespace aurora
     	}
 
     protected:
-    	tensor<double, (I * ... * J)> useful_gradients(
+    	tensor<double, I> useful_gradients(
 
     	)
     	{
-    		tensor<double, (I * ... * J)> l_gradients = get_gradient(m_values);
+    		tensor<double, I> l_gradients = get_gradient(m_values);
 
     		if (m_normalize_gradients)
     		{
@@ -881,19 +889,19 @@ namespace aurora
 
     };
 
-    template<size_t I, size_t ... J>
-    class gradient_descent : public optimizer<I, J ...>
+    template<size_t I>
+    class gradient_descent : public optimizer<I>
     {
     public:
     	double m_learn_rate = 0;
 
     public:
     	gradient_descent(
-    		const latent_tensor<I, J ...>& a_values,
+    		const latent_tensor<I>& a_values,
     		const bool& a_normalize_gradients,
     		const double& a_learn_rate
     	) :
-    		optimizer<I, J ...>(a_values, a_normalize_gradients),
+    		optimizer<I>(a_values, a_normalize_gradients),
     		m_learn_rate(a_learn_rate)
     	{
 
@@ -903,7 +911,7 @@ namespace aurora
 
     	)
     	{
-    		tensor<double, (I * ... * J)> l_gradients = this->useful_gradients();
+    		tensor<double, I> l_gradients = this->useful_gradients();
     		for (int i = 0; i < this->m_values.size(); i++)
     		{
     			this->m_values[i]->m_state -= this->m_learn_rate * l_gradients[i];
@@ -912,24 +920,25 @@ namespace aurora
 
     };
 
-    template<size_t I, size_t ... J>
-    class gradient_descent_with_momentum : public gradient_descent<I, J ...>
+    template<size_t I>
+    class gradient_descent_with_momentum : public gradient_descent<I>
     {
     public:
     	double m_beta = 0;
     	double m_alpha = 0;
-    	tensor<double, (I * ... * J)> m_momenta;
+    	tensor<double, I> m_momenta;
 
     public:
     	gradient_descent_with_momentum(
-    		const latent_tensor<I, J ...>& a_values,
+    		const latent_tensor<I>& a_values,
     		const bool& a_normalize_gradients,
     		const double& a_learn_rate,
     		const double& a_beta
     	) :
-    		gradient_descent<I, J ...>(a_values, a_normalize_gradients, a_learn_rate),
+    		gradient_descent<I>(a_values, a_normalize_gradients, a_learn_rate),
     		m_beta(a_beta),
-    		m_alpha(1.0 - a_beta)
+    		m_alpha(1.0 - a_beta),
+            m_momenta(constant<double, I>())
     	{
     		assert(a_beta >= 0 && a_beta <= 1);
     	}
@@ -938,7 +947,7 @@ namespace aurora
 
     	)
     	{
-    		tensor<double, (I * ... * J)> l_gradients = this->useful_gradients();
+    		tensor<double, I> l_gradients = this->useful_gradients();
     		for (int i = 0; i < this->m_values.size(); i++)
     		{
     			auto& l_value = this->m_values[i];

@@ -7,6 +7,7 @@
 #include <ostream>
 #include <initializer_list>
 #include <array>
+#include <functional>
 
 namespace aurora
 {
@@ -66,6 +67,95 @@ namespace aurora
         const T& a_x_1
     );
 
+    template<>
+    inline double constant<double>(
+        const double& a_x
+    )
+    {
+        return a_x;
+    }
+
+    template<>
+    inline double add<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 + a_x_1;
+    }
+
+    template<>
+    inline double subtract<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 - a_x_1;
+    }
+
+    template<>
+    inline double multiply<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 * a_x_1;
+    }
+
+    template<>
+    inline double divide<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return a_x_0 / a_x_1;
+    }
+
+    template<>
+    inline double sigmoid<double>(
+        const double& a_x
+    )
+    {
+        return 1.0 / (1.0 + std::exp(-a_x));
+    }
+
+    template<>
+    inline double tanh<double>(
+        const double& a_x
+    )
+    {
+        return std::tanh(a_x);
+    }
+    
+    template<>
+    inline double leaky_relu<double>(
+    	const double& a_x,
+    	const double& a_m
+    )
+    {
+    	if (a_x >= 0)
+    		return a_x;
+    	else
+    		return a_m * a_x;
+    }
+
+    template<>
+    inline double log<double>(
+        const double& a_x
+    )
+    {
+        return std::log(a_x);
+    }
+
+    template<>
+    inline double pow<double>(
+        const double& a_x_0,
+        const double& a_x_1
+    )
+    {
+        return std::pow(a_x_0, a_x_1);
+    }
+
     /// Defining some typedefs for improving the readability of code
     /// and user-friendliness.
 
@@ -83,10 +173,9 @@ namespace aurora
 
         tensor(
             const std::initializer_list<tensor<T, J ...>>& a_initializer_list
-        ) :
-            std::array<tensor<T, J ...>, I>(a_initializer_list.begin(), a_initializer_list.end())
+        )
         {
-
+            std::copy(a_initializer_list.begin(), a_initializer_list.end(), std::array<tensor<T, J ...>, I>::begin());
         }
         
     };
@@ -103,26 +192,42 @@ namespace aurora
 
         tensor(
             const std::initializer_list<T>& a_initializer_list
-        ) :
-            std::array<T, I>(a_initializer_list.begin(), a_initializer_list.end())
+        )
         {
-            
+            std::copy(a_initializer_list.begin(), a_initializer_list.end(), std::array<T, I>::begin());
         }
         
     };
+
+    template<typename T>
+    inline T constant(
+        const std::function<double()>& a_get_value
+    )
+    {
+        // Since this is the zeroth-order call, just call a_get_value.
+        return constant<T>(a_get_value());
+    }
+
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> constant(
+        const std::function<double()>& a_get_value
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = constant<T, J ...>(a_get_value);
+        
+        return l_result;
+
+    }
 
     template<typename T, size_t I, size_t ... J>
     inline tensor<T, I, J ...> constant(
         const double& a_double = 0
     )
     {
-        tensor<T, I, J ...> l_result;
-
-        for (int i = 0; i < I; i++)
-            l_result[i] = constant<T, J ...>(a_double);
-        
-        return l_result;
-
+        return constant<T, I, J ...>([a_double]{return a_double;});
     }
 
     /// @brief 
@@ -167,6 +272,16 @@ namespace aurora
 
         return l_result;
 
+    }
+
+    template<typename T, size_t I1, size_t ... Is, size_t ... J>
+        requires (sizeof...(Is) > 1)
+    inline tensor<T, (I1 + ... + Is), J ...> concat(
+        const tensor<T, I1, J ...>& a_x_0,
+        const tensor<T, Is, J ...>& ... a_xs
+    )
+    {
+        return concat(a_x_0, concat(a_xs...));
     }
 
     template<typename T, size_t I, size_t J>
@@ -362,10 +477,10 @@ namespace aurora
         const tensor<T, I>& a_x_1
     )
     {
-        T l_result = 0;
+        T l_result = constant<T>(0.0);
 
         for (int i = 0; i < I; i++)
-            l_result += multiply(a_x_0[i], a_x_1[i]);
+            l_result = add(l_result, multiply(a_x_0[i], a_x_1[i]));
 
         return l_result;
 
@@ -537,7 +652,7 @@ namespace aurora
         const tensor<T, I, J ...>& a_x_1
     )
     {
-        return average(pow(flatten(subtract(a_x_0, a_x_1)), 2.0));
+        return average(pow(flatten(subtract(a_x_0, a_x_1)), constant<T>(2.0)));
     }
 
     inline std::default_random_engine i_default_random_engine;
