@@ -578,6 +578,110 @@ namespace aurora
 
     }
 
+    template<size_t J2, typename T, size_t J1>
+    inline void lstm_timestep(
+        const tensor<T, J1>& a_x,
+        const tensor<T, J2>& a_cx,
+        const tensor<T, J2>& a_hx,
+        const tensor<T, J2>& a_forget_gate_bias,
+        const tensor<T, J2>& a_input_limit_gate_bias,
+        const tensor<T, J2>& a_input_gate_bias,
+        const tensor<T, J2>& a_output_gate_bias,
+        const tensor<T, J2, J1+J2>& a_forget_gate_weights,
+        const tensor<T, J2, J1+J2>& a_input_limit_gate_weights,
+        const tensor<T, J2, J1+J2>& a_input_gate_weights,
+        const tensor<T, J2, J1+J2>& a_output_gate_weights,
+        tensor<T, J2>& a_cy,
+        tensor<T, J2>& a_hy
+    )
+    {
+        auto l_hx_x_concat = concat(a_hx, a_x);
+
+        // Construct gates
+
+        auto l_forget_gate = sigmoid(add(multiply(a_forget_gate_weights, l_hx_x_concat), a_forget_gate_bias));
+
+        auto l_input_limit_gate = sigmoid(add(multiply(a_input_limit_gate_weights, l_hx_x_concat), a_input_limit_gate_bias));
+
+        auto l_input_gate = tanh(add(multiply(a_input_gate_weights, l_hx_x_concat), a_input_gate_bias));
+
+        auto l_output_gate = sigmoid(add(multiply(a_output_gate_weights, l_hx_x_concat), a_output_gate_bias));
+
+        // Forget parts of the cell state
+        tensor<T, J2> l_cell_state_after_forget = multiply(a_cx, l_forget_gate);
+
+        // Calculate the input to the cell state
+        tensor<T, J2> l_limited_input = multiply(l_input_gate, l_input_limit_gate);
+
+        // Write the input to the cell state
+        tensor<T, J2> l_cell_state_after_input = add(l_cell_state_after_forget, l_limited_input);
+
+        // Cell state is now finalized, save it as the cell state output
+        a_cy = l_cell_state_after_input;
+
+        // Do a temporary step to compute tanh(cy)
+        tensor<T, J2> l_cell_state_after_tanh = tanh(l_cell_state_after_input);
+
+        // Compute output to the timestep
+        a_hy = multiply(l_output_gate, l_cell_state_after_tanh);
+
+    }
+
+    template<size_t J2, typename T, size_t I, size_t J1>
+    inline tensor<T, I, J2> lstm(
+        const tensor<T, I, J1>& a_x,
+        const tensor<T, J2>& a_cx,
+        const tensor<T, J2>& a_hx,
+        const tensor<T, J2>& a_forget_gate_bias,
+        const tensor<T, J2>& a_input_limit_gate_bias,
+        const tensor<T, J2>& a_input_gate_bias,
+        const tensor<T, J2>& a_output_gate_bias,
+        const tensor<T, J2, J1+J2>& a_forget_gate_weights,
+        const tensor<T, J2, J1+J2>& a_input_limit_gate_weights,
+        const tensor<T, J2, J1+J2>& a_input_gate_weights,
+        const tensor<T, J2, J1+J2>& a_output_gate_weights
+    )
+    {
+        tensor<T, I, J2> l_result;
+
+        tensor<T, J2> l_cy = a_cx;
+        tensor<T, J2> l_hy = a_hx;
+
+        for (int i = 0; i < a_x.size(); i++)
+        {
+            lstm_timestep(
+                a_x[i],
+                l_cy,
+                l_hy,
+                a_forget_gate_bias,
+                a_input_limit_gate_bias,
+                a_input_gate_bias,
+                a_output_gate_bias,
+                a_forget_gate_weights,
+                a_input_limit_gate_weights,
+                a_input_gate_weights,
+                a_output_gate_weights,
+                l_cy,
+                l_hy
+            );
+            l_result[i] = l_hy;
+        }
+
+        return l_result;
+
+    }
+
+    // state_gradient_pair* cross_entropy(
+    //     state_gradient_pair* a_prediction,
+    //     state_gradient_pair* a_desired
+    // )
+    // {
+    //     auto l_first_term = multiply(a_desired, this->log(a_prediction));
+    //     auto l_second_term = multiply(subtract(constant(1), a_desired), this->log(subtract(constant(1), a_prediction)));
+    //     auto l_negated_sum = multiply(constant(-1), add(l_first_term, l_second_term));
+    //     return l_negated_sum;
+    // }
+
     template<typename T, size_t I>
     inline T magnitude(
         const tensor<T, I>& a_tensor

@@ -228,114 +228,162 @@ void parabola_test(
 
 }
 
-// void lstm_test(
+void lstm_test(
 
-// )
-// {
-//     model l_model;
+)
+{
+    constexpr size_t CONCURRENT_INSTANCES = 2;
+    constexpr size_t LSTM_TIMESTEPS = 4;
+    constexpr std::array<size_t, 2> LSTM_DIMS = {2, 10};
+    constexpr std::array<size_t, 3> TNN_DIMS = {LSTM_DIMS.back(), 5, 1};
 
-// 	const size_t l_lstm_y_units = 3;
-// 	const size_t l_tnn_h0_units = 3;
-// 	const size_t l_tnn_y_units = 1;
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
 
-// 	auto l_x = input(2, 4, 2);
+    model::begin();
 
-// 	sgp_ptr_cuboid l_y;
+    auto l_x = input<CONCURRENT_INSTANCES, LSTM_TIMESTEPS, LSTM_DIMS.front()>();
 
-// 	size_t l_model_begin_next_parameter_index = l_model.next_parameter_index();
+    latent_tensor<CONCURRENT_INSTANCES, LSTM_TIMESTEPS, TNN_DIMS.back()> l_y;
 
-// 	for (int i = 0; i < l_x.size(); i++)
-// 	{
-// 		l_model.next_parameter_index(l_model_begin_next_parameter_index);
-// 		auto l_lstm_y = l_model.lstm(pointers(l_x[i]), l_lstm_y_units);
-// 		size_t l_tnn_begin_next_parameter_index = l_model.next_parameter_index();
-// 		sgp_ptr_matrix l_tnn_ys;
-// 		for (int j = 0; j < l_lstm_y.size(); j++)
-// 		{
-// 			l_model.next_parameter_index(l_tnn_begin_next_parameter_index);
-// 			auto l_tnn_y = l_lstm_y[j];
-// 			l_tnn_y = l_model.weight_junction(l_tnn_y, l_tnn_h0_units);
-// 			l_tnn_y = l_model.bias(l_tnn_y);
-// 			l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
-// 			l_tnn_y = l_model.weight_junction(l_tnn_y, l_tnn_y_units);
-// 			l_tnn_y = l_model.bias(l_tnn_y);
-// 			l_tnn_y = l_model.leaky_relu(l_tnn_y, 0.3);
-// 			l_tnn_ys.push_back(l_tnn_y);
-// 		}
-// 		l_y.push_back(l_tnn_ys);
-// 	}
+    auto l_cx = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    auto l_hx = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
 
-// 	auto l_desired_y = input(l_y.size(), l_y[0].size(), l_y[0][0].size());
-// 	auto l_error = l_model.mean_squared_error(l_y, pointers(l_desired_y))->depend();
+    auto l_forget_gate_bias = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    auto l_input_limit_gate_bias = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    auto l_input_gate_bias = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    auto l_output_gate_bias = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    
+    auto l_forget_gate_weights = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+    auto l_input_limit_gate_weights = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+    auto l_input_gate_weights = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+    auto l_output_gate_weights = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
 
-// 	gradient_descent l_optimizer(l_model.parameters(), true, 0.02);
+    auto l_w0 = input<TNN_DIMS[1], TNN_DIMS[0]>(l_randomly_generate_parameter);
+    auto l_b1 = input<TNN_DIMS[1]>(l_randomly_generate_parameter);
+    auto l_w1 = input<TNN_DIMS[2], TNN_DIMS[1]>(l_randomly_generate_parameter);
+    auto l_b2 = input<TNN_DIMS[2]>(l_randomly_generate_parameter);
 
-// 	state_cuboid l_training_set_xs =
-// 	{
-// 		{
-// 			{0, 0},
-// 			{0, 1},
-// 			{1, 0},
-// 			{1, 1}
-// 		},
-// 		{
-// 			{0, 1},
-// 			{0, 1},
-// 			{1, 0},
-// 			{1, 1}
-// 		},
-// 	};
+	for (int i = 0; i < CONCURRENT_INSTANCES; i++)
+	{
+		auto l_lstm_y = lstm(
+            l_x[i],
+            l_cx,
+            l_hx,
+            l_forget_gate_bias,
+            l_input_limit_gate_bias,
+            l_input_gate_bias,
+            l_output_gate_bias,
+            l_forget_gate_weights,
+            l_input_limit_gate_weights,
+            l_input_gate_weights,
+            l_output_gate_weights
+        );
 
-// 	state_cuboid l_training_set_ys =
-// 	{
-// 		{
-// 			{0},
-// 			{1},
-// 			{1},
-// 			{0}
-// 		},
-// 		{
-// 			{0},
-// 			{1},
-// 			{1},
-// 			{1}
-// 		},
-// 	};
+        latent_tensor<LSTM_TIMESTEPS, TNN_DIMS.back()> l_tnn_ys;
 
-// 	const size_t CHECKPOINT = 10000;
+		for (int j = 0; j < LSTM_TIMESTEPS; j++)
+		{
+            auto l_layer_0_y = leaky_relu(add(multiply(l_w0, l_lstm_y[j]), l_b1), 0.3);
+            auto l_layer_1_y = leaky_relu(add(multiply(l_w1, l_layer_0_y), l_b2), 0.3);
+            l_tnn_ys[j] = l_layer_1_y;
+		}
 
-// 	for (int epoch = 0; true; epoch++)
-// 	{
-// 		double l_cost = 0;
+		l_y[i] = l_tnn_ys;
 
-// 		set_state(pointers(l_x), l_training_set_xs);
-// 		set_state(pointers(l_desired_y), l_training_set_ys);
+	}
 
-// 		// Carry forward
-// 		l_model.fwd();
+	auto l_desired_y = input<CONCURRENT_INSTANCES, LSTM_TIMESTEPS, TNN_DIMS.back()>();
 
-// 		// Signal output
-// 		l_cost += l_error.m_state;
-// 		l_error.m_partial_gradient = 1;
+	auto l_error = mean_squared_error(l_y, l_desired_y)->depend();
 
-// 		// Carry backward
-// 		l_model.bwd();
+    model l_model = model::end();
 
-// 		if (epoch % CHECKPOINT == 0)
-// 		{
-// 			for (int i = 0; i < l_y.size(); i++)
-// 				std::cout << "PREDICTION: \n" << to_string(get_state(l_y)) << std::endl;
-// 			std::cout << std::endl;
-// 		}
+    auto l_param_concat = concat(
+        l_cx,
+        l_hx,
+        l_forget_gate_bias,
+        l_input_limit_gate_bias,
+        l_input_gate_bias,
+        l_output_gate_bias,
+        flatten(l_forget_gate_weights),
+        flatten(l_input_limit_gate_weights),
+        flatten(l_input_gate_weights),
+        flatten(l_output_gate_weights),
+        flatten(l_w0),
+        l_b1,
+        flatten(l_w1),
+        l_b2
+    );
 
-// 		l_optimizer.update();
+	gradient_descent_with_momentum l_optimizer(l_param_concat, true, 0.02, 0.9);
 
-// 		if (epoch % CHECKPOINT == 0)
-// 			std::cout << "COST: " << l_cost << std::endl << std::endl;
+    std::stringstream l_ts_x(
+        "0 0\n"
+        "0 1\n"
+        "1 0\n"
+        "1 1\n"
+        "0 1\n"
+        "0 1\n"
+        "1 0\n"
+        "1 1\n"
+    );
 
-// 	}
+    std::stringstream l_ts_y(
+        "0\n"
+        "1\n"
+        "1\n"
+        "0\n"
+        "0\n"
+        "1\n"
+        "1\n"
+        "1\n"
+    );
 
-// }
+	tensor<double, CONCURRENT_INSTANCES, LSTM_TIMESTEPS, LSTM_DIMS.front()> l_training_set_xs;
+	tensor<double, CONCURRENT_INSTANCES, LSTM_TIMESTEPS, TNN_DIMS.back()>   l_training_set_ys;
+
+    l_ts_x >> l_training_set_xs;
+    l_ts_y >> l_training_set_ys;
+
+	const size_t CHECKPOINT = 1000;
+
+	for (int epoch = 0; epoch < 5 * CHECKPOINT; epoch++)
+	{
+		double l_cost = 0;
+
+		set_state(l_x, l_training_set_xs);
+		set_state(l_desired_y, l_training_set_ys);
+
+		// Carry forward
+		l_model.fwd();
+
+		// Signal output
+		l_cost += l_error.m_state;
+		l_error.m_partial_gradient = 1;
+
+		// Carry backward
+		l_model.bwd();
+
+		if (epoch % CHECKPOINT == 0)
+		{
+			for (int i = 0; i < l_y.size(); i++)
+				std::cout << "PREDICTION: \n" << get_state(l_y) << std::endl;
+			std::cout << std::endl;
+		}
+
+		l_optimizer.update();
+
+		if (epoch % CHECKPOINT == 0)
+			std::cout << "COST: " << l_cost << std::endl << std::endl;
+
+	}
+
+    assert(l_error.m_state < 0.001);
+
+}
 
 // void lstm_stacked_test(
 
@@ -2700,6 +2748,7 @@ void unit_test_main(
     test_concat_more_than_two();
     tnn_test();
     parabola_test();
+    lstm_test();
 }
 
 int main(
