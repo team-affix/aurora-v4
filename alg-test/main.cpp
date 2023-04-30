@@ -25,10 +25,10 @@ void tnn_test(
     constexpr size_t CONCURRENT_INSTANCES = 4;
     constexpr std::array<size_t, 3> INSTANCE_DIMENSIONS = {2, 5, 1};
     
-    std::default_random_engine l_dre(26);
+    std::mt19937 l_dre(26);
     std::uniform_real_distribution<double> l_urd(-1, 1);
     
-    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd]{return l_urd(l_dre);};
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
     
     model::begin();
 
@@ -60,21 +60,25 @@ void tnn_test(
 
 	const int CHECKPOINT = 100000;
 
-	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()> l_ts_x =
-	{
-		{0, 0},
-		{0, 1},
-		{1, 0},
-		{1, 1}
-	};
+    std::stringstream l_x_ss(
+        "0 0\n"
+        "0 1\n"
+        "1 0\n"
+        "1 1\n"
+    );
 
-	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()> l_ts_y =
-	{
-		{0},
-		{1},
-		{1},
-		{0}
-	};
+    std::stringstream l_y_ss(
+        "0\n"
+        "1\n"
+        "1\n"
+        "0\n"
+    );
+
+	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.front()> l_ts_x;
+	tensor<double, CONCURRENT_INSTANCES, INSTANCE_DIMENSIONS.back()>  l_ts_y;
+
+    l_x_ss >> l_ts_x;
+    l_y_ss >> l_ts_y;
 
     gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b0, l_b1, l_b2), false, 0.002, 0.9);
 

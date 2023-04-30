@@ -164,38 +164,12 @@ namespace aurora
     template<typename T, size_t I, size_t ... J>
     struct tensor : public std::array<tensor<T, J ...>, I>
     {
-        tensor(
-
-        )
-        {
-
-        }
-
-        tensor(
-            const std::initializer_list<tensor<T, J ...>>& a_initializer_list
-        )
-        {
-            std::copy(a_initializer_list.begin(), a_initializer_list.end(), std::array<tensor<T, J ...>, I>::begin());
-        }
         
     };
 
     template<typename T, size_t I>
     struct tensor<T, I> : public std::array<T, I>
     {
-        tensor(
-
-        )
-        {
-
-        }
-
-        tensor(
-            const std::initializer_list<T>& a_initializer_list
-        )
-        {
-            std::copy(a_initializer_list.begin(), a_initializer_list.end(), std::array<T, I>::begin());
-        }
         
     };
 
