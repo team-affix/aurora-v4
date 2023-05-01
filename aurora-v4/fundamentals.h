@@ -258,6 +258,14 @@ namespace aurora
         return concat(a_x_0, concat(a_xs...));
     }
 
+    template<typename T, size_t I>
+    inline tensor<T, I> flatten(
+        const tensor<T, I>& a_tensor
+    )
+    {
+        return a_tensor;
+    }
+
     template<typename T, size_t I, size_t J>
     inline tensor<T, I * J> flatten(
         const tensor<T, I, J>& a_tensor
@@ -275,6 +283,7 @@ namespace aurora
     }
 
     template<typename T, size_t I, size_t ... J>
+        requires(sizeof...(J) > 1)
     inline tensor<T, (I * ... * J)> flatten(
         const tensor<T, I, J ...>& a_tensor
     )
@@ -289,6 +298,14 @@ namespace aurora
 
         return l_result;
 
+    }
+
+    inline auto flatten(
+        const auto& a_tensor_0,
+        const auto& ... a_tensors
+    )
+    {
+        return concat(flatten(a_tensor_0), flatten(a_tensors...));
     }
 
     template<typename T, size_t I, size_t ... J>

@@ -22,6 +22,8 @@ void tnn_test(
 
 )
 {
+    std::cout << "Testing TNN" << std::endl;
+
     constexpr size_t CONCURRENT_INSTANCES = 4;
     constexpr std::array<size_t, 3> INSTANCE_DIMENSIONS = {2, 5, 1};
     
@@ -79,7 +81,7 @@ void tnn_test(
     l_x_ss >> l_ts_x;
     l_y_ss >> l_ts_y;
 
-    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b1, l_b2), false, 0.002, 0.9);
+    gradient_descent_with_momentum l_optimizer(flatten(l_w0, l_w1, l_b1, l_b2), false, 0.002, 0.9);
 
     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
 
@@ -139,6 +141,8 @@ void parabola_test(
 
 )
 {
+    std::cout << "Testing parabola fit using TNN" << std::endl;
+
     constexpr size_t CONCURRENT_INSTANCES = 4;
     constexpr std::array<size_t, 3> LAYER_DIMS = {1, 20, 1};
     
@@ -175,7 +179,7 @@ void parabola_test(
 
     model l_model = model::end();
 
-    gradient_descent_with_momentum l_optimizer(concat(flatten(l_w0), flatten(l_w1), l_b1, l_b2), true, 0.02, 0.9);
+    gradient_descent_with_momentum l_optimizer(flatten(l_w0, l_w1, l_b1, l_b2), true, 0.02, 0.9);
 
 	double l_cost_momentum = 0;
 
@@ -232,6 +236,8 @@ void lstm_test(
 
 )
 {
+    std::cout << "Testing LSTM" << std::endl;
+
     constexpr size_t CONCURRENT_INSTANCES = 2;
     constexpr size_t LSTM_TIMESTEPS = 4;
     constexpr std::array<size_t, 2> LSTM_DIMS = {2, 10};
@@ -301,20 +307,20 @@ void lstm_test(
 
     model l_model = model::end();
 
-    auto l_param_concat = concat(
+    auto l_param_concat = flatten(
         l_cx,
         l_hx,
         l_forget_gate_bias,
         l_input_limit_gate_bias,
         l_input_gate_bias,
         l_output_gate_bias,
-        flatten(l_forget_gate_weights),
-        flatten(l_input_limit_gate_weights),
-        flatten(l_input_gate_weights),
-        flatten(l_output_gate_weights),
-        flatten(l_w0),
+        l_forget_gate_weights,
+        l_input_limit_gate_weights,
+        l_input_gate_weights,
+        l_output_gate_weights,
+        l_w0,
         l_b1,
-        flatten(l_w1),
+        l_w1,
         l_b2
     );
 
@@ -389,9 +395,30 @@ void lstm_test(
 
 // )
 // {
-//     model l_model;
+//     constexpr size_t LSTM_TIMESTEPS = 4;
+//     constexpr std::array<size_t, 4> STACK_DIMS = { 2, 20, 20, 1 };
 
-// 	auto l_x = input(4, 2);
+//     constexpr size_t LSTM_PARAM_COUNT = ;
+
+//     std::mt19937 l_dre(26);
+//     std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+//     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+//     auto l_x = input<LSTM_TIMESTEPS, STACK_DIMS.front()>();
+
+//     auto l_cx_0 = input<STACK_DIMS[1]>(l_randomly_generate_parameter);
+//     auto l_hx_0 = input<STACK_DIMS[1]>(l_randomly_generate_parameter);
+
+//     auto l_forget_gate_bias_0 = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+//     auto l_input_limit_gate_bias_0 = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+//     auto l_input_gate_bias_0 = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+//     auto l_output_gate_bias_0 = input<LSTM_DIMS.back()>(l_randomly_generate_parameter);
+    
+//     auto l_forget_gate_weights_0 = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+//     auto l_input_limit_gate_weights_0 = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+//     auto l_input_gate_weights_0 = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
+//     auto l_output_gate_weights_0 = input<LSTM_DIMS.back(), LSTM_DIMS.back() + LSTM_DIMS.front()>(l_randomly_generate_parameter);
 
 // 	auto l_lstm_0 = l_model.lstm(pointers(l_x), 20);
 // 	auto l_lstm_1 = l_model.lstm(l_lstm_0, 20);
@@ -555,37 +582,55 @@ void lstm_test(
 
 // }
 
-// void large_memory_usage_test(
+void large_memory_usage_test(
 
-// )
-// {
-// 	sgp_vector l_x(1000);
+)
+{
+    std::cout << "Testing large model" << std::endl;
 
-//     std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
+    constexpr size_t WEIGHT_MATRIX_HEIGHT = 500;
 
-// 	{
-//         model l_model;
-// 		auto l_y = pointers(l_x);
-// 		l_y = l_model.weight_junction(l_y, 1000);
-// 		l_y = l_model.weight_junction(l_y, 1000);
-// 		l_y = l_model.weight_junction(l_y, 1000);
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
 
-// 		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << duration_ms(l_start) << " ms" << std::endl;
-//         l_start = std::chrono::high_resolution_clock::now();
+    model::begin();
 
-// 		l_model.fwd();
-// 		std::cout << "FORWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
-//         l_start = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point l_start = std::chrono::high_resolution_clock::now();
+    
+	auto l_x = input<WEIGHT_MATRIX_HEIGHT>();
 
-// 		l_model.bwd();
-// 		std::cout << "BACKWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
-//         l_start = std::chrono::high_resolution_clock::now();
+    auto l_w0 = input<WEIGHT_MATRIX_HEIGHT, WEIGHT_MATRIX_HEIGHT>(l_randomly_generate_parameter);
+    auto l_w1 = input<WEIGHT_MATRIX_HEIGHT, WEIGHT_MATRIX_HEIGHT>(l_randomly_generate_parameter);
+    auto l_w2 = input<WEIGHT_MATRIX_HEIGHT, WEIGHT_MATRIX_HEIGHT>(l_randomly_generate_parameter);
 
-// 	}
+    std::cout << "PARAMETERS CREATED: " << WEIGHT_MATRIX_HEIGHT * WEIGHT_MATRIX_HEIGHT * 3 << " PARAMETERS; " << duration_ms(l_start) << " ms" << std::endl;
+    l_start = std::chrono::high_resolution_clock::now();
 
-// 	std::cout << "DECONSTRUCTED: " << duration_ms(l_start) << " ms" << std::endl;
+	{
+        auto l_w0_y = multiply(l_w0, l_x);
+        auto l_w1_y = multiply(l_w1, l_w0_y);
+        auto l_w2_y = multiply(l_w2, l_w1_y);
 
-// }
+        model l_model = model::end();
+
+		std::cout << "MODEL CREATED: " << l_model.elements().size() << " elements; " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
+
+		l_model.fwd();
+		std::cout << "FORWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
+
+		l_model.bwd();
+		std::cout << "BACKWARD COMPLETED: " << duration_ms(l_start) << " ms" << std::endl;
+        l_start = std::chrono::high_resolution_clock::now();
+
+	}
+
+	std::cout << "DECONSTRUCTED: " << duration_ms(l_start) << " ms" << std::endl;
+
+}
 
 // void pablo_tnn_example(
 
@@ -1465,40 +1510,55 @@ void lstm_test(
 
 // )
 // {
-// 	state_matrix l_tsx =
-// 	{
-// 		{0, 0},
-// 		{0, 1},
-// 		{1, 0},
-// 		{1, 1}
-// 	};
+//     constexpr size_t X_HEIGHT = 4;
+//     constexpr size_t X_WIDTH =  2;
+//     constexpr size_t Y_HEIGHT = 4;
+//     constexpr size_t Y_WIDTH =  1;
 
-// 	state_matrix l_tsy =
-// 	{
-// 		{0},
-// 		{1},
-// 		{1},
-// 		{0}
-// 	};
+//     constexpr std::array<size_t, 3> TNN_DIMS = {2, 5, 1};
 
-// 	auto l_get_reward = [](
-// 		aurora::oneshot::parameter_vector& a_parameter_vector,
-// 		const state_matrix& a_x,
-// 		const state_matrix& a_y
+//     std::mt19937 l_dre(26);
+//     std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+//     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+
+//     std::stringstream l_tsx_ss(
+//         "0 0\n"
+//         "0 1\n"
+//         "1 0\n"
+//         "1 1\n"
+//     );
+    
+//     std::stringstream l_tsy_ss(
+//         "0\n"
+//         "1\n"
+//         "1\n"
+//         "0\n"
+//     );
+    
+//     tensor<double, X_HEIGHT, X_WIDTH> l_tsx;
+//     tensor<double, Y_HEIGHT, Y_WIDTH> l_tsy;
+
+//     l_tsx_ss >> l_tsx;
+//     l_tsy_ss >> l_tsy;
+
+// 	auto l_get_reward = [&l_tsx, &l_tsy](
+// 		auto& a_parameter_vector
 // 	)
 // 	{
-// 		state_matrix l_y(a_x);
+//         auto l_b1 = constant<double, TNN_DIMS[1]>(l_randomly_generate_parameter);
+//         auto l_b2 = constant<double, TNN_DIMS[2]>(l_randomly_generate_parameter);
+//         auto l_w0 = constant<double, TNN_DIMS[1], TNN_DIMS[0]>(l_randomly_generate_parameter);
+//         auto l_w1 = constant<double, TNN_DIMS[2], TNN_DIMS[1]>(l_randomly_generate_parameter);
+        
 // 		for (int i = 0; i < a_x.size(); i++)
 // 		{
-// 			a_parameter_vector.next_index(0);
-// 			l_y[i] = oneshot::multiply(a_parameter_vector.next(5, 2), l_y[i]);
-// 			l_y[i] = oneshot::add(l_y[i], a_parameter_vector.next(5));
-// 			l_y[i] = oneshot::tanh(l_y[i]);
-// 			l_y[i] = oneshot::multiply(a_parameter_vector.next(1, 5), l_y[i]);
-// 			l_y[i] = oneshot::add(l_y[i], a_parameter_vector.next(1));
-// 			l_y[i] = oneshot::tanh(l_y[i]);
+            
 // 		}
+
 // 		return 1.0 / (oneshot::mean_squared_error(l_y, a_y) + 1E-10);
+
 // 	};
 
 // 	// Vector of particle independent variable positions
@@ -1764,6 +1824,18 @@ void lstm_test(
 
 
 // }
+
+/// Linearization of NAND
+void nonlinear_scatter_span_linearization(
+
+)
+{
+    // First, define the constants involved.
+    constexpr size_t NODE_COUNT = 1000;
+    
+
+
+}
 
 bool is_close_to(
     const double& a_x_0,
@@ -2711,6 +2783,37 @@ void test_concat_more_than_two(
 
 }
 
+void test_flatten_concat(
+
+)
+{
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+    auto l_tensor_0 = constant<double, 100>(l_randomly_generate_parameter);
+    auto l_tensor_1 = constant<double, 30, 20>(l_randomly_generate_parameter);
+    auto l_tensor_2 = constant<double, 40, 5, 2>(l_randomly_generate_parameter);
+
+    auto l_concatenated = flatten(l_tensor_0, l_tensor_1, l_tensor_2);
+
+    int it = 0;
+
+    for (int i = 0; i < l_tensor_0.size(); i++, it++)
+        assert(is_close_to(l_tensor_0[i], l_concatenated[it]));
+
+    for (int i = 0; i < l_tensor_1.size(); i++)
+        for (int j = 0; j < l_tensor_1[0].size(); j++, it++)
+            assert(is_close_to(l_tensor_1[i][j], l_concatenated[it]));
+
+    for (int i = 0; i < l_tensor_2.size(); i++)
+        for (int j = 0; j < l_tensor_2[0].size(); j++)
+            for (int k = 0; k < l_tensor_2[0][0].size(); k++, it++)
+                assert(is_close_to(l_tensor_2[i][j][k], l_concatenated[it]));
+
+}
+
 void unit_test_main(
 
 )
@@ -2746,9 +2849,12 @@ void unit_test_main(
     test_pow_state_gradient_pair();
     test_insertion_extraction_operators();
     test_concat_more_than_two();
+    test_flatten_concat();
     tnn_test();
     parabola_test();
     lstm_test();
+    large_memory_usage_test();
+    //test_pso();
 }
 
 int main(
@@ -2756,6 +2862,8 @@ int main(
 )
 {
     unit_test_main();
+
+    nonlinear_scatter_span_linearization();
 
 	return 0;
 
