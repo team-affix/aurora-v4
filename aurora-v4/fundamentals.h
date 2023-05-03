@@ -160,16 +160,84 @@ namespace aurora
     /// and user-friendliness.
 
     // We want a multidimensional array, the dimensions of which are defined at compile time.
-    
+
     template<typename T, size_t I, size_t ... J>
     struct tensor : public std::array<tensor<T, J ...>, I>
     {
+        constexpr size_t flattened_size(
+
+        )
+        {
+            return (I * ... * J);
+        }
         
+        T* flattened_begin(
+
+        )
+        {
+            return (T*)this;
+        }
+
+        const T* flattened_begin(
+
+        ) const
+        {
+            return (const T*)this;
+        }
+
+        T* flattened_end(
+
+        )
+        {
+            return flattened_begin() + flattened_size();
+        }
+
+        const T* flattened_end(
+
+        ) const
+        {
+            return flattened_begin() + flattened_size();
+        }
+
     };
 
     template<typename T, size_t I>
     struct tensor<T, I> : public std::array<T, I>
     {
+        constexpr size_t flattened_size(
+
+        )
+        {
+            return I;
+        }
+
+        T* flattened_begin(
+
+        )
+        {
+            return (T*)this;
+        }
+        
+        const T* flattened_begin(
+
+        ) const
+        {
+            return (T*)this;
+        }
+
+        T* flattened_end(
+
+        )
+        {
+            return flattened_begin() + flattened_size();
+        }
+
+        const T* flattened_end(
+
+        ) const
+        {
+            return flattened_begin() + flattened_size();
+        }
         
     };
 
@@ -210,7 +278,7 @@ namespace aurora
     /// @tparam I is the outermost rank size.
     /// @tparam ...J the remaining rank sizes.
     /// @param a_x 
-    /// @return 
+    /// @return
     template<size_t B, typename T, size_t I, size_t ... J>
         requires ((I % B) == 0)
     inline tensor<T, B, I/B, J ...> partition(
@@ -306,6 +374,36 @@ namespace aurora
     )
     {
         return concat(flatten(a_tensor_0), flatten(a_tensors...));
+    }
+
+    template<size_t SRC_BEGIN_INDEX = 0, typename T, size_t I1, size_t ... J1, size_t I2, size_t ... J2>
+    inline void copy(
+        const tensor<T, I1, J1 ...>& a_source,
+        tensor<T, I2, J2 ...>& a_destination_0,
+        auto& ... a_destinations
+    )
+    {
+        constexpr size_t SOURCE_ELEMENT_COUNT = (I1 * ... * J1);
+        constexpr size_t FIRST_DESTINATION_ELEMENT_COUNT = (I2 * ... * J2);
+        
+        const T* l_src_begin = a_source.flattened_begin() + SRC_BEGIN_INDEX;
+        const T* l_src_end   = l_src_begin + FIRST_DESTINATION_ELEMENT_COUNT;
+        T* l_dst = a_destination_0.flattened_begin();
+
+        // This takes advantage of the fact that std::array stores elements
+        // in contiguous memory.
+        std::copy(l_src_begin, l_src_end, l_dst);
+        
+        if constexpr (sizeof...(a_destinations) > 0)
+        {
+            copy<SRC_BEGIN_INDEX + FIRST_DESTINATION_ELEMENT_COUNT>(a_source, a_destinations ...);
+        }
+        else
+        {
+            // This copy was the last.
+            static_assert(SRC_BEGIN_INDEX + FIRST_DESTINATION_ELEMENT_COUNT == SOURCE_ELEMENT_COUNT, "Inequal number of elements in copy.");
+        }
+
     }
 
     template<typename T, size_t I, size_t ... J>

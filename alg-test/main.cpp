@@ -1506,98 +1506,124 @@ void large_memory_usage_test(
 
 // }
 
-// void test_pso(
+void test_pso(
 
-// )
-// {
-//     constexpr size_t X_HEIGHT = 4;
-//     constexpr size_t X_WIDTH =  2;
-//     constexpr size_t Y_HEIGHT = 4;
-//     constexpr size_t Y_WIDTH =  1;
+)
+{
+    std::cout << "TESTING PARTICLE SWARM OPTIMIZATION" << std::endl;
 
-//     constexpr std::array<size_t, 3> TNN_DIMS = {2, 5, 1};
+    constexpr size_t X_HEIGHT = 4;
+    constexpr size_t X_WIDTH =  2;
+    constexpr size_t Y_HEIGHT = 4;
+    constexpr size_t Y_WIDTH =  1;
+    constexpr size_t PARTICLE_COUNT = 20;
 
-//     std::mt19937 l_dre(26);
-//     std::uniform_real_distribution<double> l_urd(-1, 1);
+    constexpr std::array<size_t, 3> TNN_DIMS = {2, 5, 1};
+
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
     
-//     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
 
 
-//     std::stringstream l_tsx_ss(
-//         "0 0\n"
-//         "0 1\n"
-//         "1 0\n"
-//         "1 1\n"
-//     );
+    std::stringstream l_tsx_ss(
+        "0 0\n"
+        "0 1\n"
+        "1 0\n"
+        "1 1\n"
+    );
     
-//     std::stringstream l_tsy_ss(
-//         "0\n"
-//         "1\n"
-//         "1\n"
-//         "0\n"
-//     );
+    std::stringstream l_tsy_ss(
+        "0\n"
+        "1\n"
+        "1\n"
+        "0\n"
+    );
     
-//     tensor<double, X_HEIGHT, X_WIDTH> l_tsx;
-//     tensor<double, Y_HEIGHT, Y_WIDTH> l_tsy;
+    tensor<double, X_HEIGHT, X_WIDTH> l_tsx;
+    tensor<double, Y_HEIGHT, Y_WIDTH> l_tsy;
 
-//     l_tsx_ss >> l_tsx;
-//     l_tsy_ss >> l_tsy;
+    l_tsx_ss >> l_tsx;
+    l_tsy_ss >> l_tsy;
 
-// 	auto l_get_reward = [&l_tsx, &l_tsy](
-// 		auto& a_parameter_vector
-// 	)
-// 	{
-//         auto l_b1 = constant<double, TNN_DIMS[1]>(l_randomly_generate_parameter);
-//         auto l_b2 = constant<double, TNN_DIMS[2]>(l_randomly_generate_parameter);
-//         auto l_w0 = constant<double, TNN_DIMS[1], TNN_DIMS[0]>(l_randomly_generate_parameter);
-//         auto l_w1 = constant<double, TNN_DIMS[2], TNN_DIMS[1]>(l_randomly_generate_parameter);
+    auto l_b1 = constant<double, TNN_DIMS[1]>();
+    auto l_b2 = constant<double, TNN_DIMS[2]>();
+    auto l_w0 = constant<double, TNN_DIMS[1], TNN_DIMS[0]>();
+    auto l_w1 = constant<double, TNN_DIMS[2], TNN_DIMS[1]>();
+    
+    constexpr size_t PARAMETER_VECTOR_SIZE = 
+        l_b1.flattened_size() +
+        l_b2.flattened_size() +
+        l_w0.flattened_size() +
+        l_w1.flattened_size();
+
+    auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
+
+    auto l_get_y = [&](
+        const auto& a_parameter_vector
+    )
+    {
+        // This copies the parameters into their respective places.
+        copy(a_parameter_vector, l_b1, l_b2, l_w0, l_w1);
+
+        auto l_y = constant<double, Y_HEIGHT, Y_WIDTH>();
+
+		for (int i = 0; i < X_HEIGHT; i++)
+		{
+            auto l_w0_y =   multiply(l_w0, l_tsx[i]);
+            auto l_b1_y =   add(l_b1, l_w0_y);
+            auto l_tanh_1 = tanh(l_b1_y);
+            auto l_w1_y =   multiply(l_w1, l_tanh_1);
+            auto l_b2_y =   add(l_b2, l_w1_y);
+            auto l_tanh_2 = tanh(l_b2_y);
+            l_y[i] = l_tanh_2;
+		}
+
+        return l_y;
         
-// 		for (int i = 0; i < a_x.size(); i++)
-// 		{
-            
-// 		}
+    };
 
-// 		return 1.0 / (oneshot::mean_squared_error(l_y, a_y) + 1E-10);
+	auto l_get_reward = [&](
+		const auto& a_parameter_vector
+	)
+	{
+		return 1.0 / (mean_squared_error(l_get_y(a_parameter_vector), l_tsy) + 1E-10);
+	};
 
-// 	};
+	// Initialize the swarm optimizer.
+	oneshot::particle_swarm_optimizer<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE> 
+        l_particle_swarm_optimizer(l_positions, 0.9, 0.2, 0.8);
 
-// 	// Vector of particle independent variable positions
-// 	std::vector<aurora::oneshot::parameter_vector> l_parameter_vectors;
-// 	std::vector<aurora::oneshot::particle_optimizer> l_particle_optimizers;
+	// Construct a vector of the rewards associated with each parameter vector.
+	auto l_rewards = constant<double, PARTICLE_COUNT>();
 
-// 	// Initialize the particle positions
-// 	for (int i = 0; i < 50; i++)
-// 	{
-// 		oneshot::parameter_vector_builder l_builder(-7, 7);
-// 		l_get_reward(l_builder, l_tsx, l_tsy);
-// 		l_parameter_vectors.push_back(l_builder);
-// 	}
+	for (int l_epoch = 0; l_epoch < 100; l_epoch++)
+	{
+		for (int i = 0; i < PARTICLE_COUNT; i++)
+		{
+			l_rewards[i] = l_get_reward(
+				l_positions[i]
+			);
+		}
 
-// 	for (int i = 0; i < l_parameter_vectors.size(); i++)
-// 		l_particle_optimizers.push_back(aurora::oneshot::particle_optimizer(l_parameter_vectors[i]));
+		l_particle_swarm_optimizer.update(l_rewards);
+        
+		if (l_epoch % 10 == 0)
+			std::cout << l_particle_swarm_optimizer.global_best_reward() << std::endl;
+        
+	}
 
-// 	// Initialize the swarm optimizer.
-// 	aurora::oneshot::particle_swarm_optimizer l_particle_swarm_optimizer(l_particle_optimizers, 0.9, 0.2, 0.8);
+    auto l_y_final = l_get_y(l_particle_swarm_optimizer.global_best_position());
 
-// 	// Construct a vector of the rewards associated with each parameter vector.
-// 	state_vector l_rewards(l_parameter_vectors.size());
+    std::cout << std::endl << "DESIRED: " << std::endl << l_tsy << std::endl;
+    std::cout << "Actual: " << std::endl <<  l_y_final << std::endl;
 
-// 	for (int l_epoch = 0; true; l_epoch++)
-// 	{
-// 		for (int i = 0; i < l_parameter_vectors.size(); i++)
-// 		{
-// 			l_rewards[i] = l_get_reward(
-// 				l_parameter_vectors[i],
-// 				l_tsx,
-// 				l_tsy
-// 			);
-// 		}
-// 		l_particle_swarm_optimizer.update(l_rewards);
-// 		if (l_epoch % 10 == 0)
-// 			std::cout << l_particle_swarm_optimizer.global_best_reward() << std::endl;
-// 	}
+    assert(l_y_final[0][0] < 0.1);
+    assert(l_y_final[1][0] > 0.9);
+    assert(l_y_final[2][0] > 0.9);
+    assert(l_y_final[3][0] < 0.1);
 
-// }
+}
 
 // void oneshot_convolve_test(
 
@@ -2814,6 +2840,37 @@ void test_flatten_concat(
 
 }
 
+void test_tensor_copy(
+
+)
+{
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+    auto l_tens_0 = constant<double, 10, 10>(l_randomly_generate_parameter);
+    auto l_tens_1 = constant<double, 100>();
+    auto l_tens_2 = constant<double, 2, 5, 10>();
+
+    auto l_tens_3 = constant<double, 1, 5, 10>();
+    auto l_tens_4 = constant<double, 2, 5, 5>();
+
+    copy(l_tens_0, l_tens_1);
+    copy(l_tens_0, l_tens_2);    
+    copy(l_tens_0, l_tens_3, l_tens_4);
+
+    auto l_tens_0_flattened = flatten(l_tens_0);
+    auto l_tens_1_flattened = flatten(l_tens_1);
+    auto l_tens_2_flattened = flatten(l_tens_2);
+    auto l_tens_3_tens_4_concat = flatten(l_tens_3, l_tens_4);
+
+    assert(l_tens_1_flattened == l_tens_0_flattened);
+    assert(l_tens_2_flattened == l_tens_0_flattened);
+    assert(l_tens_3_tens_4_concat == l_tens_0_flattened);
+
+}
+
 void unit_test_main(
 
 )
@@ -2850,11 +2907,12 @@ void unit_test_main(
     test_insertion_extraction_operators();
     test_concat_more_than_two();
     test_flatten_concat();
+    test_tensor_copy();
     tnn_test();
     parabola_test();
     lstm_test();
     large_memory_usage_test();
-    //test_pso();
+    test_pso();
 }
 
 int main(
