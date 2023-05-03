@@ -1858,8 +1858,40 @@ void nonlinear_scatter_span_linearization(
 {
     // First, define the constants involved.
     constexpr size_t NODE_COUNT = 1000;
+    constexpr size_t PARTICLE_COUNT = 50;
     
+    // In this scatter span, we start off with a list of current states.
+    // Then, we repeatedly do the following:
+    // Select a random 2-permutation (x0, x1) of the list of current states.
+    // Input the 2-perm into the operation N.
+    // Replace one of the input operands in the list of current states with the output of N.
 
+    constexpr size_t WAVEFORM_SIZE = 10;
+    constexpr std::array<size_t, 3> R_DIMS = { WAVEFORM_SIZE, WAVEFORM_SIZE + 10, 1 };
+
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+    auto l_R_w0 = constant<double, R_DIMS[1], R_DIMS[0]>();
+    auto l_R_b1 = constant<double, R_DIMS[1]>();
+    auto l_R_w1 = constant<double, R_DIMS[2], R_DIMS[1]>();
+    auto l_R_b2 = constant<double, R_DIMS[2]>();
+
+    auto l_N = constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
+
+    constexpr size_t PARAMETER_VECTOR_SIZE = 
+        l_R_w0.flattened_size() +
+        l_R_b1.flattened_size() +
+        l_R_w1.flattened_size() +
+        l_R_b2.flattened_size() +
+        l_N.flattened_size();
+
+    // Randomly generate initial particle positions
+    auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
+
+    // Now, we wish to 
 
 }
 
