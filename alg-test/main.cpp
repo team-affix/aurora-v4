@@ -1859,6 +1859,7 @@ void nonlinear_scatter_span_linearization(
     // First, define the constants involved.
     constexpr size_t NODE_COUNT = 1000;
     constexpr size_t PARTICLE_COUNT = 50;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1871,14 +1872,15 @@ void nonlinear_scatter_span_linearization(
 
     std::mt19937 l_dre(26);
     std::uniform_real_distribution<double> l_urd(-1, 1);
+    std::uniform_real_distribution<double> l_waveform_urd(-10, 10);
     
     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+    std::function<double()> l_randomly_generate_waveform_value = [&l_dre, &l_waveform_urd] { return l_waveform_urd(l_dre); };
 
     auto l_R_w0 = constant<double, R_DIMS[1], R_DIMS[0]>();
     auto l_R_b1 = constant<double, R_DIMS[1]>();
     auto l_R_w1 = constant<double, R_DIMS[2], R_DIMS[1]>();
     auto l_R_b2 = constant<double, R_DIMS[2]>();
-
     auto l_N = constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
 
     constexpr size_t PARAMETER_VECTOR_SIZE = 
@@ -1888,10 +1890,102 @@ void nonlinear_scatter_span_linearization(
         l_R_b2.flattened_size() +
         l_N.flattened_size();
 
+    auto l_R = [&](
+        const tensor<double, WAVEFORM_SIZE>& a_x
+    )
+    {
+        auto l_w0_y = multiply(l_R_w0, a_x);
+        auto l_b1_y = add(l_w0_y, l_R_b1);
+        auto l_tanh_0 = tanh(l_b1_y);
+        auto l_w1_y = multiply(l_R_w1, l_tanh_0);
+        auto l_b2_y = add(l_w1_y, l_R_b2);
+        auto l_sigmoid = sigmoid(l_b2_y);
+        return l_sigmoid[0];
+    };
+
+    auto l_get_scattered_reward = [&](
+        auto& a_parameter_vector
+    )
+    {
+        // Populates the parameters into their respective places.
+        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_N);
+
+        // Randomize the roots of the scatter span
+        auto                       l_waveforms = constant<double, NODE_COUNT, WAVEFORM_SIZE>(l_randomly_generate_waveform_value);
+        tensor<double, NODE_COUNT> l_waveform_labels;
+
+        for (int i = 0; i < NODE_COUNT; i++)
+        {
+            double l_prediction = l_R(l_waveforms[i]);
+            l_waveform_labels[i] = double(l_prediction > 0.5);
+        }
+
+        // THE TRIVIAL SOLUTION IS NOT POSSIBLE HERE, SINCE
+        // IF ALL WAVEFORMS ARE CONSIDERED TO BE 0's, THEN 
+        // BY EVALUATING N ON THEM ONCE, IT SHOULD RETURN 1.
+        // THE CONVERSE IS ALSO TRUE.
+
+        double l_accuracy = 0;
+
+        for (int i = 0; i < NUMBER_OF_EVALUATIONS_IN_SPAN; i++)
+        {
+            // We will do this a number of times equal to the
+            // number of evaluations we should have in each span.
+            
+            size_t l_random_index_0 = rand() % NODE_COUNT;
+            size_t l_random_index_1 = rand() % NODE_COUNT;
+
+            tensor<double, WAVEFORM_SIZE> l_N_y = multiply(
+                l_N,
+                concat(
+                    l_waveforms[l_random_index_0],
+                    l_waveforms[l_random_index_1]
+                )
+            );
+
+            double l_R_y = l_R(l_N_y);
+            double l_R_y_label = 
+                double(
+                    !(l_waveform_labels[l_random_index_0] && l_waveform_labels[l_random_index_1]) // NAND
+                );
+
+            l_accuracy += (1 - std::abs(l_R_y - l_R_y_label));
+            
+            // Now that we've collected reward, go ahead and replace one of
+            // the operands with the output and correct label.
+
+            size_t l_replacement_index = (rand() % 2) ? l_random_index_0 : l_random_index_1;
+
+            l_waveforms[l_replacement_index] =       l_N_y;
+            l_waveform_labels[l_replacement_index] = l_R_y_label;
+
+        }
+
+        l_accuracy /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
+
+        return l_accuracy;
+        
+    };
+
     // Randomly generate initial particle positions
     auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
 
-    // Now, we wish to 
+    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8);
+
+    auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
+
+    for (int l_epoch = 0; true; l_epoch++)
+    {
+        for (int i = 0; i < PARTICLE_COUNT; i++)
+            // Get readings of rewards
+            l_rewards[i] = l_get_scattered_reward(l_positions[i]);
+
+        l_optimizer.update(l_rewards);
+
+        if (l_epoch % 1 == 0)
+            std::cout << l_optimizer.global_best_reward() << std::endl;
+        
+    }
 
 }
 
@@ -2951,9 +3045,9 @@ int main(
 
 )
 {
-    unit_test_main();
-
     nonlinear_scatter_span_linearization();
+
+    unit_test_main();
 
 	return 0;
 

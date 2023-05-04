@@ -613,6 +613,14 @@ namespace aurora
 
     }
 
+    template<typename T>
+    inline T negate(
+        const T& a_x
+    )
+    {
+        return multiply(a_x, constant<T>(-1.0));
+    }
+
     template<typename T, size_t I, size_t ... J>
     inline tensor<T, I, J ...> negate(
         const tensor<T, I, J ...>& a_x
@@ -839,13 +847,35 @@ namespace aurora
         return magnitude(subtract(a_x_0, a_x_1));
     }
 
+    template<typename T>
+    inline T squared_error(
+        const T& a_x_0,
+        const T& a_x_1
+    )
+    {
+        return pow(subtract(a_x_0, a_x_1), constant<T>(2.0));
+    }
+
     template<typename T, size_t I, size_t ... J>
-    T mean_squared_error(
+    inline T mean_squared_error(
         const tensor<T, I, J ...>& a_x_0,
         const tensor<T, I, J ...>& a_x_1
     )
     {
         return average(pow(flatten(subtract(a_x_0, a_x_1)), constant<T>(2.0)));
+    }
+
+    template<typename T>
+    inline T log_loss(
+        const T& a_label,
+        const T& a_prediction
+    )
+    {
+        T l_label_compliment = add(constant<T>(1.0), negate(a_label));
+        T l_prediction_compliment = add(constant<T>(1.0), negate(a_prediction));
+        
+        return negate(add(multiply(a_label, log(a_prediction)), multiply(l_label_compliment, log(l_prediction_compliment))));
+
     }
 
     inline std::default_random_engine i_default_random_engine;
