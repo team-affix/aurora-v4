@@ -26,6 +26,7 @@ namespace aurora
 			T m_w;
 			T m_c1;
 			T m_c2;
+            T m_memory;
 			T m_global_best_reward;
 			tensor<T, I> m_global_best_position;
 
@@ -34,7 +35,8 @@ namespace aurora
 				tensor<T, PARTICLE_COUNT, I>& a_positions,
 				const T& a_w,
 				const T& a_c1,
-				const T& a_c2
+				const T& a_c2,
+                const T& a_memory = 1.0
 			) :
                 m_positions(a_positions),
                 m_local_best_positions(constant<T, PARTICLE_COUNT, I>()),
@@ -43,6 +45,7 @@ namespace aurora
 				m_w(a_w),
 				m_c1(a_c1),
 				m_c2(a_c2),
+                m_memory(a_memory),
                 m_global_best_reward(-INFINITY),
                 m_global_best_position(constant<T, I>())
 			{
@@ -53,6 +56,10 @@ namespace aurora
 				const tensor<T, PARTICLE_COUNT>& a_particle_rewards
 			)
 			{
+                // This adds a memory decay to the global best reward, to
+                // assist with non-static or random environments.
+                m_global_best_reward *= m_memory;
+                
 				// Get the global best position if it has improved
 				for (int i = 0; i < PARTICLE_COUNT; i++)
 				{

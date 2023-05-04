@@ -1857,9 +1857,9 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 1000;
+    constexpr size_t NODE_COUNT = 100;
     constexpr size_t PARTICLE_COUNT = 50;
-    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 10000;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1882,13 +1882,15 @@ void nonlinear_scatter_span_linearization(
     auto l_R_w1 = constant<double, R_DIMS[2], R_DIMS[1]>();
     auto l_R_b2 = constant<double, R_DIMS[2]>();
     auto l_N = constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
+    auto l_waveforms = constant<double, NODE_COUNT, WAVEFORM_SIZE>();
 
     constexpr size_t PARAMETER_VECTOR_SIZE = 
         l_R_w0.flattened_size() +
         l_R_b1.flattened_size() +
         l_R_w1.flattened_size() +
         l_R_b2.flattened_size() +
-        l_N.flattened_size();
+        l_N.flattened_size() +
+        l_waveforms.flattened_size();
 
     auto l_R = [&](
         const tensor<double, WAVEFORM_SIZE>& a_x
@@ -1902,18 +1904,19 @@ void nonlinear_scatter_span_linearization(
         auto l_sigmoid = sigmoid(l_b2_y);
         return l_sigmoid[0];
     };
+    
 
     auto l_get_scattered_reward = [&](
         auto& a_parameter_vector
     )
     {
         // Populates the parameters into their respective places.
-        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_N);
+        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_N, l_waveforms);
 
-        // Randomize the roots of the scatter span
-        auto                       l_waveforms = constant<double, NODE_COUNT, WAVEFORM_SIZE>(l_randomly_generate_waveform_value);
+        // Allocate memory for waveform labels.
         tensor<double, NODE_COUNT> l_waveform_labels;
 
+        // Use the classifier to classify roots of the span
         for (int i = 0; i < NODE_COUNT; i++)
         {
             double l_prediction = l_R(l_waveforms[i]);
@@ -1970,7 +1973,7 @@ void nonlinear_scatter_span_linearization(
     // Randomly generate initial particle positions
     auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
 
-    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8);
+    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 0.99);
 
     auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
 
