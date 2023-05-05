@@ -1857,9 +1857,9 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 100;
-    constexpr size_t PARTICLE_COUNT = 50;
-    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 10000;
+    constexpr size_t NODE_COUNT = 10;
+    constexpr size_t PARTICLE_COUNT = 25;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1867,11 +1867,11 @@ void nonlinear_scatter_span_linearization(
     // Input the 2-perm into the operation N.
     // Replace one of the input operands in the list of current states with the output of N.
 
-    constexpr size_t WAVEFORM_SIZE = 10;
-    constexpr std::array<size_t, 3> R_DIMS = { WAVEFORM_SIZE, WAVEFORM_SIZE + 10, 1 };
+    constexpr size_t WAVEFORM_SIZE = 50;
+    constexpr std::array<size_t, 3> R_DIMS = { WAVEFORM_SIZE, WAVEFORM_SIZE / 2, 1 };
 
     std::mt19937 l_dre(26);
-    std::uniform_real_distribution<double> l_urd(-1, 1);
+    std::uniform_real_distribution<double> l_urd(-0.1, 0.1);
     std::uniform_real_distribution<double> l_waveform_urd(-10, 10);
     
     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
@@ -1884,7 +1884,7 @@ void nonlinear_scatter_span_linearization(
     auto l_N = constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
     auto l_waveforms = constant<double, NODE_COUNT, WAVEFORM_SIZE>();
 
-    constexpr size_t PARAMETER_VECTOR_SIZE = 
+    constexpr size_t PARAMETER_VECTOR_SIZE =
         l_R_w0.flattened_size() +
         l_R_b1.flattened_size() +
         l_R_w1.flattened_size() +
@@ -1898,14 +1898,13 @@ void nonlinear_scatter_span_linearization(
     {
         auto l_w0_y = multiply(l_R_w0, a_x);
         auto l_b1_y = add(l_w0_y, l_R_b1);
-        auto l_tanh_0 = tanh(l_b1_y);
-        auto l_w1_y = multiply(l_R_w1, l_tanh_0);
+        auto l_act_1 = tanh(l_b1_y);
+        auto l_w1_y = multiply(l_R_w1, l_act_1);
         auto l_b2_y = add(l_w1_y, l_R_b2);
-        auto l_sigmoid = sigmoid(l_b2_y);
-        return l_sigmoid[0];
+        auto l_act_2 = sigmoid(l_b2_y);
+        return l_act_2[0];
     };
     
-
     auto l_get_scattered_reward = [&](
         auto& a_parameter_vector
     )
@@ -1973,7 +1972,7 @@ void nonlinear_scatter_span_linearization(
     // Randomly generate initial particle positions
     auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
 
-    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 0.99);
+    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 0.9);
 
     auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
 
