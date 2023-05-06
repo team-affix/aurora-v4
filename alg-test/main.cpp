@@ -1857,9 +1857,9 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 10;
-    constexpr size_t PARTICLE_COUNT = 25;
-    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
+    constexpr size_t NODE_COUNT = 100;
+    constexpr size_t PARTICLE_COUNT = 50;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 10000;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1867,42 +1867,48 @@ void nonlinear_scatter_span_linearization(
     // Input the 2-perm into the operation N.
     // Replace one of the input operands in the list of current states with the output of N.
 
-    constexpr size_t WAVEFORM_SIZE = 50;
-    constexpr std::array<size_t, 3> R_DIMS = { WAVEFORM_SIZE, WAVEFORM_SIZE / 2, 1 };
+    constexpr size_t WAVEFORM_SIZE = 10;
+    constexpr std::array<size_t, 3> R_DIMS = { 2 * WAVEFORM_SIZE, WAVEFORM_SIZE, 1 };
 
     std::mt19937 l_dre(26);
-    std::uniform_real_distribution<double> l_urd(-0.1, 0.1);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
     std::uniform_real_distribution<double> l_waveform_urd(-10, 10);
     
     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
     std::function<double()> l_randomly_generate_waveform_value = [&l_dre, &l_waveform_urd] { return l_waveform_urd(l_dre); };
 
-    auto l_R_w0 = constant<double, R_DIMS[1], R_DIMS[0]>();
-    auto l_R_b1 = constant<double, R_DIMS[1]>();
-    auto l_R_w1 = constant<double, R_DIMS[2], R_DIMS[1]>();
-    auto l_R_b2 = constant<double, R_DIMS[2]>();
-    auto l_N = constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
-    auto l_waveforms = constant<double, NODE_COUNT, WAVEFORM_SIZE>();
+    auto l_R_w0 =        constant<double, R_DIMS[1], R_DIMS[0]>();
+    auto l_R_b1 =        constant<double, R_DIMS[1]>();
+    auto l_R_w1 =        constant<double, R_DIMS[2], R_DIMS[1]>();
+    auto l_R_b2 =        constant<double, R_DIMS[2]>();
+    auto l_N_0 =         constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
+    auto l_N_1 =         constant<double, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
+    auto l_waveforms_0 = constant<double, NODE_COUNT, WAVEFORM_SIZE>();
+    auto l_waveforms_1 = constant<double, NODE_COUNT, WAVEFORM_SIZE>();
 
     constexpr size_t PARAMETER_VECTOR_SIZE =
         l_R_w0.flattened_size() +
         l_R_b1.flattened_size() +
         l_R_w1.flattened_size() +
         l_R_b2.flattened_size() +
-        l_N.flattened_size() +
-        l_waveforms.flattened_size();
+        l_N_0.flattened_size() +
+        l_N_1.flattened_size() +
+        l_waveforms_0.flattened_size() +
+        l_waveforms_1.flattened_size();
 
     auto l_R = [&](
-        const tensor<double, WAVEFORM_SIZE>& a_x
+        const tensor<double, WAVEFORM_SIZE>& a_x_0,
+        const tensor<double, WAVEFORM_SIZE>& a_x_1
     )
     {
-        auto l_w0_y = multiply(l_R_w0, a_x);
+        auto l_x = concat(a_x_0, a_x_1);
+        auto l_w0_y = multiply(l_R_w0, l_x);
         auto l_b1_y = add(l_w0_y, l_R_b1);
-        auto l_act_1 = tanh(l_b1_y);
+        auto l_act_1 = leaky_relu(l_b1_y, 0.3);
         auto l_w1_y = multiply(l_R_w1, l_act_1);
         auto l_b2_y = add(l_w1_y, l_R_b2);
-        auto l_act_2 = sigmoid(l_b2_y);
-        return l_act_2[0];
+        auto l_act_2 = leaky_relu(l_b2_y, 0.3);
+        return l_act_2[0] - floor(l_act_2[0]);
     };
     
     auto l_get_scattered_reward = [&](
@@ -1910,7 +1916,7 @@ void nonlinear_scatter_span_linearization(
     )
     {
         // Populates the parameters into their respective places.
-        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_N, l_waveforms);
+        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_N_0, l_N_1, l_waveforms_0, l_waveforms_1);
 
         // Allocate memory for waveform labels.
         tensor<double, NODE_COUNT> l_waveform_labels;
@@ -1918,7 +1924,7 @@ void nonlinear_scatter_span_linearization(
         // Use the classifier to classify roots of the span
         for (int i = 0; i < NODE_COUNT; i++)
         {
-            double l_prediction = l_R(l_waveforms[i]);
+            double l_prediction = l_R(l_waveforms_0[i], l_waveforms_1[i]);
             l_waveform_labels[i] = double(l_prediction > 0.5);
         }
 
@@ -1937,15 +1943,23 @@ void nonlinear_scatter_span_linearization(
             size_t l_random_index_0 = rand() % NODE_COUNT;
             size_t l_random_index_1 = rand() % NODE_COUNT;
 
-            tensor<double, WAVEFORM_SIZE> l_N_y = multiply(
-                l_N,
+            tensor<double, WAVEFORM_SIZE> l_N_0_y = multiply(
+                l_N_0,
                 concat(
-                    l_waveforms[l_random_index_0],
-                    l_waveforms[l_random_index_1]
+                    l_waveforms_0[l_random_index_0],
+                    l_waveforms_0[l_random_index_1]
                 )
             );
 
-            double l_R_y = l_R(l_N_y);
+            tensor<double, WAVEFORM_SIZE> l_N_1_y = multiply(
+                l_N_1,
+                concat(
+                    l_waveforms_1[l_random_index_0],
+                    l_waveforms_1[l_random_index_1]
+                )
+            );
+
+            double l_R_y = l_R(l_N_0_y, l_N_1_y);
             double l_R_y_label = 
                 double(
                     !(l_waveform_labels[l_random_index_0] && l_waveform_labels[l_random_index_1]) // NAND
@@ -1958,7 +1972,8 @@ void nonlinear_scatter_span_linearization(
 
             size_t l_replacement_index = (rand() % 2) ? l_random_index_0 : l_random_index_1;
 
-            l_waveforms[l_replacement_index] =       l_N_y;
+            l_waveforms_0[l_replacement_index] =     l_N_0_y;
+            l_waveforms_1[l_replacement_index] =     l_N_1_y;
             l_waveform_labels[l_replacement_index] = l_R_y_label;
 
         }
@@ -1969,23 +1984,44 @@ void nonlinear_scatter_span_linearization(
         
     };
 
+    auto l_average_scattered_reward = [&](
+        auto& a_parameter_vector,
+        const size_t& a_trials
+    )
+    {
+        double l_accuracy_accumulator = 0;
+        for (int i = 0; i < a_trials; i++)
+            l_accuracy_accumulator += l_get_scattered_reward(a_parameter_vector);
+        return l_accuracy_accumulator / (double)a_trials;
+    };
+
     // Randomly generate initial particle positions
     auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
 
-    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 0.9);
+    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 1.0);
 
     auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
+
+    double l_previous_best_reward = -INFINITY;
 
     for (int l_epoch = 0; true; l_epoch++)
     {
         for (int i = 0; i < PARTICLE_COUNT; i++)
             // Get readings of rewards
-            l_rewards[i] = l_get_scattered_reward(l_positions[i]);
+            l_rewards[i] = l_average_scattered_reward(l_positions[i], 5);
 
         l_optimizer.update(l_rewards);
 
         if (l_epoch % 1 == 0)
+        {
+            std::cout << "AVERAGE: " << average(l_rewards) << ", BEST: ";
+            if (l_optimizer.global_best_reward() > l_previous_best_reward)
+            {
+                std::cout << "(NEW) ";
+                l_previous_best_reward = l_optimizer.global_best_reward();
+            }
             std::cout << l_optimizer.global_best_reward() << std::endl;
+        }
         
     }
 
