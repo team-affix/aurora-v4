@@ -1857,9 +1857,9 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 100;
+    constexpr size_t NODE_COUNT = 10;
     constexpr size_t PARTICLE_COUNT = 50;
-    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 10000;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1912,7 +1912,8 @@ void nonlinear_scatter_span_linearization(
     };
     
     auto l_get_scattered_reward = [&](
-        auto& a_parameter_vector
+        auto& a_parameter_vector,
+        bool a_print_accuracy_vector
     )
     {
         // Populates the parameters into their respective places.
@@ -1920,12 +1921,14 @@ void nonlinear_scatter_span_linearization(
 
         // Allocate memory for waveform labels.
         tensor<double, NODE_COUNT> l_waveform_labels;
+        tensor<size_t, NODE_COUNT> l_node_depths;
 
         // Use the classifier to classify roots of the span
         for (int i = 0; i < NODE_COUNT; i++)
         {
             double l_prediction = l_R(l_waveforms_0[i], l_waveforms_1[i]);
             l_waveform_labels[i] = double(l_prediction > 0.5);
+            l_node_depths[i] = 1.0;
         }
 
         // THE TRIVIAL SOLUTION IS NOT POSSIBLE HERE, SINCE
@@ -1933,7 +1936,13 @@ void nonlinear_scatter_span_linearization(
         // BY EVALUATING N ON THEM ONCE, IT SHOULD RETURN 1.
         // THE CONVERSE IS ALSO TRUE.
 
-        double l_accuracy = 0;
+        double l_total_accuracy = 0;
+
+        constexpr size_t DEPTH_ACCURACY_HIST_BIN_SIZE = 10;
+        constexpr size_t HIST_BIN_COUNT = NUMBER_OF_EVALUATIONS_IN_SPAN / DEPTH_ACCURACY_HIST_BIN_SIZE;
+        
+        auto l_depth_accuracies = constant<double, HIST_BIN_COUNT>(0);
+        auto l_depth_accuracies_bin_counts = constant<double, HIST_BIN_COUNT>(0);
 
         for (int i = 0; i < NUMBER_OF_EVALUATIONS_IN_SPAN; i++)
         {
@@ -1959,13 +1968,20 @@ void nonlinear_scatter_span_linearization(
                 )
             );
 
+            size_t l_output_node_depth = std::max(l_node_depths[l_random_index_0], l_node_depths[l_random_index_1]) + 1;
+
             double l_R_y = l_R(l_N_0_y, l_N_1_y);
             double l_R_y_label = 
                 double(
                     !(l_waveform_labels[l_random_index_0] && l_waveform_labels[l_random_index_1]) // NAND
                 );
 
-            l_accuracy += (1 - std::abs(l_R_y - l_R_y_label));
+            double l_current_node_accuracy = (1 - std::abs(l_R_y - l_R_y_label));
+
+            l_total_accuracy += l_current_node_accuracy;
+            
+            l_depth_accuracies[l_output_node_depth / DEPTH_ACCURACY_HIST_BIN_SIZE] += l_current_node_accuracy;
+            l_depth_accuracies_bin_counts[l_output_node_depth / DEPTH_ACCURACY_HIST_BIN_SIZE]++;
             
             // Now that we've collected reward, go ahead and replace one of
             // the operands with the output and correct label.
@@ -1975,23 +1991,40 @@ void nonlinear_scatter_span_linearization(
             l_waveforms_0[l_replacement_index] =     l_N_0_y;
             l_waveforms_1[l_replacement_index] =     l_N_1_y;
             l_waveform_labels[l_replacement_index] = l_R_y_label;
+            l_node_depths[l_replacement_index] = l_output_node_depth;
 
         }
 
-        l_accuracy /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
+        for (int i = 0; i < HIST_BIN_COUNT; i++)
+        {
+            l_depth_accuracies[i] /= l_depth_accuracies_bin_counts[i];
+        }
 
-        return l_accuracy;
+        if (a_print_accuracy_vector)
+        {
+            for (int i = 0; i < HIST_BIN_COUNT; i++)
+            {
+                if (l_depth_accuracies_bin_counts[i] != 0)
+                    std::cout << l_depth_accuracies[i] << ' ';
+            }
+            std::cout << std::endl;
+        }
+
+        l_total_accuracy /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
+
+        return l_total_accuracy;
         
     };
 
     auto l_average_scattered_reward = [&](
         auto& a_parameter_vector,
-        const size_t& a_trials
+        const size_t& a_trials,
+        bool a_print_accuracy_vector
     )
     {
         double l_accuracy_accumulator = 0;
         for (int i = 0; i < a_trials; i++)
-            l_accuracy_accumulator += l_get_scattered_reward(a_parameter_vector);
+            l_accuracy_accumulator += l_get_scattered_reward(a_parameter_vector, a_print_accuracy_vector && i == 0);
         return l_accuracy_accumulator / (double)a_trials;
     };
 
@@ -2008,7 +2041,7 @@ void nonlinear_scatter_span_linearization(
     {
         for (int i = 0; i < PARTICLE_COUNT; i++)
             // Get readings of rewards
-            l_rewards[i] = l_average_scattered_reward(l_positions[i], 5);
+            l_rewards[i] = l_average_scattered_reward(l_positions[i], 5, l_optimizer.global_best_reward() > 0.62 && i == 0);
 
         l_optimizer.update(l_rewards);
 

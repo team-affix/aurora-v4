@@ -67,6 +67,11 @@ namespace aurora
         const T& a_x_1
     );
 
+    template<typename T>
+    inline T abs(
+        const T& a_x
+    );
+
     template<>
     inline double constant<double>(
         const double& a_x
@@ -154,6 +159,14 @@ namespace aurora
     )
     {
         return std::pow(a_x_0, a_x_1);
+    }
+
+    template<>
+    inline double abs<double>(
+        const double& a_x
+    )
+    {
+        return std::abs(a_x);
     }
 
     /// Defining some typedefs for improving the readability of code
@@ -466,6 +479,20 @@ namespace aurora
 
     }
 
+    template<typename T, size_t I, size_t ... J>
+    inline tensor<T, I, J ...> abs(
+        const tensor<T, I, J ...>& a_x
+    )
+    {
+        tensor<T, I, J ...> l_result;
+
+        for (int i = 0; i < I; i++)
+            l_result[i] = abs(a_x[i]);
+
+        return l_result;
+        
+    }
+
     /// @brief Tensor-tensor multiplication.
     /// @tparam T 
     /// @tparam I 
@@ -525,6 +552,17 @@ namespace aurora
     )
     {
         return divide(additive_aggregate(a_x), constant<T>(I));
+    }
+
+    template<typename T, size_t I>
+    inline T stddev(
+        const tensor<T, I>& a_x
+    )
+    {
+        T l_avg = average(a_x);
+        auto l_devs = subtract(a_x, constant<T, I>(l_avg));
+        auto l_abs_devs = abs(l_devs);
+        return average(l_abs_devs);
     }
 
     template<typename T, size_t I, size_t ... J>
