@@ -583,13 +583,13 @@ namespace aurora
         return a_x[a_row];
     }
 
-    template<typename T, size_t I, size_t J>
-    inline tensor<T, I> col(
-        const tensor<T, I, J>& a_x,
+    template<typename T, size_t I, size_t J, size_t ... K>
+    inline tensor<T, I, K ...> col(
+        const tensor<T, I, J, K ...>& a_x,
         const size_t& a_col
     )
     {
-        tensor<T, I> l_result;
+        tensor<T, I, K ...> l_result;
 
         for (int i = 0; i < I; i++)
             l_result[i] = a_x[i][a_col];
