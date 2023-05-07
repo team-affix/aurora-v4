@@ -2031,6 +2031,13 @@ void nonlinear_scatter_span_linearization(
     // Randomly generate initial particle positions
     auto l_positions = constant<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE>(l_randomly_generate_parameter);
 
+    const std::string PARAM_FILE_NAME = "nonlinear_scatter_span_linearization_params.bin";
+
+    std::ifstream l_param_ifs(PARAM_FILE_NAME, std::ios::binary);
+
+    if (l_param_ifs.is_open())
+        l_param_ifs >> l_positions;
+
     oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 1.0);
 
     auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
@@ -2054,6 +2061,13 @@ void nonlinear_scatter_span_linearization(
                 l_previous_best_reward = l_optimizer.global_best_reward();
             }
             std::cout << l_optimizer.global_best_reward() << std::endl;
+
+            std::ofstream l_ofs(PARAM_FILE_NAME, std::ios::binary);
+
+            l_ofs << l_positions;
+
+            l_ofs.close();
+
         }
         
     }
