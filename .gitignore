@@ -12,6 +12,7 @@
 aurora-v4/alg-test/main
 *.o
 *.a
+alg-test/*.bin
 
 alg-test/main
 alg-test/main.dSYM/
