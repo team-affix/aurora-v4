@@ -1857,10 +1857,10 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 100;
-    constexpr size_t PARTICLE_COUNT = 25;
-    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 100;
-    constexpr size_t NUMBER_OF_SPANS = 8;
+    constexpr size_t NODE_COUNT = 10;
+    constexpr size_t PARTICLE_COUNT = 50;
+    constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
+    constexpr size_t NUMBER_OF_SPANS = 7;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1868,8 +1868,8 @@ void nonlinear_scatter_span_linearization(
     // Input the 2-perm into the operation N.
     // Replace one of the input operands in the list of current states with the output of N.
 
-    constexpr size_t WAVEFORM_SIZE = 10;
-    constexpr std::array<size_t, 3> R_DIMS = { NUMBER_OF_SPANS * WAVEFORM_SIZE, 45, 1 };
+    constexpr size_t WAVEFORM_SIZE = 5;
+    constexpr std::array<size_t, 3> R_DIMS = { NUMBER_OF_SPANS * WAVEFORM_SIZE, 128, 1 };
 
     std::mt19937 l_dre(26);
     std::uniform_real_distribution<double> l_urd(-1, 1);
@@ -1878,12 +1878,13 @@ void nonlinear_scatter_span_linearization(
     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
     std::function<double()> l_randomly_generate_waveform_value = [&l_dre, &l_waveform_urd] { return l_waveform_urd(l_dre); };
 
-    auto l_R_w0 =      constant<double, R_DIMS[1], R_DIMS[0]>();
-    auto l_R_b1 =      constant<double, R_DIMS[1]>();
-    auto l_R_w1 =      constant<double, R_DIMS[2], R_DIMS[1]>();
-    auto l_R_b2 =      constant<double, R_DIMS[2]>();
-    auto l_Ns =        constant<double, NUMBER_OF_SPANS, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
-    auto l_waveforms = constant<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>();
+    auto l_R_w0 =        constant<double, R_DIMS[1], R_DIMS[0]>();
+    auto l_R_b1 =        constant<double, R_DIMS[1]>();
+    auto l_R_w1 =        constant<double, R_DIMS[2], R_DIMS[1]>();
+    auto l_R_b2 =        constant<double, R_DIMS[2]>();
+    auto l_Ns =          constant<double, NUMBER_OF_SPANS, WAVEFORM_SIZE, 2 * WAVEFORM_SIZE>();
+    auto l_zero_states = constant<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>();
+    auto l_one_states =  constant<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>();
 
     constexpr size_t PARAMETER_VECTOR_SIZE =
         l_R_w0.flattened_size() +
@@ -1891,7 +1892,8 @@ void nonlinear_scatter_span_linearization(
         l_R_w1.flattened_size() +
         l_R_b2.flattened_size() +
         l_Ns.flattened_size() +
-        l_waveforms.flattened_size();
+        l_zero_states.flattened_size() +
+        l_one_states.flattened_size();
 
     auto l_R = [&](
         const tensor<double, NUMBER_OF_SPANS, WAVEFORM_SIZE>& a_x
@@ -1900,7 +1902,7 @@ void nonlinear_scatter_span_linearization(
         auto l_x = flatten(a_x);
         auto l_w0_y = multiply(l_R_w0, l_x);
         auto l_b1_y = add(l_w0_y, l_R_b1);
-        auto l_act_1 = tanh(l_b1_y);
+        auto l_act_1 = leaky_relu(l_b1_y, 0.3);
         auto l_w1_y = multiply(l_R_w1, l_act_1);
         auto l_b2_y = add(l_w1_y, l_R_b2);
         auto l_act_2 = sigmoid(l_b2_y);
@@ -1908,23 +1910,21 @@ void nonlinear_scatter_span_linearization(
     };
     
     auto l_get_scattered_reward = [&](
-        auto& a_parameter_vector,
-        bool a_print_accuracy_vector
+        auto& a_parameter_vector
     )
     {
         // Populates the parameters into their respective places.
-        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_Ns, l_waveforms);
+        copy(a_parameter_vector, l_R_w0, l_R_b1, l_R_w1, l_R_b2, l_Ns, l_zero_states, l_one_states);
 
         // Allocate memory for waveform labels.
-        tensor<double, NODE_COUNT> l_waveform_labels;
-        tensor<size_t, NODE_COUNT> l_node_depths;
+        tensor<size_t, NODE_COUNT> l_zero_node_depths;
+        tensor<size_t, NODE_COUNT> l_one_node_depths;
 
-        // Use the classifier to classify roots of the span
+        // Initialize node depths to a reasonable value
         for (int i = 0; i < NODE_COUNT; i++)
         {
-            double l_prediction = l_R(col(l_waveforms, i));
-            l_waveform_labels[i] = double(l_prediction > 0.5);
-            l_node_depths[i] = 1.0;
+            l_zero_node_depths[i] = 1;
+            l_one_node_depths[i] =  1;
         }
 
         // THE TRIVIAL SOLUTION IS NOT POSSIBLE HERE, SINCE
@@ -1934,14 +1934,13 @@ void nonlinear_scatter_span_linearization(
 
         double l_total_accuracy = 0;
 
-        double l_proportion_of_1_outputted_bits = 0;
-        double l_proportion_of_1_labels = 0;
+        bool l_generate_zero = true;
 
-        constexpr size_t DEPTH_ACCURACY_HIST_BIN_SIZE = 10;
-        constexpr size_t HIST_BIN_COUNT = NUMBER_OF_EVALUATIONS_IN_SPAN / DEPTH_ACCURACY_HIST_BIN_SIZE;
+        // constexpr size_t DEPTH_ACCURACY_HIST_BIN_SIZE = 10;
+        // constexpr size_t HIST_BIN_COUNT = NUMBER_OF_EVALUATIONS_IN_SPAN / DEPTH_ACCURACY_HIST_BIN_SIZE;
         
-        auto l_depth_accuracies = constant<double, HIST_BIN_COUNT>(0);
-        auto l_depth_accuracies_bin_counts = constant<double, HIST_BIN_COUNT>(0);
+        // auto l_depth_accuracies = constant<double, HIST_BIN_COUNT>(0);
+        // auto l_depth_accuracies_bin_counts = constant<double, HIST_BIN_COUNT>(0);
 
         for (int i = 0; i < NUMBER_OF_EVALUATIONS_IN_SPAN; i++)
         {
@@ -1951,79 +1950,112 @@ void nonlinear_scatter_span_linearization(
             size_t l_random_index_0 = rand() % NODE_COUNT;
             size_t l_random_index_1 = rand() % NODE_COUNT;
 
+            tensor<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>* l_pool_0 = nullptr;
+            tensor<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>* l_pool_1 = nullptr;
+            tensor<double, NUMBER_OF_SPANS, NODE_COUNT, WAVEFORM_SIZE>* l_replacement_pool = nullptr;
+
+            double l_R_y_label = 0;
+
+            if (l_generate_zero)
+            {
+                // To generate a zero, since NAND only outputs 0 when both
+                // inputs are 1's, we need to sample two waveforms from
+                // the 1-state pool.
+
+                l_pool_0 = &l_one_states;
+                l_pool_1 = &l_one_states;
+                l_replacement_pool = &l_zero_states;
+
+                l_R_y_label = 0.0;
+
+            }
+            else
+            {
+                // There are three ways in which we can produce 1's.
+                // (0, 0) -> 1
+                // (0, 1) -> 1
+                // (1, 0) -> 1
+                // We wish to select a random option.
+
+                switch(rand() % 3)
+                {
+                    case 0:
+                        l_pool_0 = &l_zero_states;
+                        l_pool_1 = &l_zero_states;
+                        break;
+                    case 1:
+                        l_pool_0 = &l_zero_states;
+                        l_pool_1 = &l_one_states;
+                        break;
+                    case 2:
+                        l_pool_0 = &l_one_states;
+                        l_pool_1 = &l_zero_states;
+                        break;
+                    default:
+                        break;
+                }
+
+                l_replacement_pool = &l_one_states;
+
+                l_R_y_label = 1.0;
+
+            }
+
             tensor<double, NUMBER_OF_SPANS, WAVEFORM_SIZE> l_N_ys;
 
+            // Compute outputs through the linear operation N.
             for (int i = 0; i < NUMBER_OF_SPANS; i++)
             {
                 l_N_ys[i] = multiply(
                     l_Ns[i],
                     concat(
-                        l_waveforms[i][l_random_index_0],
-                        l_waveforms[i][l_random_index_1]
+                        (*l_pool_0)[i][l_random_index_0],
+                        (*l_pool_1)[i][l_random_index_1]
                     )
                 );
             }
 
-            size_t l_output_node_depth = std::max(l_node_depths[l_random_index_0], l_node_depths[l_random_index_1]) + 1;
-
             double l_R_y = l_R(l_N_ys);
-            double l_R_y_label = 
-                double(
-                    !(l_waveform_labels[l_random_index_0] && l_waveform_labels[l_random_index_1]) // NAND
-                );
-
-            if (l_R_y > 0.5)
-            {
-                l_proportion_of_1_outputted_bits++;
-            }
-
-            if (l_R_y_label > 0.5)
-            {
-                l_proportion_of_1_labels++;
-            }
-
+            
             double l_current_node_accuracy = (1.0 - std::abs(l_R_y - l_R_y_label));
 
             l_total_accuracy += l_current_node_accuracy;
             
-            l_depth_accuracies[l_output_node_depth / DEPTH_ACCURACY_HIST_BIN_SIZE] += l_current_node_accuracy;
-            l_depth_accuracies_bin_counts[l_output_node_depth / DEPTH_ACCURACY_HIST_BIN_SIZE]++;
-            
             // Now that we've collected reward, go ahead and replace one of
             // the operands with the output and correct label.
 
-            size_t l_replacement_index = (rand() % 2) ? l_random_index_0 : l_random_index_1;
+            size_t l_replacement_index = rand() % NODE_COUNT;
 
             for (int i = 0; i < NUMBER_OF_SPANS; i++)
             {
-                l_waveforms[i][l_replacement_index] = l_N_ys[i];
+                (*l_replacement_pool)[i][l_replacement_index] = l_N_ys[i];
             }
 
-            l_waveform_labels[l_replacement_index] = l_R_y_label;
-            l_node_depths[l_replacement_index] = l_output_node_depth;
+            // For the next iteration, we want to do the opposite. (To keep sampling 50-50 zeroes and ones).
+            l_generate_zero = !l_generate_zero;
 
         }
 
-        for (int i = 0; i < HIST_BIN_COUNT; i++)
-        {
-            l_depth_accuracies[i] /= l_depth_accuracies_bin_counts[i];
-        }
+        // for (int i = 0; i < HIST_BIN_COUNT; i++)
+        // {
+        //     l_depth_accuracies[i] /= l_depth_accuracies_bin_counts[i];
+        // }
 
         l_total_accuracy /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
-        l_proportion_of_1_labels /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
-        l_proportion_of_1_outputted_bits /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
+        // l_proportion_of_1_labels /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
+        // l_proportion_of_1_outputted_bits /= (double)NUMBER_OF_EVALUATIONS_IN_SPAN;
 
-        if (a_print_accuracy_vector)
-        {
-            for (int i = 0; i < HIST_BIN_COUNT; i++)
-            {
-                if (l_depth_accuracies_bin_counts[i] != 0)
-                    std::cout << l_depth_accuracies[i] << ' ';
-            }
-            std::cout << std::endl;
-            std::cout << "PROPORTION OF 1 LABELS:         " << l_proportion_of_1_labels << std::endl;
-            std::cout << "PROPORTION OF OUTPUTTED 1 BITS: " << l_proportion_of_1_outputted_bits << std::endl;
-        }
+        // if (a_print_accuracy_vector)
+        // {
+        //     for (int i = 0; i < HIST_BIN_COUNT; i++)
+        //     {
+        //         if (l_depth_accuracies_bin_counts[i] != 0)
+        //             std::cout << l_depth_accuracies[i] << ' ';
+        //     }
+        //     std::cout << std::endl;
+        //     std::cout << "PROPORTION OF 1 LABELS:         " << l_proportion_of_1_labels << std::endl;
+        //     std::cout << "PROPORTION OF OUTPUTTED 1 BITS: " << l_proportion_of_1_outputted_bits << std::endl;
+        // }
 
         return l_total_accuracy;
         
@@ -2031,13 +2063,12 @@ void nonlinear_scatter_span_linearization(
 
     auto l_average_scattered_reward = [&](
         auto& a_parameter_vector,
-        const size_t& a_trials,
-        bool a_print_accuracy_vector
+        const size_t& a_trials
     )
     {
         double l_accuracy_accumulator = 0;
         for (int i = 0; i < a_trials; i++)
-            l_accuracy_accumulator += l_get_scattered_reward(a_parameter_vector, a_print_accuracy_vector && i == 0);
+            l_accuracy_accumulator += l_get_scattered_reward(a_parameter_vector);
         return l_accuracy_accumulator / (double)a_trials;
     };
 
@@ -2061,7 +2092,7 @@ void nonlinear_scatter_span_linearization(
     {
         for (int i = 0; i < PARTICLE_COUNT; i++)
             // Get readings of rewards
-            l_rewards[i] = l_average_scattered_reward(l_positions[i], 5, false);
+            l_rewards[i] = l_average_scattered_reward(l_positions[i], 5);
 
         l_optimizer.update(l_rewards);
 
