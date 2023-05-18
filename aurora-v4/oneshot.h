@@ -118,6 +118,7 @@ namespace aurora
 				tensor<T, I> l_social_term = multiply(multiply(subtract(m_global_best_position, a_position), m_c2), s_urd(i_default_random_engine));
 				a_velocity = add(add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
 				a_position = add(a_position, a_velocity);
+
 			}
 
 		};
@@ -125,7 +126,154 @@ namespace aurora
         template<typename T, size_t PARTICLE_COUNT, size_t I>
         std::uniform_real_distribution<double> particle_swarm_optimizer<T, PARTICLE_COUNT, I>::s_urd(0, 1);
 
+        template<size_t PARTICLE_COUNT, size_t I>
+        class integer_categorical_particle_swarm_optimizer
+        {
+		private:
+            static std::uniform_real_distribution<double> s_urd;
         
+        private:
+			tensor<std::vector<double>, PARTICLE_COUNT, I> m_positions;
+            tensor<std::vector<double>, PARTICLE_COUNT, I> m_local_best_positions;
+            tensor<std::vector<double>, PARTICLE_COUNT, I> m_velocities;
+            tensor<double, PARTICLE_COUNT>                 m_local_best_rewards;
+
+			double                         m_w;
+			double                         m_c1;
+			double                         m_c2;
+			double                         m_global_best_reward;
+			tensor<std::vector<double>, I> m_global_best_position;
+            tensor<size_t, I>              m_global_best_solution;
+
+		public:
+			particle_swarm_optimizer(
+                tensor<size_t, I>& a_distribution_sizes,
+				const double& a_w,
+				const double& a_c1,
+				const double& a_c2
+			) :
+                m_local_best_rewards(constant<double, PARTICLE_COUNT>()),
+				m_w(a_w),
+				m_c1(a_c1),
+				m_c2(a_c2),
+                m_global_best_reward(-INFINITY)
+			{
+                for (int i = 0; i < PARTICLE_COUNT; i++)
+                    for (int j = 0; j < I; j++)
+                    {
+                        m_positions[i][j] = std::vector<double>(a_distribution_sizes[j]);
+                        m_local_best_positions[i][j] = std::vector<double>(a_distribution_sizes[j]);
+                        m_velocities[i][j] = std::vector<double>(a_distribution_sizes[j]);
+
+                        // INITIALIZE THE POSITION DISTRIBUTIONS RANDOMLY
+
+                        double l_normalization_denominator = 0;
+                        
+                        for (int k = 0; k < a_distribution_sizes[j]; k++)
+                        {
+                            m_positions[i][j][k] = s_urd(i_default_random_engine);
+                            l_normalization_denominator += m_positions[i][j][k];
+                        }
+
+                        // NORMALIZE THE DISTRIBUTIONS
+
+                        for (int k = 0; k < a_distribution_sizes[j]; k++)
+                            m_positions[i][j][k] /= l_normalization_denominator;
+                        
+                    }
+
+                for (int i = 0; i < I; i++)
+                    m_global_best_position[i] = std::vector<double>(a_distribution_sizes[i]);
+
+			}
+
+            tensor<size_t, PARTICLE_COUNT, I> samples(
+
+            ) const
+            {
+
+            }
+
+			void update(
+				const tensor<double, PARTICLE_COUNT>& a_particle_rewards
+			)
+			{
+				// Get the global best position if it has improved
+				for (int i = 0; i < PARTICLE_COUNT; i++)
+				{
+					if (a_particle_rewards[i] > m_global_best_reward)
+					{
+						m_global_best_reward = a_particle_rewards[i];
+
+                        /////////////////////
+                        // THIS HAS TO CHANGE
+                        /////////////////////
+                        
+						m_global_best_position = m_positions[i];
+					}
+				}
+
+				// Update all particle positions
+				for (int i = 0; i < PARTICLE_COUNT; i++)
+				{
+                    update(
+                        m_positions[i],
+                        m_local_best_positions[i],
+                        m_velocities[i],
+                        m_local_best_rewards[i],
+                        a_particle_rewards[i]
+                    );
+				}
+
+			}
+
+			double global_best_reward(
+
+			)
+			{
+				return m_global_best_reward;
+			}
+
+			tensor<std::vector<double>, I> global_best_position(
+
+			)
+			{
+				return m_global_best_position;
+			}
+
+            tensor<size_t, I> global_best_solution(
+
+            )
+            {
+
+            }
+
+        private:
+			void update(
+                tensor<T, I>& a_position,
+                tensor<T, I>& a_local_best_position,
+                tensor<T, I>& a_velocity,
+                T& a_local_best_reward,
+				const T& a_reward
+			)
+			{
+				if (a_reward > a_local_best_reward)
+				{
+					a_local_best_position = a_position;
+					a_local_best_reward = a_reward;
+				}
+
+				tensor<T, I> l_weighted_particle_velocity = multiply(a_velocity, m_w);
+				tensor<T, I> l_cognitive_term = multiply(multiply(subtract(a_local_best_position, a_position), m_c1), s_urd(i_default_random_engine));
+				tensor<T, I> l_social_term = multiply(multiply(subtract(m_global_best_position, a_position), m_c2), s_urd(i_default_random_engine));
+				a_velocity = add(add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
+				a_position = add(a_position, a_velocity);
+			}
+
+        };
+
+        template<size_t PARTICLE_COUNT, size_t I>
+        std::uniform_real_distribution<double> integer_categorical_particle_swarm_optimizer<PARTICLE_COUNT, I>::s_urd(0, 1);
 
 	}
 
