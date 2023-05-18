@@ -1857,10 +1857,10 @@ void nonlinear_scatter_span_linearization(
 )
 {
     // First, define the constants involved.
-    constexpr size_t NODE_COUNT = 10;
-    constexpr size_t PARTICLE_COUNT = 50;
+    constexpr size_t NODE_COUNT = 5;
+    constexpr size_t PARTICLE_COUNT = 25;
     constexpr size_t NUMBER_OF_EVALUATIONS_IN_SPAN = 1000;
-    constexpr size_t NUMBER_OF_SPANS = 7;
+    constexpr size_t NUMBER_OF_SPANS = 2;
     
     // In this scatter span, we start off with a list of current states.
     // Then, we repeatedly do the following:
@@ -1868,8 +1868,8 @@ void nonlinear_scatter_span_linearization(
     // Input the 2-perm into the operation N.
     // Replace one of the input operands in the list of current states with the output of N.
 
-    constexpr size_t WAVEFORM_SIZE = 5;
-    constexpr std::array<size_t, 3> R_DIMS = { NUMBER_OF_SPANS * WAVEFORM_SIZE, 128, 1 };
+    constexpr size_t WAVEFORM_SIZE = 10;
+    constexpr std::array<size_t, 3> R_DIMS = { NUMBER_OF_SPANS * WAVEFORM_SIZE, 256, 1 };
 
     std::mt19937 l_dre(26);
     std::uniform_real_distribution<double> l_urd(-1, 1);
@@ -1905,8 +1905,8 @@ void nonlinear_scatter_span_linearization(
         auto l_act_1 = leaky_relu(l_b1_y, 0.3);
         auto l_w1_y = multiply(l_R_w1, l_act_1);
         auto l_b2_y = add(l_w1_y, l_R_b2);
-        auto l_act_2 = sigmoid(l_b2_y);
-        return l_act_2[0];// - floor(l_act_2[0]);
+        auto l_act_2 = leaky_relu(l_b2_y, 0.3);
+        return l_act_2[0] - floor(l_act_2[0]);
     };
     
     auto l_get_scattered_reward = [&](

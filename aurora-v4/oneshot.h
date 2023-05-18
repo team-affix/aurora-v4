@@ -125,6 +125,8 @@ namespace aurora
         template<typename T, size_t PARTICLE_COUNT, size_t I>
         std::uniform_real_distribution<double> particle_swarm_optimizer<T, PARTICLE_COUNT, I>::s_urd(0, 1);
 
+        
+
 	}
 
 }
