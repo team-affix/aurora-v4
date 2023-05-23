@@ -18,6 +18,17 @@ long long duration_ms(
     return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - a_start)).count();
 }
 
+namespace aurora
+{
+    template<>
+    size_t constant<size_t>(
+        const double& a_val
+    )
+    {
+        return (size_t)a_val;
+    }
+}
+
 void tnn_test(
 
 )
@@ -1625,6 +1636,160 @@ void test_pso(
 
 }
 
+template<size_t I>
+bool nor(
+    const tensor<size_t, I>& a_connections,
+    const tensor<bool, I>& a_x
+)
+{
+    bool l_result = false;
+
+    for (int i = 0; i < a_x.size(); i++)
+    {
+        if (a_connections[i] == 1 && a_x[i])
+        {
+            l_result = true;
+            break;
+        }
+    }
+
+    return !l_result;
+    
+};
+
+template<size_t I, size_t J>
+tensor<bool, I> nor_layer(
+    const tensor<size_t, I, J>& a_layer_matrix,
+    const tensor<bool, J>& a_x
+)
+{
+    tensor<bool, I> l_result;
+
+    for (int i = 0; i < I; i++)
+        l_result[i] = l_nor(a_layer_matrix[i], a_x);
+
+    return l_result;
+    
+};
+
+void test_icpso(
+
+)
+{
+    std::cout << "TESTING INTEGER CATEGORICAL PARTICLE SWARM OPTIMIZATION" << std::endl;
+
+    constexpr size_t X_HEIGHT = 4;
+    constexpr size_t X_WIDTH = 2;
+    constexpr size_t Y_HEIGHT = 4;
+    constexpr size_t Y_WIDTH = 1;
+    constexpr size_t H_SIZE = 2;
+    constexpr size_t PARTICLE_COUNT = 20;
+
+    tensor<size_t, H_SIZE, X_WIDTH> l_layer_0;
+    tensor<size_t, Y_WIDTH, H_SIZE> l_layer_1;
+    
+    constexpr size_t PARAM_VECTOR_SIZE = 
+        l_layer_0.flattened_size() +
+        l_layer_1.flattened_size();
+    
+    auto l_distribution_sizes = constant<size_t, PARAM_VECTOR_SIZE>(2);
+
+    std::stringstream l_tsx_ss(
+        "0 0\n"
+        "0 1\n"
+        "1 0\n"
+        "1 1\n"
+    );
+    
+    std::stringstream l_tsy_ss(
+        "0\n"
+        "1\n"
+        "1\n"
+        "0\n"
+    );
+    
+    tensor<bool, X_HEIGHT, X_WIDTH> l_tsx;
+    tensor<bool, Y_HEIGHT, Y_WIDTH> l_tsy;
+
+    l_tsx_ss >> l_tsx;
+    l_tsy_ss >> l_tsy;
+
+    auto l_get_y = [&](
+        const tensor<size_t, PARAM_VECTOR_SIZE>& a_candidate_solution
+    )
+    {
+        // This copies the parameters into their respective places.
+        copy(a_candidate_solution, l_layer_0, l_layer_1);
+
+        auto l_y = constant<bool, Y_HEIGHT, Y_WIDTH>();
+
+		for (int i = 0; i < X_HEIGHT; i++)
+		{
+            auto l_layer_0_y = nor_layer(l_layer_0, l_tsx[i]);
+            auto l_layer_1_y = nor_layer(l_layer_1, l_layer_0_y);
+            l_y[i] = l_layer_1_y;
+		}
+
+        return l_y;
+        
+    };
+
+	auto l_get_reward = [&](
+		const auto& a_candidate_solution
+	)
+	{
+        double l_result = 0;
+
+        auto l_y = l_get_y(a_candidate_solution);
+
+        for (int i = 0; i < Y_HEIGHT; i++)
+            l_result += double(l_y[i] == l_tsy[i]);
+        
+        return l_result;
+        
+	};
+
+    oneshot::icpso<PARTICLE_COUNT, PARAM_VECTOR_SIZE> l_icpso(
+        l_distribution_sizes,
+        0.9,
+        0.2,
+        0.3,
+        0.9
+    );
+    
+	// Construct a vector of the rewards associated with each parameter vector.
+	auto l_rewards = constant<double, PARTICLE_COUNT>();
+
+	for (int l_epoch = 0; l_epoch < 100; l_epoch++)
+	{
+        const tensor<size_t, PARTICLE_COUNT, PARAM_VECTOR_SIZE>& l_candidates = l_icpso.candidate_solutions();
+        
+		for (int i = 0; i < PARTICLE_COUNT; i++)
+		{
+			l_rewards[i] = l_get_reward(
+				l_candidates[i]
+			);
+		}
+
+		l_icpso.update(l_rewards);
+        
+		if (l_epoch % 10 == 0)
+			std::cout << l_icpso.global_best_reward() << std::endl;
+        
+	}
+
+    auto l_y_final = l_get_y(l_icpso.global_best_solution());
+
+    std::cout << std::endl << "DESIRED: " << std::endl << l_tsy << std::endl;
+    std::cout << "Actual: " << std::endl <<  l_y_final << std::endl;
+
+    assert(l_y_final[0][0] == false);
+    assert(l_y_final[1][0] == true);
+    assert(l_y_final[2][0] == true);
+    assert(l_y_final[3][0] == false);
+
+}
+
 // void oneshot_convolve_test(
 
 // )
@@ -3174,8 +3339,6 @@ int main(
 
 )
 {
-    nonlinear_scatter_span_linearization();
-
     unit_test_main();
 
 	return 0;
