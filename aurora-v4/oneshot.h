@@ -194,7 +194,7 @@ namespace aurora
 
             const tensor<size_t, PARTICLE_COUNT, I>& candidate_solutions(
 
-            ) const
+            )
             {
                 for (int i = 0; i < PARTICLE_COUNT; i++)
                     for (int j = 0; j < I; j++)

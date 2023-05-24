@@ -21,7 +21,7 @@ long long duration_ms(
 namespace aurora
 {
     template<>
-    size_t constant<size_t>(
+    inline size_t constant<size_t>(
         const double& a_val
     )
     {
@@ -1666,7 +1666,7 @@ tensor<bool, I> nor_layer(
     tensor<bool, I> l_result;
 
     for (int i = 0; i < I; i++)
-        l_result[i] = l_nor(a_layer_matrix[i], a_x);
+        l_result[i] = nor(a_layer_matrix[i], a_x);
 
     return l_result;
     
@@ -1682,15 +1682,19 @@ void test_icpso(
     constexpr size_t X_WIDTH = 2;
     constexpr size_t Y_HEIGHT = 4;
     constexpr size_t Y_WIDTH = 1;
-    constexpr size_t H_SIZE = 2;
     constexpr size_t PARTICLE_COUNT = 20;
+    constexpr std::array<size_t, 5> LAYER_DIMS = {2, 2, 2, 1, 1};
 
-    tensor<size_t, H_SIZE, X_WIDTH> l_layer_0;
-    tensor<size_t, Y_WIDTH, H_SIZE> l_layer_1;
+    tensor<size_t, LAYER_DIMS[1], LAYER_DIMS[0]> l_layer_0;
+    tensor<size_t, LAYER_DIMS[2], LAYER_DIMS[1]> l_layer_1;
+    tensor<size_t, LAYER_DIMS[3], LAYER_DIMS[2]> l_layer_2;
+    tensor<size_t, LAYER_DIMS[4], LAYER_DIMS[3]> l_layer_3;
     
     constexpr size_t PARAM_VECTOR_SIZE = 
         l_layer_0.flattened_size() +
-        l_layer_1.flattened_size();
+        l_layer_1.flattened_size() +
+        l_layer_2.flattened_size() +
+        l_layer_3.flattened_size();
     
     auto l_distribution_sizes = constant<size_t, PARAM_VECTOR_SIZE>(2);
 
@@ -1719,15 +1723,17 @@ void test_icpso(
     )
     {
         // This copies the parameters into their respective places.
-        copy(a_candidate_solution, l_layer_0, l_layer_1);
+        copy(a_candidate_solution, l_layer_0, l_layer_1, l_layer_2, l_layer_3);
 
-        auto l_y = constant<bool, Y_HEIGHT, Y_WIDTH>();
+        tensor<bool, Y_HEIGHT, Y_WIDTH> l_y;
 
 		for (int i = 0; i < X_HEIGHT; i++)
 		{
             auto l_layer_0_y = nor_layer(l_layer_0, l_tsx[i]);
             auto l_layer_1_y = nor_layer(l_layer_1, l_layer_0_y);
-            l_y[i] = l_layer_1_y;
+            auto l_layer_2_y = nor_layer(l_layer_2, l_layer_1_y);
+            auto l_layer_3_y = nor_layer(l_layer_3, l_layer_2_y);
+            l_y[i] = l_layer_3_y;
 		}
 
         return l_y;
@@ -1753,14 +1759,14 @@ void test_icpso(
         l_distribution_sizes,
         0.9,
         0.2,
-        0.3,
-        0.9
+        0.8,
+        0.99
     );
     
 	// Construct a vector of the rewards associated with each parameter vector.
 	auto l_rewards = constant<double, PARTICLE_COUNT>();
 
-	for (int l_epoch = 0; l_epoch < 100; l_epoch++)
+	for (int l_epoch = 0; l_epoch < 10000; l_epoch++)
 	{
         const tensor<size_t, PARTICLE_COUNT, PARAM_VECTOR_SIZE>& l_candidates = l_icpso.candidate_solutions();
         
@@ -3333,12 +3339,15 @@ void unit_test_main(
     lstm_test();
     large_memory_usage_test();
     test_pso();
+    test_icpso();
 }
 
 int main(
 
 )
 {
+    test_icpso();
+    
     unit_test_main();
 
 	return 0;
