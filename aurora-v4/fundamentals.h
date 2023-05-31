@@ -916,7 +916,7 @@ namespace aurora
 
     }
 
-    inline std::default_random_engine i_default_random_engine;
+    inline std::mt19937 i_random_engine;
 
 }
 

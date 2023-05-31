@@ -114,8 +114,8 @@ namespace aurora
 				}
 
 				tensor<T, I> l_weighted_particle_velocity = multiply(a_velocity, m_w);
-				tensor<T, I> l_cognitive_term = multiply(multiply(subtract(a_local_best_position, a_position), m_c1), s_urd(i_default_random_engine));
-				tensor<T, I> l_social_term = multiply(multiply(subtract(m_global_best_position, a_position), m_c2), s_urd(i_default_random_engine));
+				tensor<T, I> l_cognitive_term = multiply(multiply(subtract(a_local_best_position, a_position), m_c1), s_urd(i_random_engine));
+				tensor<T, I> l_social_term = multiply(multiply(subtract(m_global_best_position, a_position), m_c2), s_urd(i_random_engine));
 				a_velocity = add(add(l_weighted_particle_velocity, l_cognitive_term), l_social_term);
 				a_position = add(a_position, a_velocity);
 
@@ -179,7 +179,7 @@ namespace aurora
 
                         // INITIALIZE THE POSITION DISTRIBUTIONS RANDOMLY
                         for (int k = 0; k < a_distribution_sizes[j]; k++)
-                            m_positions[i][j][k] = s_urd(i_default_random_engine);
+                            m_positions[i][j][k] = s_urd(i_random_engine);
 
                         // Clip and normalize the distribution for this variable for this particle.
                         clip_and_normalize(m_positions[i][j]);
@@ -307,8 +307,8 @@ namespace aurora
 				}
 
                 // Generate two random values
-                double l_cognitive_coefficient = m_c1 * s_urd(i_default_random_engine);
-                double l_social_coefficient = m_c2 * s_urd(i_default_random_engine);
+                double l_cognitive_coefficient = m_c1 * s_urd(i_random_engine);
+                double l_social_coefficient = m_c2 * s_urd(i_random_engine);
 
                 ////////////////////////////////////
                 // UPDATE THE VELOCITY AND POSITION VECTORS
@@ -339,7 +339,7 @@ namespace aurora
                 const std::vector<double>& a_distribution
             )
             {
-                double l_remainder = s_urd(i_default_random_engine);
+                double l_remainder = s_urd(i_random_engine);
 
                 size_t i = 0;
 
