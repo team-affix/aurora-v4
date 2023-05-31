@@ -307,8 +307,8 @@ namespace aurora
 				}
 
                 // Generate two random values
-                double l_rand_0 = s_urd(i_default_random_engine);
-                double l_rand_1 = s_urd(i_default_random_engine);
+                double l_cognitive_coefficient = m_c1 * s_urd(i_default_random_engine);
+                double l_social_coefficient = m_c2 * s_urd(i_default_random_engine);
 
                 ////////////////////////////////////
                 // UPDATE THE VELOCITY AND POSITION VECTORS
@@ -325,8 +325,8 @@ namespace aurora
                             // UPDATE VELOCOTY VALUE
                             l_velocity = 
                                 m_w * l_velocity + 
-                                l_rand_0 * (l_local_best_position - l_position) +
-                                l_rand_1 * (l_global_best_position - l_position);
+                                l_cognitive_coefficient * (l_local_best_position - l_position) +
+                                l_social_coefficient * (l_global_best_position - l_position);
 
                             // UPDATE POSITION VALUE
                             l_position += l_velocity;

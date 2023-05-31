@@ -1638,7 +1638,7 @@ void test_pso(
 
 template<size_t I>
 bool nor(
-    const tensor<size_t, I>& a_connections,
+    const tensor<bool, I>& a_connections,
     const tensor<bool, I>& a_x
 )
 {
@@ -1646,7 +1646,7 @@ bool nor(
 
     for (int i = 0; i < a_x.size(); i++)
     {
-        if (a_connections[i] == 1 && a_x[i])
+        if (a_connections[i] && a_x[i])
         {
             l_result = true;
             break;
@@ -1659,7 +1659,7 @@ bool nor(
 
 template<size_t I, size_t J>
 tensor<bool, I> nor_layer(
-    const tensor<size_t, I, J>& a_layer_matrix,
+    const tensor<bool, I, J>& a_layer_matrix,
     const tensor<bool, J>& a_x
 )
 {
@@ -1685,16 +1685,16 @@ void test_icpso(
     constexpr size_t PARTICLE_COUNT = 20;
     constexpr std::array<size_t, 5> LAYER_DIMS = {2, 2, 2, 1, 1};
 
-    tensor<size_t, LAYER_DIMS[1], LAYER_DIMS[0]> l_layer_0;
-    tensor<size_t, LAYER_DIMS[2], LAYER_DIMS[1]> l_layer_1;
-    tensor<size_t, LAYER_DIMS[3], LAYER_DIMS[2]> l_layer_2;
-    tensor<size_t, LAYER_DIMS[4], LAYER_DIMS[3]> l_layer_3;
-    
-    constexpr size_t PARAM_VECTOR_SIZE = 
-        l_layer_0.flattened_size() +
+    tensor<bool, LAYER_DIMS[1], LAYER_DIMS[0]> l_layer_1;
+    tensor<bool, LAYER_DIMS[2], LAYER_DIMS[0] + LAYER_DIMS[1]> l_layer_2;
+    tensor<bool, LAYER_DIMS[3], LAYER_DIMS[1] + LAYER_DIMS[2]> l_layer_3;
+    tensor<bool, LAYER_DIMS[4], LAYER_DIMS[2] + LAYER_DIMS[3]> l_layer_4;
+
+    constexpr size_t PARAM_VECTOR_SIZE =
         l_layer_1.flattened_size() +
         l_layer_2.flattened_size() +
-        l_layer_3.flattened_size();
+        l_layer_3.flattened_size() +
+        l_layer_4.flattened_size();
     
     auto l_distribution_sizes = constant<size_t, PARAM_VECTOR_SIZE>(2);
 
@@ -1722,18 +1722,32 @@ void test_icpso(
         const tensor<size_t, PARAM_VECTOR_SIZE>& a_candidate_solution
     )
     {
+
+        tensor<bool, PARAM_VECTOR_SIZE> l_converted_candidate_solution;
+
+        // Convert the global best solution to a valid type (boolean tensor).
+        std::transform(a_candidate_solution.begin(), a_candidate_solution.end(), l_converted_candidate_solution.begin(),
+            [](const size_t& a_selected_variable_index)
+            {
+                return a_selected_variable_index != 0;
+            });
+        
         // This copies the parameters into their respective places.
-        copy(a_candidate_solution, l_layer_0, l_layer_1, l_layer_2, l_layer_3);
+        copy(l_converted_candidate_solution,
+            l_layer_1,
+            l_layer_2,
+            l_layer_3,
+            l_layer_4);
 
         tensor<bool, Y_HEIGHT, Y_WIDTH> l_y;
 
 		for (int i = 0; i < X_HEIGHT; i++)
 		{
-            auto l_layer_0_y = nor_layer(l_layer_0, l_tsx[i]);
-            auto l_layer_1_y = nor_layer(l_layer_1, l_layer_0_y);
-            auto l_layer_2_y = nor_layer(l_layer_2, l_layer_1_y);
-            auto l_layer_3_y = nor_layer(l_layer_3, l_layer_2_y);
-            l_y[i] = l_layer_3_y;
+            auto l_layer_1_y = nor_layer(l_layer_1, l_tsx[i]);
+            auto l_layer_2_y = nor_layer(l_layer_2, concat(l_tsx[i], l_layer_1_y));
+            auto l_layer_3_y = nor_layer(l_layer_3, concat(l_layer_1_y, l_layer_2_y));
+            auto l_layer_4_y = nor_layer(l_layer_4, concat(l_layer_2_y, l_layer_3_y));
+            l_y[i] = l_layer_4_y;
 		}
 
         return l_y;
@@ -1766,7 +1780,7 @@ void test_icpso(
 	// Construct a vector of the rewards associated with each parameter vector.
 	auto l_rewards = constant<double, PARTICLE_COUNT>();
 
-	for (int l_epoch = 0; l_epoch < 10000; l_epoch++)
+	for (int l_epoch = 0; l_epoch < 1000; l_epoch++)
 	{
         const tensor<size_t, PARTICLE_COUNT, PARAM_VECTOR_SIZE>& l_candidates = l_icpso.candidate_solutions();
         
@@ -3345,9 +3359,7 @@ void unit_test_main(
 int main(
 
 )
-{
-    test_icpso();
-    
+{   
     unit_test_main();
 
 	return 0;
