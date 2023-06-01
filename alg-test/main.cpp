@@ -1602,7 +1602,7 @@ void test_pso(
 	};
 
 	// Initialize the swarm optimizer.
-	oneshot::particle_swarm_optimizer<double, PARTICLE_COUNT, PARAMETER_VECTOR_SIZE> 
+	particle_swarm_optimizer<PARTICLE_COUNT, PARAMETER_VECTOR_SIZE> 
         l_particle_swarm_optimizer(l_positions, 0.9, 0.2, 0.8);
 
 	// Construct a vector of the rewards associated with each parameter vector.
@@ -1769,7 +1769,7 @@ void test_icpso(
         
 	};
 
-    oneshot::icpso<PARTICLE_COUNT, PARAM_VECTOR_SIZE> l_icpso(
+    icpso<PARTICLE_COUNT, PARAM_VECTOR_SIZE> l_icpso(
         l_distribution_sizes,
         0.9,
         0.2,
@@ -2267,7 +2267,7 @@ void nonlinear_scatter_span_linearization(
     if (l_param_ifs.is_open())
         l_param_ifs >> l_positions;
 
-    oneshot::particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 1.0);
+    particle_swarm_optimizer l_optimizer(l_positions, 0.9, 0.2, 0.8, 1.0);
 
     auto l_rewards = constant<double, PARTICLE_COUNT>(-INFINITY);
 
