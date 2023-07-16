@@ -288,6 +288,49 @@ namespace aurora
         return constant<T, I, J ...>([a_double]{return a_double;});
     }
 
+    template<typename T2, typename T1, size_t I>
+    inline tensor<T2, I> convert(
+        const tensor<T1, I>& a_x,
+        const std::function<T2(const T1&)>& a_convert_value = [](const T1& a_val){ return T2(a_val); }
+    )
+    {
+        tensor<T2, I> l_result;
+
+        std::transform(
+            a_x.begin(),
+            a_x.end(),
+            l_result.begin(),
+            a_convert_value
+        );
+
+        return l_result;
+        
+    }
+
+    template<typename T2, typename T1, size_t I, size_t ... J>
+    inline tensor<T2, I, J ...> convert(
+        const tensor<T1, I, J ...>& a_x,
+        const std::function<T2(const T1&)>& a_convert_value = [](const T1& a_val){ return T2(a_val); }
+    )
+    {
+        tensor<T2, I, J ...> l_result;
+
+        std::transform(
+            a_x.begin(),
+            a_x.end(),
+            l_result.begin(),
+            [&a_convert_value](
+                const tensor<T1, J ...>& a_subtensor
+            )
+            {
+                return convert<T2>(a_subtensor, a_convert_value);
+            }
+        );
+
+        return l_result;
+        
+    }
+
     /// @brief 
     /// @tparam T is the value type.
     /// @tparam B is the number of bins into which the input should be partitioned.
@@ -1034,7 +1077,7 @@ namespace aurora
     template<size_t PARTICLE_COUNT, size_t I>
     std::uniform_real_distribution<double> particle_swarm_optimizer<PARTICLE_COUNT, I>::s_urd(0, 1);
 
-    template<size_t PARTICLE_COUNT, size_t I>
+    template<typename DISCRETE_TYPE, size_t PARTICLE_COUNT, size_t I>
     class icpso
     {
     private:
@@ -1042,7 +1085,7 @@ namespace aurora
     
     private:
         tensor<std::vector<double>, PARTICLE_COUNT, I> m_positions;
-        tensor<size_t, PARTICLE_COUNT, I>              m_candidate_solutions;
+        tensor<DISCRETE_TYPE, PARTICLE_COUNT, I>       m_candidate_solutions;
         tensor<std::vector<double>, PARTICLE_COUNT, I> m_local_best_positions;
         tensor<std::vector<double>, PARTICLE_COUNT, I> m_velocities;
         tensor<double, PARTICLE_COUNT>                 m_local_best_rewards;
@@ -1054,7 +1097,7 @@ namespace aurora
         double                         m_epsilon_compliment;
         double                         m_global_best_reward;
         tensor<std::vector<double>, I> m_global_best_position;
-        tensor<size_t, I>              m_global_best_solution;
+        tensor<DISCRETE_TYPE, I>       m_global_best_solution;
 
     public:
         icpso(
@@ -1064,7 +1107,7 @@ namespace aurora
             const double& a_c2,
             const double& a_epsilon
         ) :
-            m_local_best_rewards(constant<double, PARTICLE_COUNT>()),
+            m_local_best_rewards(constant<double, PARTICLE_COUNT>(-INFINITY)),
             m_w(a_w),
             m_c1(a_c1),
             m_c2(a_c2),
@@ -1100,7 +1143,7 @@ namespace aurora
 
         }
 
-        const tensor<size_t, PARTICLE_COUNT, I>& candidate_solutions(
+        const tensor<DISCRETE_TYPE, PARTICLE_COUNT, I>& candidate_solutions(
 
         )
         {
@@ -1123,12 +1166,13 @@ namespace aurora
             // Update global best position and reward if a new best exists
             if (*l_max_reward > m_global_best_reward)
             {
-                update_best_position(
+                update_best_position_and_reward(
                     m_global_best_position,
                     m_positions[l_max_reward_index],
+                    m_global_best_reward,
+                    *l_max_reward,
                     m_candidate_solutions[l_max_reward_index]
                 );
-                m_global_best_reward = *l_max_reward;
                 m_global_best_solution = m_candidate_solutions[l_max_reward_index];
             }
 
@@ -1154,7 +1198,7 @@ namespace aurora
             return m_global_best_reward;
         }
 
-        const tensor<size_t, I>& global_best_solution(
+        const tensor<DISCRETE_TYPE, I>& global_best_solution(
 
         )
         {
@@ -1162,20 +1206,27 @@ namespace aurora
         }
 
     private:
-        void update_best_position(
-            tensor<std::vector<double>, I>& a_old_best_position,
+        void update_best_position_and_reward(
+            tensor<std::vector<double>, I>&       a_old_best_position,
             const tensor<std::vector<double>, I>& a_new_best_position,
-            const tensor<size_t, I>& a_candidate_solution
+            double&                               a_old_best_reward,
+            const double&                         a_new_best_reward,
+            const tensor<DISCRETE_TYPE, I>&       a_candidate_solution
         )
         {
+            // Update each distribution
             for (int i = 0; i < I; i++)
                 update_best_distribution(a_old_best_position[i], a_new_best_position[i], a_candidate_solution[i]);
+
+            // Update the best reward
+            a_old_best_reward = a_new_best_reward;
+            
         }
 
         void update_best_distribution(
             std::vector<double>& a_old_best_distribution,
             const std::vector<double>& a_new_best_distribution,
-            const size_t& a_selected_variable_index
+            const DISCRETE_TYPE& a_selected_value_index
         )
         {
             ////////////////////////
@@ -1185,15 +1236,15 @@ namespace aurora
             // INCREASE THE PROBABILITY OF CHOOSING THE SELECTED VARIABLE AGAIN.
             ////////////////////////
 
-            a_old_best_distribution[a_selected_variable_index] = a_new_best_distribution[a_selected_variable_index];
+            a_old_best_distribution[a_selected_value_index] = a_new_best_distribution[a_selected_value_index];
 
             for (int i = 0; i < a_old_best_distribution.size(); i++)
             {
-                if (i == a_selected_variable_index)
+                if (i == a_selected_value_index)
                     continue;
                 
                 a_old_best_distribution[i] = m_epsilon * a_new_best_distribution[i];
-                a_old_best_distribution[a_selected_variable_index] += m_epsilon_compliment * a_new_best_distribution[i];
+                a_old_best_distribution[a_selected_value_index] += m_epsilon_compliment * a_new_best_distribution[i];
                 
             }
             
@@ -1201,7 +1252,7 @@ namespace aurora
     
         void update(
             tensor<std::vector<double>, I>& a_position,
-            const tensor<size_t, I>&        a_candidate_solution,
+            const tensor<DISCRETE_TYPE, I>& a_candidate_solution,
             tensor<std::vector<double>, I>& a_local_best_position,
             tensor<std::vector<double>, I>& a_velocity,
             double&                         a_local_best_reward,
@@ -1210,8 +1261,13 @@ namespace aurora
         {
             if (a_reward > a_local_best_reward)
             {
-                update_best_position(a_local_best_position, a_position, a_candidate_solution);
-                a_local_best_reward = a_reward;
+                update_best_position_and_reward(
+                    a_local_best_position,
+                    a_position,
+                    a_local_best_reward,
+                    a_reward,
+                    a_candidate_solution
+                );
             }
 
             // Generate two random values
@@ -1243,13 +1299,13 @@ namespace aurora
             
         }
 
-        static size_t sample(
+        static DISCRETE_TYPE sample(
             const std::vector<double>& a_distribution
         )
         {
             double l_remainder = s_urd(i_random_engine);
 
-            size_t i = 0;
+            DISCRETE_TYPE i = 0;
 
             for (; i < a_distribution.size() && l_remainder > 0; l_remainder -= a_distribution[i], i++);
             
@@ -1279,8 +1335,8 @@ namespace aurora
 
     };
 
-    template<size_t PARTICLE_COUNT, size_t I>
-    std::uniform_real_distribution<double> icpso<PARTICLE_COUNT, I>::s_urd(0, 1);
+    template<typename DISCRETE_TYPE, size_t PARTICLE_COUNT, size_t I>
+    std::uniform_real_distribution<double> icpso<DISCRETE_TYPE, PARTICLE_COUNT, I>::s_urd(0, 1);
 
 }
 
