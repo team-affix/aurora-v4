@@ -1090,11 +1090,14 @@ namespace aurora
         tensor<std::vector<double>, PARTICLE_COUNT, I> m_velocities;
         tensor<double, PARTICLE_COUNT>                 m_local_best_rewards;
 
+        tensor<size_t, I>              m_distribution_sizes;
         double                         m_w;
         double                         m_c1;
         double                         m_c2;
         double                         m_epsilon;
         double                         m_epsilon_compliment;
+        double                         m_randomness_discount_factor;
+
         double                         m_global_best_reward;
         tensor<std::vector<double>, I> m_global_best_position;
         tensor<DISCRETE_TYPE, I>       m_global_best_solution;
@@ -1105,31 +1108,47 @@ namespace aurora
             const double& a_w,
             const double& a_c1,
             const double& a_c2,
-            const double& a_epsilon
+            const double& a_epsilon,
+            const double& a_randomness_discount_factor = 1.0
         ) :
-            m_local_best_rewards(constant<double, PARTICLE_COUNT>(-INFINITY)),
+            m_distribution_sizes(a_distribution_sizes),
             m_w(a_w),
             m_c1(a_c1),
             m_c2(a_c2),
             m_epsilon(a_epsilon),
             m_epsilon_compliment(1.0 - a_epsilon),
-            m_global_best_reward(-INFINITY)
+            m_randomness_discount_factor(a_randomness_discount_factor)
         {
             assert(a_w > 0 && a_w < 1);
             assert(a_c1 > 0 && a_c1 < 1);
             assert(a_c2 > 0 && a_c2 < 1);
             assert(a_epsilon > 0 && a_epsilon < 1);
+            assert(a_randomness_discount_factor > 0.0 && a_randomness_discount_factor <= 1.0);
+            
+            // This function call will initialize many variables.
+            reset();
+            
+        }
+
+        void reset(
+
+        )
+        {
+            constexpr double DEFAULT_BEST_REWARD = 0.0;
+            
+            m_local_best_rewards = constant<double, PARTICLE_COUNT>(DEFAULT_BEST_REWARD);
+            m_global_best_reward = DEFAULT_BEST_REWARD;
             
             for (int i = 0; i < PARTICLE_COUNT; i++)
                 for (int j = 0; j < I; j++)
                 {
                     // Create distributions. (Not initializing values)
-                    m_positions[i][j] = std::vector<double>(a_distribution_sizes[j]);
-                    m_local_best_positions[i][j] = std::vector<double>(a_distribution_sizes[j]);
-                    m_velocities[i][j] = std::vector<double>(a_distribution_sizes[j]);
+                    m_positions[i][j] = std::vector<double>(m_distribution_sizes[j]);
+                    m_local_best_positions[i][j] = std::vector<double>(m_distribution_sizes[j]);
+                    m_velocities[i][j] = std::vector<double>(m_distribution_sizes[j]);
 
                     // INITIALIZE THE POSITION DISTRIBUTIONS RANDOMLY
-                    for (int k = 0; k < a_distribution_sizes[j]; k++)
+                    for (int k = 0; k < m_distribution_sizes[j]; k++)
                         m_positions[i][j][k] = s_urd(i_random_engine);
 
                     // Clip and normalize the distribution for this variable for this particle.
@@ -1139,7 +1158,7 @@ namespace aurora
 
             // Initialize the global best position.
             for (int i = 0; i < I; i++)
-                m_global_best_position[i] = std::vector<double>(a_distribution_sizes[i]);
+                m_global_best_position[i] = std::vector<double>(m_distribution_sizes[i]);
 
         }
 
@@ -1219,7 +1238,7 @@ namespace aurora
                 update_best_distribution(a_old_best_position[i], a_new_best_position[i], a_candidate_solution[i]);
 
             // Update the best reward
-            a_old_best_reward = a_new_best_reward;
+            a_old_best_reward += m_randomness_discount_factor * (a_new_best_reward - a_old_best_reward);
             
         }
 

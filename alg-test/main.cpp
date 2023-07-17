@@ -3392,7 +3392,8 @@ private:
             )
             {
                 return product_covers(a_term, a_x);
-            });
+            }
+        );
     }
 
     static bool product_covers(
@@ -3439,11 +3440,12 @@ void test_additive_subtractive_model(
     constexpr size_t VARIABLE_COUNT = 8;
     constexpr size_t BLOCK_SIZE = 10;
 
-    constexpr size_t EPOCH_COUNT = 100;
-    constexpr size_t BLOCK_COUNT = 100;
+    constexpr size_t EPOCH_COUNT = 100000;
+    constexpr size_t BLOCK_COUNT = 10;
 
-    constexpr size_t PARTICLE_COUNT = 20;
-    constexpr size_t SAMPLE_SIZE = 100;
+    constexpr size_t PARTICLE_COUNT = 15;
+    constexpr size_t TRAINING_SAMPLE_SIZE = 100;
+    constexpr size_t TESTING_SAMPLE_SIZE = 10000;
 
     constexpr size_t PARAMETER_COUNT = BLOCK_SIZE * VARIABLE_COUNT;
 
@@ -3457,8 +3459,9 @@ void test_additive_subtractive_model(
     };
 
     // Define the reward function in terms of the sum.
-    auto l_get_reward = [&l_additive_mode, &l_get_internal_state](
-        const tensor<inclusion_mode, PARAMETER_COUNT>& a_parameter_vector
+    auto l_get_accuracy = [&l_additive_mode, &l_get_internal_state](
+        const tensor<inclusion_mode, PARAMETER_COUNT>& a_parameter_vector,
+        const size_t& a_sample_size
     )
     {
         additive_subtractive_model<BLOCK_SIZE, VARIABLE_COUNT> l_asm(
@@ -3471,30 +3474,31 @@ void test_additive_subtractive_model(
 
         // We are trying to model 4-bit integer addition.
 
-        for (int i = 0; i < SAMPLE_SIZE; i++)
+        for (int i = 0; i < a_sample_size; i++)
         {
             uint8_t l_int_0 = rand() % 16;
             uint8_t l_int_1 = rand() % 16;
-            uint8_t l_desired_y = l_int_0 + l_int_1;
-            auto l_desired_y_bits = get_bits<5>(l_desired_y);
+            uint8_t l_sum = l_int_0 + l_int_1;
+            auto l_sum_bits = get_bits<8>(l_sum);
 
-            l_equivalence_coverage += l_asm.evaluate(concat(get_bits<4>(l_int_0), get_bits<4>(l_int_1))) == (l_desired_y_bits[3] && l_desired_y_bits[4]);
+            bool l_desired_boolean_output = l_sum_bits[3] == l_sum_bits[1];
+
+            l_equivalence_coverage += l_asm.evaluate(concat(get_bits<4>(l_int_0), get_bits<4>(l_int_1))) == l_desired_boolean_output;
 
         }
 
-        return l_equivalence_coverage;
+        return (double)l_equivalence_coverage / (double)a_sample_size;
 
     };
 
     // Create icpso optimizer instance
     icpso<uint8_t, PARTICLE_COUNT, PARAMETER_COUNT> l_icpso(
         constant<size_t, PARAMETER_COUNT>(3),
-        0.9, 0.2, 0.3, 0.3
+        0.9, 0.1, 0.1, 0.6, 0.1
     );
 
     for (int l_block_index = 0; l_block_index < BLOCK_COUNT; l_block_index++)
     {
-        
         // Train using icpso for a set amount of epochs
         for (int l_epoch_index = 0; l_epoch_index < EPOCH_COUNT; l_epoch_index++)
         {
@@ -3507,24 +3511,29 @@ void test_additive_subtractive_model(
                 l_candidate_solutions.begin(),
                 l_candidate_solutions.end(),
                 l_particle_rewards.begin(),
-                l_get_reward
+                [&l_get_accuracy, &TRAINING_SAMPLE_SIZE](
+                    const tensor<inclusion_mode, PARAMETER_COUNT>& a_parameter_vector
+                )
+                {
+                    return l_get_accuracy(a_parameter_vector, TRAINING_SAMPLE_SIZE);
+                }
             );
 
             l_icpso.update(l_particle_rewards);
-            
+
+            if (l_epoch_index % 100 == 0)
+                std::cout << "BLOCK: " << l_block_index << (l_additive_mode? " (ADDITIVE)" : " (SUBTRACTIVE)") << ", EPOCH: " << l_epoch_index << ", ACCURACY: " << l_icpso.global_best_reward() << std::endl;
+
         }
 
         // Create an additive_subtractive_model with the optimal parameter vector,
         // and save it by capture copy in a lambda expression.
         additive_subtractive_model<BLOCK_SIZE, VARIABLE_COUNT> l_asm(
-            partition<BLOCK_SIZE>(
-                convert<inclusion_mode>(
-                    l_icpso.global_best_solution()
-                )
-            ),
+            partition<BLOCK_SIZE>(convert<inclusion_mode>(l_icpso.global_best_solution())),
             l_additive_mode,
             l_get_internal_state
         );
+
         
         l_get_internal_state = [l_asm](
             const tensor<bool, VARIABLE_COUNT>& a_x
@@ -3535,7 +3544,10 @@ void test_additive_subtractive_model(
 
         // Switch mode from additive to subtractive and vice versa.
         l_additive_mode = !l_additive_mode;
-        
+
+        // Reset the optimization session.
+        l_icpso.reset();
+
     }
     
 }
@@ -3590,7 +3602,7 @@ int main(
 
 )
 {   
-    //test_additive_subtractive_model();
+    test_additive_subtractive_model();
 
     unit_test_main();
 
