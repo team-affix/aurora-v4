@@ -3601,7 +3601,7 @@ void unit_test_main(
 int main(
 
 )
-{   
+{
     test_additive_subtractive_model();
 
     unit_test_main();
