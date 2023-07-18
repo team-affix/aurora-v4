@@ -3440,10 +3440,10 @@ void test_additive_subtractive_model(
     constexpr size_t VARIABLE_COUNT = 8;
     constexpr size_t BLOCK_SIZE = 10;
 
-    constexpr size_t EPOCH_COUNT = 100000;
+    constexpr size_t STAGNANT_EPOCH_COUNT_BEFORE_PROCEEDING = 100000;
     constexpr size_t BLOCK_COUNT = 10;
 
-    constexpr size_t PARTICLE_COUNT = 15;
+    constexpr size_t PARTICLE_COUNT = 30;
     constexpr size_t TRAINING_SAMPLE_SIZE = 100;
     constexpr size_t TESTING_SAMPLE_SIZE = 10000;
 
@@ -3494,13 +3494,20 @@ void test_additive_subtractive_model(
     // Create icpso optimizer instance
     icpso<uint8_t, PARTICLE_COUNT, PARAMETER_COUNT> l_icpso(
         constant<size_t, PARAMETER_COUNT>(3),
-        0.9, 0.1, 0.1, 0.6, 0.1
+        0.9, 0.1, 0.1, 0.6, 0.5
     );
 
     for (int l_block_index = 0; l_block_index < BLOCK_COUNT; l_block_index++)
     {
+        double l_best_accuracy = 0;
+        int l_last_epoch_of_improvement = 0;
+        
         // Train using icpso for a set amount of epochs
-        for (int l_epoch_index = 0; l_epoch_index < EPOCH_COUNT; l_epoch_index++)
+        for (
+            int l_epoch_index = 0;
+            (l_epoch_index - l_last_epoch_of_improvement) < STAGNANT_EPOCH_COUNT_BEFORE_PROCEEDING;
+            l_epoch_index++
+        )
         {
             auto l_candidate_solutions = convert<inclusion_mode>(l_icpso.candidate_solutions());
             
@@ -3524,7 +3531,14 @@ void test_additive_subtractive_model(
             if (l_epoch_index % 100 == 0)
                 std::cout << "BLOCK: " << l_block_index << (l_additive_mode? " (ADDITIVE)" : " (SUBTRACTIVE)") << ", EPOCH: " << l_epoch_index << ", ACCURACY: " << l_icpso.global_best_reward() << std::endl;
 
+            if (l_icpso.global_best_reward() > l_best_accuracy)
+            {
+                l_best_accuracy = l_icpso.global_best_reward();
+                l_last_epoch_of_improvement = l_epoch_index;
+            }
+
         }
+
 
         // Create an additive_subtractive_model with the optimal parameter vector,
         // and save it by capture copy in a lambda expression.
