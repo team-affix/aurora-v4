@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <cmath>
+#include <set>
 
 using namespace aurora;
 
@@ -3609,14 +3611,304 @@ void unit_test_main(
     large_memory_usage_test();
     test_pso();
     test_icpso();
-    test_additive_subtractive_model();
+}
+
+void test_waveform_path_tracing(
+
+)
+{
+    auto I = [](const double& a_x){ return -a_x; };
+    auto O = [](const std::vector<double>& a_vec){ return std::accumulate(a_vec.begin(), a_vec.end(), 0.0); };
+    auto A = [](const std::vector<double>& a_vec){ return std::accumulate(a_vec.begin(), a_vec.end(), 1.0, [](const double& a_x1, const double& a_x2){ return a_x1*a_x2; }); };
+    
+    auto a = [](const double& a_x){ return sin(M_PI/2.0*a_x); };
+    auto b = [](const double& a_x){ return sin(M_PI/3.0*a_x); };
+    auto c = [](const double& a_x){ return sin(M_PI/5.0*a_x); };
+    auto d = [](const double& a_x){ return sin(M_PI/7.0*a_x); };
+    auto e = [](const double& a_x){ return sin(M_PI/11.0*a_x); };
+    auto f = [](const double& a_x){ return sin(M_PI/13.0*a_x); };
+
+    auto f1 = a;
+    auto f2 = [&](const double& x){ 
+        return 
+            f1(x) / I(a(x)) * A({ I(b(x)), I(c(x)) }) +
+            f1(x) / a(x)    * O({ A({ I(b(x)), c(x) }), A({ b(x), I(c(x)) }), A({ b(x), c(x) }) });
+    };
+    
+    auto f3 = [&](const double& x){ 
+        return 
+            f2(x) / I(b(x)) * O({ A({I(d(x)), I(e(x))}), A({I(d(x)), e(x)}), A({d(x), I(e(x))}) }) +
+            f2(x) / b(x)    * A({ d(x), e(x) });
+    };
+    
+    auto f4 = [&](const double& x){
+        return
+            f2(x) / I(c(x)) * f(x) +
+            f2(x) / c(x)    * I(f(x));
+    };
+
+    auto f_combined = [&](const double& x)
+    {
+        return O({ f3(x), f4(x) });
+    };
+
+    constexpr double WINDOW_SIZE = 10;
+    constexpr double STEP_SIZE = 0.1;
+
+    constexpr size_t SAMPLE_SIZE = (size_t)(ceil(WINDOW_SIZE / STEP_SIZE));
+
+    tensor<double, SAMPLE_SIZE> l_unshifted_ys;
+    tensor<double, SAMPLE_SIZE> l_shifted_ys;
+
+    constexpr double MAXIMUM_ACCEPTABLE_MSE = 0.1;
+
+    for (int shift = 0; true; shift++)
+    {
+        // Populate the tensors before computing MSE
+        for (int i = 0; i < SAMPLE_SIZE; i++)
+        {
+            double x = -WINDOW_SIZE/2.0 + (double)i * STEP_SIZE;
+            l_unshifted_ys[i] = f_combined(x);
+            l_shifted_ys[i]   = f_combined(x - shift);
+        }
+
+        if (mean_squared_error(l_unshifted_ys, l_shifted_ys) <= MAXIMUM_ACCEPTABLE_MSE)
+        {
+            std::cout << "PERIODICITY FOUND: " << shift << std::endl;
+            std::cin.get();
+        }
+
+        if (shift % 100 == 0)
+            std::cout << "SHIFT TESTED: " << shift << std::endl;
+        
+    }
+    
+}
+
+double derivative(
+    const std::function<double(double)>& a_f,
+    const double& a_center,
+    const size_t& a_order = 1,
+    const double& a_h = 0.0001
+)
+{
+    if (a_order == 0)
+    {
+        // Recursion ends here
+        return a_f(a_center);
+    }
+    else
+    {
+        double l_lower_order_derivative_0 = derivative(a_f, a_center - a_h, a_order - 1, a_h);
+        double l_lower_order_derivative_1 = derivative(a_f, a_center + a_h, a_order - 1, a_h);
+        return (l_lower_order_derivative_1 - l_lower_order_derivative_0) / (2.0 * a_h);
+    }
+}
+
+void train_localized_multiplicative_distributor(
+
+)
+{
+    // MODEL INPUTS
+    // t, f, f', f'', f''', g, g', g'', g'''
+
+    constexpr size_t MODEL_INPUT_DIMS = 9;
+    constexpr size_t MODEL_OUTPUT_DIMS = 1;
+    constexpr std::array<size_t, 2> MODEL_LAYER_DIMS = { 32, 20 };
+    
+    // SET UP PARAMETER VALUE GENERATION
+    std::mt19937 l_dre(26);
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
+
+#pragma region CONSTRUCTION OF MODEL
+
+    model::begin();
+
+    auto l_x = input<MODEL_INPUT_DIMS>();
+    auto l_desired_y = input<MODEL_OUTPUT_DIMS>();
+
+    auto l_w0_y = multiply(input<MODEL_LAYER_DIMS[0], MODEL_INPUT_DIMS>(l_randomly_generate_parameter), l_x);
+    auto l_b0_y = add(input<MODEL_LAYER_DIMS[0]>(l_randomly_generate_parameter), l_w0_y);
+    auto l_layer_0_y = tanh(l_w0_y);
+    
+    auto l_w1_y = multiply(input<MODEL_LAYER_DIMS[1], MODEL_LAYER_DIMS[0]>(l_randomly_generate_parameter), l_layer_0_y);
+    auto l_b1_y = add(input<MODEL_LAYER_DIMS[1]>(l_randomly_generate_parameter), l_w1_y);
+    auto l_layer_1_y = tanh(l_b1_y);
+
+    auto l_w2_y = multiply(input<MODEL_OUTPUT_DIMS, MODEL_LAYER_DIMS[1]>(l_randomly_generate_parameter), l_layer_1_y);
+    auto l_b2_y = add(input<MODEL_OUTPUT_DIMS>(l_randomly_generate_parameter), l_w2_y);
+    auto l_y = tanh(l_b2_y);
+
+    auto l_loss = mean_squared_error(l_y, l_desired_y)->depend();
+
+    model l_model = model::end();
+
+#pragma endregion
+
+    // COLLECT ALL PARAMETERS INTO A SINGLE VECTOR
+    auto l_parameter_vector = flatten(
+        l_w0_y,
+        l_b0_y,
+        l_w1_y,
+        l_b1_y,
+        l_w2_y,
+        l_b2_y
+    );
+
+    // LAMBDA FUNCTION WHICH CREATES A RANDOM SET OF PRIMES
+    auto l_generate_random_set_of_primes = []
+    {
+        constexpr std::array<int, 10> l_primes =
+        {
+            3, 5, 7, 11, 13, 17, 19, 23, 29, 31
+        };
+        
+        std::set<double> l_result;
+
+        size_t l_sample_size = rand() % l_primes.size() + 1;
+
+        for (int i = 0; i < l_sample_size; i++)
+        {
+            l_result.insert(l_primes[rand() % l_primes.size()]);
+        }
+
+        return l_result;
+        
+    };
+
+    // MANUALLY COMPUTES A MULTIPLICATIVE DISTRIBUTION OF TWO SUMS
+    auto l_multiplicative_distribute = [](
+        const std::set<double>& a_set_0,
+        const std::set<double>& a_set_1
+    )
+    {
+        std::set<double> l_result;
+
+        for (const double& l_double_0 : a_set_0)
+            for (const double& l_double_1 : a_set_1)
+                l_result.insert(l_double_0 * l_double_1);
+
+        return l_result;
+        
+    };
+
+    // MANUALLY EVALUATES A WAVEFORM OVER AN INPUT VALUE
+    auto l_evaluate_waveform = [](
+        const std::set<double>& a_constituent_wave_periods,
+        const double& a_x
+    )
+    {
+        // ASSUME SIN FUNCTIONS ONLY.
+        double l_result = 0;
+
+        for (const double& l_period : a_constituent_wave_periods)
+            l_result += sin(2.0 * M_PI / l_period * a_x);
+
+        // MAKE THE RESULT AN AVERAGE
+        l_result /= a_constituent_wave_periods.size();
+        
+        return l_result;
+        
+    };
+
+    auto l_waveform_derivative = [&](
+        const std::set<double>& a_constituent_wave_periods,
+        const double& a_center,
+        const size_t& a_order
+    )
+    {
+        return derivative(
+            [&](const double& a_x)
+            {
+                return l_evaluate_waveform(a_constituent_wave_periods, a_x); 
+            },
+            a_center,
+            a_order
+        );
+    };
+
+    // LAMBDA FUNCTION WHICH:
+    //  1. GENERATES 2 SETS OF PRIMES
+    //  2. MANUALLY COMPUTES THE DESIRED WAVEFORM
+    //  3. EVALUATES THE MODEL AGAINST THE DESIRED WAVEFORM.
+    auto l_evaluate_loss = [&]
+    {
+        static std::uniform_real_distribution<double> l_domain_random(-10000, 10000);
+
+        // GENERATE TWO SETS OF PRIMES FOR USE AS OPERANDS OF COMBINATION
+        std::set<double> l_primes_0 = l_generate_random_set_of_primes();
+        std::set<double> l_primes_1 = l_generate_random_set_of_primes();
+
+        // MANUALLY COMPUTE THE DISTRIBUTION
+        std::set<double> l_distribution = l_multiplicative_distribute(l_primes_0, l_primes_1);
+
+        constexpr size_t PREDICTION_COUNT = 100;
+
+        double l_average_loss = 0;
+
+        for (int i = 0; i < PREDICTION_COUNT; i++)
+        {
+            double l_random_x = l_domain_random(l_dre);
+
+            set_state(l_x, 
+            {
+                l_random_x / 10000.0,
+                l_waveform_derivative(l_primes_0, l_random_x, 0),
+                l_waveform_derivative(l_primes_0, l_random_x, 1),
+                l_waveform_derivative(l_primes_0, l_random_x, 2),
+                l_waveform_derivative(l_primes_0, l_random_x, 3),
+                l_waveform_derivative(l_primes_1, l_random_x, 0),
+                l_waveform_derivative(l_primes_1, l_random_x, 1),
+                l_waveform_derivative(l_primes_1, l_random_x, 2),
+                l_waveform_derivative(l_primes_1, l_random_x, 3),
+            });
+
+            set_state(l_desired_y[0], l_evaluate_waveform(l_distribution, l_random_x));
+
+            l_model.fwd();
+
+            l_average_loss += l_loss.m_state;
+
+            l_loss.m_partial_gradient = 1;
+
+            l_model.bwd();
+
+        }
+
+        l_average_loss /= PREDICTION_COUNT;
+
+        return l_average_loss;
+        
+    };
+
+    gradient_descent_with_momentum<l_parameter_vector.size()> l_optimizer(l_parameter_vector, true, 0.002, 0.9);
+
+    constexpr size_t MINIBATCH_SIZE = 16;
+
+    for (int l_epoch = 0; l_epoch < 10000; l_epoch++)
+    {
+        double l_epoch_loss = 0;
+        
+        for (int i = 0; i < MINIBATCH_SIZE; i++)
+            l_epoch_loss += l_evaluate_loss();
+
+        l_epoch_loss /= MINIBATCH_SIZE;
+
+        l_optimizer.update();
+
+        if (l_epoch % 10 == 0)
+            std::cout << "EPOCH: " << l_epoch << ", AVG. LOSS: " << l_epoch_loss << std::endl;
+            
+    }
+
 }
 
 int main(
 
 )
 {
-    //test_additive_subtractive_model();
+    train_localized_multiplicative_distributor();
 
     unit_test_main();
 
