@@ -76,22 +76,6 @@ namespace aurora
     template<size_t I, size_t ... J>
     using latent_tensor = tensor<state_gradient_pair*, I, J ...>;
 
-    template<size_t I, size_t ... J>
-    tensor<state_gradient_pair*, I, J ...> input(
-        const std::function<double()>& a_get_value
-    )
-    {
-        return constant<state_gradient_pair*, I, J ...>(a_get_value);
-    }
-
-    template<size_t I, size_t ... J>
-    tensor<state_gradient_pair*, I, J ...> input(
-        const double& a_value = 0
-    )
-    {
-        return constant<state_gradient_pair*, I, J ...>(a_value);
-    }
-
     class element
     {
     public:
@@ -740,6 +724,36 @@ namespace aurora
 
         return &l_element->m_y;
         
+    }
+
+    inline state_gradient_pair* input(
+        const std::function<double()>& a_get_value
+    )
+    {
+        return constant<state_gradient_pair*>(a_get_value());
+    }
+
+    inline state_gradient_pair* input(
+        const double& a_value = 0
+    )
+    {
+        return constant<state_gradient_pair*>(a_value);
+    }
+
+    template<size_t I, size_t ... J>
+    tensor<state_gradient_pair*, I, J ...> input(
+        const std::function<double()>& a_get_value
+    )
+    {
+        return constant<state_gradient_pair*, I, J ...>(a_get_value);
+    }
+
+    template<size_t I, size_t ... J>
+    tensor<state_gradient_pair*, I, J ...> input(
+        const double& a_value = 0
+    )
+    {
+        return constant<state_gradient_pair*, I, J ...>(a_value);
     }
 
     template<size_t I>

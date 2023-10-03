@@ -3718,7 +3718,7 @@ void train_localized_multiplicative_distributor(
     
     // SET UP PARAMETER VALUE GENERATION
     std::mt19937 l_dre(26);
-    std::uniform_real_distribution<double> l_urd(-1, 1);
+    std::uniform_real_distribution<double> l_urd(-0.1, 0.1);
     std::function<double()> l_randomly_generate_parameter = [&l_dre, &l_urd] { return l_urd(l_dre); };
 
 #pragma region CONSTRUCTION OF MODEL
@@ -3730,15 +3730,15 @@ void train_localized_multiplicative_distributor(
 
     auto l_w0_y = multiply(input<MODEL_LAYER_DIMS[0], MODEL_INPUT_DIMS>(l_randomly_generate_parameter), l_x);
     auto l_b0_y = add(input<MODEL_LAYER_DIMS[0]>(l_randomly_generate_parameter), l_w0_y);
-    auto l_layer_0_y = tanh(l_w0_y);
+    auto l_layer_0_y = leaky_relu(l_w0_y, 0.3);
     
     auto l_w1_y = multiply(input<MODEL_LAYER_DIMS[1], MODEL_LAYER_DIMS[0]>(l_randomly_generate_parameter), l_layer_0_y);
     auto l_b1_y = add(input<MODEL_LAYER_DIMS[1]>(l_randomly_generate_parameter), l_w1_y);
-    auto l_layer_1_y = tanh(l_b1_y);
+    auto l_layer_1_y = leaky_relu(l_b1_y, 0.3);
 
     auto l_w2_y = multiply(input<MODEL_OUTPUT_DIMS, MODEL_LAYER_DIMS[1]>(l_randomly_generate_parameter), l_layer_1_y);
     auto l_b2_y = add(input<MODEL_OUTPUT_DIMS>(l_randomly_generate_parameter), l_w2_y);
-    auto l_y = tanh(l_b2_y);
+    auto l_y = leaky_relu(l_b2_y, 0.3);
 
     auto l_loss = mean_squared_error(l_y, l_desired_y)->depend();
 
@@ -3804,9 +3804,6 @@ void train_localized_multiplicative_distributor(
 
         for (const double& l_period : a_constituent_wave_periods)
             l_result += sin(2.0 * M_PI / l_period * a_x);
-
-        // MAKE THE RESULT AN AVERAGE
-        l_result /= a_constituent_wave_periods.size();
         
         return l_result;
         
@@ -3843,7 +3840,7 @@ void train_localized_multiplicative_distributor(
         // MANUALLY COMPUTE THE DISTRIBUTION
         std::set<double> l_distribution = l_multiplicative_distribute(l_primes_0, l_primes_1);
 
-        constexpr size_t PREDICTION_COUNT = 100;
+        constexpr size_t PREDICTION_COUNT = 50;
 
         double l_average_loss = 0;
 
@@ -3882,11 +3879,14 @@ void train_localized_multiplicative_distributor(
         
     };
 
-    gradient_descent_with_momentum<l_parameter_vector.size()> l_optimizer(l_parameter_vector, true, 0.002, 0.9);
+    gradient_descent_with_momentum<l_parameter_vector.size()> l_optimizer(l_parameter_vector, true, 0.2, 0.9);
 
-    constexpr size_t MINIBATCH_SIZE = 16;
+    constexpr size_t MINIBATCH_SIZE = 2;
 
-    for (int l_epoch = 0; l_epoch < 10000; l_epoch++)
+    double l_epoch_loss_running_average = 0;
+    constexpr double EPOCH_LOSS_RUNNING_AVG_BETA = 0.99;
+
+    for (int l_epoch = 0; l_epoch < 1000000000; l_epoch++)
     {
         double l_epoch_loss = 0;
         
@@ -3895,22 +3895,816 @@ void train_localized_multiplicative_distributor(
 
         l_epoch_loss /= MINIBATCH_SIZE;
 
+        l_epoch_loss_running_average =
+            EPOCH_LOSS_RUNNING_AVG_BETA * l_epoch_loss_running_average +
+            (1.0 - EPOCH_LOSS_RUNNING_AVG_BETA) * l_epoch_loss;
+
         l_optimizer.update();
 
-        if (l_epoch % 10 == 0)
-            std::cout << "EPOCH: " << l_epoch << ", AVG. LOSS: " << l_epoch_loss << std::endl;
-            
+        if (l_epoch % 100 == 0)
+            std::cout << "EPOCH: " << l_epoch << ", AVG. LOSS: " << l_epoch_loss_running_average << std::endl;
+        
+        //sleep(1);
     }
 
 }
+
+#pragma region DISCRETE MATH
+
+/////////////////////////////
+// Below are discrete math functions (disjoin, conjoin, invert, majority of 3, etc.)
+
+state_gradient_pair* maj_3(
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1,
+    state_gradient_pair* a_x_2
+)
+{
+    auto l_term_0 = multiply(input(0.5), a_x_0);
+    auto l_term_1 = multiply(input(0.5), a_x_1);
+    auto l_term_2 = multiply(input(0.5), a_x_2);
+    auto l_term_3 =
+        multiply(
+            input(-0.5), 
+            multiply(
+                a_x_0,
+                multiply(a_x_1, a_x_2)
+            )
+        );
+
+    return add(l_term_0, add(l_term_1, add(l_term_2, l_term_3)));
+
+}
+
+state_gradient_pair* invert(
+    state_gradient_pair* a_x
+)
+{
+    return negate(a_x);
+}
+
+state_gradient_pair* conjoin(
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1
+)
+{
+    return maj_3(a_x_0, a_x_1, input(-1.0));
+}
+
+state_gradient_pair* disjoin(
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1
+)
+{
+    return maj_3(a_x_0, a_x_1, input(1.0));
+}
+
+state_gradient_pair* xorb(
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1
+)
+{
+    return disjoin(
+        conjoin(a_x_0, invert(a_x_1)),
+        conjoin(invert(a_x_0), a_x_1)
+    );
+}
+
+state_gradient_pair* equiv(
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1
+)
+{
+    return invert(xorb(a_x_0, a_x_1));
+}
+
+void add1b(
+    state_gradient_pair*& a_s,
+    state_gradient_pair*& a_cout,
+    state_gradient_pair* a_x_0,
+    state_gradient_pair* a_x_1,
+    state_gradient_pair* a_cin = input(-1.0)
+)
+{
+    a_s = xorb(a_cin, xorb(a_x_0, a_x_1)); // Compute the 1b-sum
+    a_cout = disjoin(                      // Compute the 1b-carry
+        conjoin(a_cin, a_x_0),
+        disjoin(
+            conjoin(a_cin, a_x_1),
+            conjoin(a_x_0, a_x_1))
+    );
+}
+
+template<size_t OPERAND_SIZE>
+latent_tensor<OPERAND_SIZE + 1> addnb(
+    const latent_tensor<OPERAND_SIZE>& a_x_0,
+    const latent_tensor<OPERAND_SIZE>& a_x_1,
+    state_gradient_pair* a_cin = input(-1.0)
+)
+{
+    latent_tensor<OPERAND_SIZE + 1> l_result;
+    
+    // Assume LSB is at index 0.
+
+    state_gradient_pair* l_carry = a_cin;
+
+    for (int i = 0; i < OPERAND_SIZE; i++)
+    {
+        add1b(l_result[i], l_carry, a_x_0[i], a_x_1[i], l_carry);
+    }
+
+    l_result.back() = l_carry;
+
+    return l_result;
+
+}
+
+template<size_t SHIFT_AMOUNT, size_t OPERAND_SIZE>
+latent_tensor<OPERAND_SIZE + SHIFT_AMOUNT> pad_front(
+    const latent_tensor<OPERAND_SIZE>& a_x
+)
+{
+    latent_tensor<OPERAND_SIZE + SHIFT_AMOUNT> l_result;
+
+    // Although confusing, the LEFT in left_shift is concerning
+    // the value represented in binary, and since we represent
+    // these values with LSB first, we will actually shift the values to the right.
+
+    for (int i = 0; i < SHIFT_AMOUNT; i++)
+    {
+        // Initialize all of the padding values.
+        l_result[i] = input(-1.0);
+    }
+
+    for (int i = 0; i < OPERAND_SIZE; i++)
+    {
+        // Copy the content values over.
+        l_result[SHIFT_AMOUNT + i] = a_x[i];
+    }
+
+    return l_result;
+    
+}
+
+template<size_t PADDING, size_t OPERAND_SIZE>
+latent_tensor<OPERAND_SIZE + PADDING> pad_back(
+    const latent_tensor<OPERAND_SIZE>& a_x
+)
+{
+    latent_tensor<OPERAND_SIZE + PADDING> l_result;
+
+    // Although confusing, the LEFT in left_shift is concerning
+    // the value represented in binary, and since we represent
+    // these values with LSB first, we will actually shift the values to the right.
+
+    for (int i = 0; i < OPERAND_SIZE; i++)
+    {
+        // Copy the content values over.
+        l_result[i] = a_x[i];
+    }
+    
+    for (int i = 0; i < PADDING; i++)
+    {
+        // Initialize all of the padding values.
+        l_result[OPERAND_SIZE + i] = input(-1.0);
+    }
+
+    return l_result;
+    
+}
+
+template<size_t RESULT_SIZE, size_t OPERAND_SIZE>
+latent_tensor<RESULT_SIZE> first(
+    const latent_tensor<OPERAND_SIZE>& a_x
+)
+{
+    latent_tensor<RESULT_SIZE> l_result;
+
+    for (int i = 0; i < RESULT_SIZE; i++)
+        l_result[i] = a_x[i];
+
+    return l_result;
+    
+}
+
+template<size_t OPERAND_SIZE, size_t CARRY_POSITION = 0>
+latent_tensor<2 * OPERAND_SIZE> multiplynb(
+    const latent_tensor<OPERAND_SIZE>& a_x_0,
+    const latent_tensor<OPERAND_SIZE>& a_x_1
+)
+{
+    // a_x_1 is "top" operand 
+    // a_x_0 is "bottom" operand.
+    
+    latent_tensor<OPERAND_SIZE> l_conjunction_result;
+
+    for (int i = 0; i < OPERAND_SIZE; i++)
+        l_conjunction_result[i] = conjoin(a_x_0[CARRY_POSITION], a_x_1[i]);
+
+    latent_tensor<2 * OPERAND_SIZE> l_padded_result =
+        pad_front<CARRY_POSITION>(
+            pad_back<OPERAND_SIZE - CARRY_POSITION>(l_conjunction_result)
+        );
+
+    // We now have the conjunction result, so do a recursive call then return.
+
+    if constexpr (CARRY_POSITION == OPERAND_SIZE - 1)
+    {
+        return l_padded_result;
+    }
+    else
+    {
+        return 
+            first<2 * OPERAND_SIZE>(
+                addnb(
+                    l_padded_result,
+                    multiplynb<OPERAND_SIZE, CARRY_POSITION + 1>(
+                        a_x_0,
+                        a_x_1
+                    )
+                )
+            );
+    }
+
+}
+
+template<size_t OPERAND_SIZE>
+state_gradient_pair* equivnb(
+    const latent_tensor<OPERAND_SIZE>& a_x_0,
+    const latent_tensor<OPERAND_SIZE>& a_x_1
+)
+{
+    state_gradient_pair* l_result = input(1.0);
+
+    for (int i = 0; i < OPERAND_SIZE; i++)
+        l_result = conjoin(l_result, equiv(a_x_0[i], a_x_1[i]));
+
+    return l_result;
+    
+}
+
+void test_add1b(
+
+)
+{
+    model::begin();
+    
+    state_gradient_pair* l_s;
+    state_gradient_pair* l_cout;
+
+    auto l_x_0 = input();
+    auto l_x_1 = input();
+    auto l_cin = input();
+
+    add1b(l_s, l_cout, l_x_0, l_x_1, l_cin);
+
+    model l_model = model::end();
+
+    l_x_0->m_state = -1.0;
+    l_x_1->m_state = -1.0;
+    l_cin->m_state = -1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == -1.0);
+    assert(l_cout->m_state == -1.0);
+
+    
+    l_x_0->m_state = -1.0;
+    l_x_1->m_state = -1.0;
+    l_cin->m_state = 1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == 1.0);
+    assert(l_cout->m_state == -1.0);
+
+    
+    l_x_0->m_state = -1.0;
+    l_x_1->m_state = 1.0;
+    l_cin->m_state = -1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == 1.0);
+    assert(l_cout->m_state == -1.0);
+
+    
+    l_x_0->m_state = -1.0;
+    l_x_1->m_state = 1.0;
+    l_cin->m_state = 1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == -1.0);
+    assert(l_cout->m_state == 1.0);
+
+    
+    l_x_0->m_state = 1.0;
+    l_x_1->m_state = -1.0;
+    l_cin->m_state = -1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == 1.0);
+    assert(l_cout->m_state == -1.0);
+
+    
+    l_x_0->m_state = 1.0;
+    l_x_1->m_state = -1.0;
+    l_cin->m_state = 1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == -1.0);
+    assert(l_cout->m_state == 1.0);
+
+    
+    l_x_0->m_state = 1.0;
+    l_x_1->m_state = 1.0;
+    l_cin->m_state = -1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == -1.0);
+    assert(l_cout->m_state == 1.0);
+
+    
+    l_x_0->m_state = 1.0;
+    l_x_1->m_state = 1.0;
+    l_cin->m_state = 1.0;
+
+    l_model.fwd();
+
+    assert(l_s->m_state == 1.0);
+    assert(l_cout->m_state == 1.0);
+    
+}
+
+void test_add8b(
+
+)
+{
+    model::begin();
+
+    auto l_x_0 = input<8>();
+    auto l_x_1 = input<8>();
+    auto l_cin = input(-1.0);
+
+    latent_tensor<9> l_sum = addnb<8>(l_x_0, l_x_1, l_cin);
+
+    model l_model = model::end();
+
+    set_state(l_x_0, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+        1.0,  // 4
+        -1.0, // 5
+        1.0,  // 6
+        -1.0  // 7
+    });
+
+    set_state(l_x_1, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        1.0,  // 2
+        1.0,  // 3
+        1.0,  // 4
+        -1.0, // 5
+        1.0,  // 6
+        -1.0  // 7
+    });
+
+    l_model.fwd();
+
+    assert(l_sum[0]->m_state == -1.0);
+    assert(l_sum[1]->m_state == -1.0);
+    assert(l_sum[2]->m_state == -1.0);
+    assert(l_sum[3]->m_state == -1.0);
+    assert(l_sum[4]->m_state == 1.0);
+    assert(l_sum[5]->m_state == 1.0);
+    assert(l_sum[6]->m_state == -1.0);
+    assert(l_sum[7]->m_state == 1.0);
+    assert(l_sum[8]->m_state == -1.0);
+
+    // Imagine setting the input carry bit.
+    l_cin->m_state = 1.0;
+
+    set_state(l_x_0, 
+    {
+        -1.0, // 0
+        -1.0, // 1
+        -1.0, // 2
+        -1.0, // 3
+        -1.0, // 4
+        1.0,  // 5
+        1.0,  // 6
+        -1.0  // 7
+    });
+
+    set_state(l_x_1, 
+    {
+        1.0,  // 0
+        -1.0, // 1
+        -1.0, // 2
+        -1.0, // 3
+        -1.0, // 4
+        1.0,  // 5
+        1.0,  // 6
+        1.0   // 7
+    });
+
+    l_model.fwd();
+
+    assert(l_sum[0]->m_state == -1.0);
+    assert(l_sum[1]->m_state == 1.0);
+    assert(l_sum[2]->m_state == -1.0);
+    assert(l_sum[3]->m_state == -1.0);
+    assert(l_sum[4]->m_state == -1.0);
+    assert(l_sum[5]->m_state == -1.0);
+    assert(l_sum[6]->m_state == 1.0);
+    assert(l_sum[7]->m_state == -1.0);
+    assert(l_sum[8]->m_state == 1.0);
+
+}
+
+void test_left_shift(
+
+)
+{
+    model::begin();
+
+    auto l_x = input<8>();
+
+    latent_tensor<10> l_sum = pad_front<2>(l_x);
+
+    model l_model = model::end();
+
+    set_state(l_x, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+        1.0,  // 4
+        -1.0, // 5
+        1.0,  // 6
+        -1.0  // 7
+    });
+
+    l_model.fwd();
+
+    assert(l_sum[0]->m_state == -1.0); // PADDING
+    assert(l_sum[1]->m_state == -1.0); // PADDING
+    assert(l_sum[2]->m_state == -1.0);
+    assert(l_sum[3]->m_state == 1.0);
+    assert(l_sum[4]->m_state == -1.0);
+    assert(l_sum[5]->m_state == -1.0);
+    assert(l_sum[6]->m_state == 1.0);
+    assert(l_sum[7]->m_state == -1.0);
+    assert(l_sum[8]->m_state == 1.0);
+    assert(l_sum[9]->m_state == -1.0);
+
+}
+
+void test_pad_back(
+
+)
+{
+    model::begin();
+
+    auto l_x = input<8>();
+
+    latent_tensor<10> l_sum = pad_back<2>(l_x);
+
+    model l_model = model::end();
+
+    set_state(l_x, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+        1.0,  // 4
+        -1.0, // 5
+        1.0,  // 6
+        -1.0  // 7
+    });
+
+    l_model.fwd();
+
+    assert(l_sum[0]->m_state == -1.0);
+    assert(l_sum[1]->m_state == 1.0);
+    assert(l_sum[2]->m_state == -1.0);
+    assert(l_sum[3]->m_state == -1.0);
+    assert(l_sum[4]->m_state == 1.0);
+    assert(l_sum[5]->m_state == -1.0);
+    assert(l_sum[6]->m_state == 1.0);
+    assert(l_sum[7]->m_state == -1.0);
+    assert(l_sum[8]->m_state == -1.0); // PADDING
+    assert(l_sum[9]->m_state == -1.0); // PADDING
+
+}
+
+void test_multiplynb(
+
+)
+{
+    model::begin();
+
+    auto l_x_0 = input<4>();
+    auto l_x_1 = input<4>();
+
+    auto l_product = multiplynb(l_x_0, l_x_1);
+
+    model l_model = model::end();
+
+    set_state(l_x_0, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+    });
+    
+    set_state(l_x_1, 
+    {
+        1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        1.0, // 3
+    });
+
+    l_model.fwd();
+
+    assert(l_product[0]->m_state == -1.0);
+    assert(l_product[1]->m_state == 1.0);
+    assert(l_product[2]->m_state == 1.0);
+    assert(l_product[3]->m_state == -1.0);
+    assert(l_product[4]->m_state == 1.0);
+    assert(l_product[5]->m_state == -1.0);
+    assert(l_product[6]->m_state == -1.0);
+    assert(l_product[7]->m_state == -1.0);
+    
+
+    // TEST ALL 1's
+
+    set_state(l_x_0, 
+    {
+        1.0, // 0
+        1.0,  // 1
+        1.0, // 2
+        1.0, // 3
+    });
+    
+    set_state(l_x_1, 
+    {
+        1.0, // 0
+        1.0,  // 1
+        1.0, // 2
+        1.0, // 3
+    });
+
+    l_model.fwd();
+
+    assert(l_product[0]->m_state == 1.0);
+    assert(l_product[1]->m_state == -1.0);
+    assert(l_product[2]->m_state == -1.0);
+    assert(l_product[3]->m_state == -1.0);
+    assert(l_product[4]->m_state == -1.0);
+    assert(l_product[5]->m_state == 1.0);
+    assert(l_product[6]->m_state == 1.0);
+    assert(l_product[7]->m_state == 1.0);
+    
+
+    // TEST ALL 0's
+
+    set_state(l_x_0, 
+    {
+        -1.0, // 0
+        -1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+    });
+    
+    set_state(l_x_1, 
+    {
+        -1.0, // 0
+        -1.0,  // 1
+        -1.0, // 2
+        -1.0, // 3
+    });
+
+    l_model.fwd();
+
+    assert(l_product[0]->m_state == -1.0);
+    assert(l_product[1]->m_state == -1.0);
+    assert(l_product[2]->m_state == -1.0);
+    assert(l_product[3]->m_state == -1.0);
+    assert(l_product[4]->m_state == -1.0);
+    assert(l_product[5]->m_state == -1.0);
+    assert(l_product[6]->m_state == -1.0);
+    assert(l_product[7]->m_state == -1.0);
+    
+
+
+    // TEST ANOTHER CONTINGENCY
+
+    set_state(l_x_0, 
+    {
+        1.0, // 0
+        1.0,  // 1
+        1.0, // 2
+        -1.0, // 3
+    });
+    
+    set_state(l_x_1, 
+    {
+        -1.0, // 0
+        1.0,  // 1
+        -1.0, // 2
+        1.0, // 3
+    });
+
+    l_model.fwd();
+
+    assert(l_product[0]->m_state == -1.0);
+    assert(l_product[1]->m_state == 1.0);
+    assert(l_product[2]->m_state == 1.0);
+    assert(l_product[3]->m_state == -1.0);
+    assert(l_product[4]->m_state == -1.0);
+    assert(l_product[5]->m_state == -1.0);
+    assert(l_product[6]->m_state == 1.0);
+    assert(l_product[7]->m_state == -1.0);
+    
+}
+
+void test_boolean_expression_modeling(
+
+)
+{
+    std::uniform_real_distribution<double> l_urd(-5, 5);
+    
+    auto l_generate_parameter = [&l_urd]{
+        return l_urd(i_random_engine);
+    };
+    
+    model::begin();
+    
+    auto l_parameter_vector = input<4>(l_generate_parameter);
+    auto l_boolean_vector = tanh(l_parameter_vector);
+
+    auto a = l_boolean_vector[0];
+    auto b = l_boolean_vector[1];
+    auto c = l_boolean_vector[2];
+    auto d = l_boolean_vector[3];
+    
+    // Describe the boolean expression.
+    auto l_y = 
+        conjoin(
+            disjoin(
+                invert(
+                    conjoin(
+                        a, b
+                    )
+                ),
+                invert(
+                    c
+                )
+            ),
+            disjoin(
+                a,
+                d
+            )
+        );
+
+    // We want the boolean function to be satisfied.
+    auto l_desired_y = input(1.0);
+
+    auto l_loss = squared_error(l_y, l_desired_y)->depend();
+
+    model l_model = model::end();
+
+    gradient_descent_with_momentum l_optimizer(
+        l_parameter_vector,
+        false,
+        0.02,
+        0.9
+    );
+
+    for (int l_epoch = 0; true; l_epoch++)
+    {
+        l_model.fwd();
+        
+        if (l_epoch % 1000 == 0)
+            std::cout << "CURRENT SAT STATE: " << l_y->m_state << std::endl;
+        
+        l_loss.m_partial_gradient = 1;
+
+        l_model.bwd();
+
+        l_optimizer.update();
+        
+    }
+    
+}
+
+void test_factoring(
+
+)
+{
+    std::uniform_real_distribution<double> l_urd(-1, 1);
+    
+    auto l_generate_parameter = [&l_urd]{
+        return l_urd(i_random_engine);
+    };
+    
+    model::begin();
+
+    constexpr size_t FACTOR_SIZE = 8;
+
+    auto l_x_0_params = input<FACTOR_SIZE>(l_generate_parameter);
+    auto l_x_0_params_tanh = tanh(l_x_0_params);
+    
+    auto l_x_1_params = input<FACTOR_SIZE>(l_generate_parameter);
+    auto l_x_1_params_tanh = tanh(l_x_1_params);
+
+    // We now have the randomly initialized factors.
+
+    auto l_y = multiplynb(l_x_0_params_tanh, l_x_1_params_tanh);
+
+    auto l_desired = input<2 * FACTOR_SIZE>();
+
+    auto l_loss = invert(equivnb(l_desired, l_y))->depend();
+
+    model l_model = model::end();
+
+    gradient_descent_with_momentum l_optimizer(
+        flatten(l_x_0_params, l_x_1_params),
+        true,
+        0.002,
+        0.9
+    );
+
+    // Now, we select a product which we wish to factor.
+
+    set_state(l_desired,
+    {
+        1.0,
+        -1.0,
+        -1.0,
+        -1.0, //
+        -1.0,
+        1.0,
+        -1.0,
+        -1.0, //
+        1.0,
+        1.0,
+        1.0,
+        1.0,  //
+        1.0,
+        -1.0,
+        1.0,
+        1.0   //
+    });
+
+    for (int l_epoch = 0; true; l_epoch++)
+    {
+        l_model.fwd();
+        l_loss.m_partial_gradient = 1;
+        l_model.bwd();
+        l_optimizer.update();
+        if (l_epoch % 1000 == 0)
+            std::cout << l_loss.m_state << std::endl;
+    }
+
+
+}
+
+void custom_tests(
+
+)
+{
+    test_add1b();
+    test_add8b();
+    test_left_shift();
+    test_pad_back();
+    test_multiplynb();
+    //test_boolean_expression_modeling();
+    test_factoring();
+}
+
+#pragma endregion
 
 int main(
 
 )
 {
-    train_localized_multiplicative_distributor();
-
-    unit_test_main();
+    custom_tests();
 
 	return 0;
 
