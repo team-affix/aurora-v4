@@ -4704,7 +4704,9 @@ int main(
 
 )
 {
-    custom_tests();
+    //custom_tests();
+
+    unit_test_main();
 
 	return 0;
 
